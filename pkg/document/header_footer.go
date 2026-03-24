@@ -532,6 +532,123 @@ func (d *Document) getSectionPropertiesForHeaderFooter() *SectionProperties {
 	return sectPr
 }
 
+// textFormatToRunProperties converts a TextFormat to RunProperties.
+// Returns nil if format is nil.
+func textFormatToRunProperties(format *TextFormat) *RunProperties {
+	if format == nil {
+		return nil
+	}
+	props := &RunProperties{}
+	if format.Bold {
+		props.Bold = &Bold{}
+	}
+	if format.Italic {
+		props.Italic = &Italic{}
+	}
+	if format.FontSize > 0 {
+		// Font size in OOXML is in half-points
+		props.FontSize = &FontSize{Val: strconv.Itoa(format.FontSize * 2)}
+	}
+	if format.FontColor != "" {
+		props.Color = &Color{Val: strings.TrimPrefix(format.FontColor, "#")}
+	}
+	if format.FontFamily != "" {
+		props.FontFamily = &FontFamily{ASCII: format.FontFamily, HAnsi: format.FontFamily}
+	} else if format.FontName != "" {
+		props.FontFamily = &FontFamily{ASCII: format.FontName, HAnsi: format.FontName}
+	}
+	if format.Underline {
+		props.Underline = &Underline{Val: "single"}
+	}
+	if format.Strike {
+		props.Strike = &Strike{}
+	}
+	if format.Highlight != "" {
+		props.Highlight = &Highlight{Val: format.Highlight}
+	}
+	return props
+}
+
+// AddStyleHeader adds a styled header with formatted text, optional red secondary text,
+// and a horizontal rule at the bottom.
+//
+// Parameters:
+//   - headerType: Header type (HeaderFooterTypeDefault, HeaderFooterTypeFirst, HeaderFooterTypeEven)
+//   - text: Primary header text (may contain newlines which are converted to line breaks)
+//   - redText: Optional secondary text displayed in red below the primary text
+//   - format: Optional text formatting for the primary text (can be nil)
+func (d *Document) AddStyleHeader(headerType HeaderFooterType, text, redText string, format *TextFormat) error {
+	header := createStandardHeader()
+
+	// Create header paragraph with formatting
+	paragraph := &Paragraph{}
+
+	// Split text by newlines and add runs with line breaks between
+	lines := strings.Split(text, "\n")
+	for i, line := range lines {
+		if i > 0 {
+			// Add line break between lines
+			paragraph.Runs = append(paragraph.Runs, Run{Break: &Break{}})
+		}
+		run := Run{
+			Text:       Text{Content: line, Space: "preserve"},
+			Properties: textFormatToRunProperties(format), // fresh copy per run
+		}
+		paragraph.Runs = append(paragraph.Runs, run)
+	}
+
+	// Add red text if provided
+	if redText != "" {
+		paragraph.Runs = append(paragraph.Runs, Run{Break: &Break{}})
+		redProps := textFormatToRunProperties(format)
+		if redProps == nil {
+			redProps = &RunProperties{}
+		}
+		redProps.Color = &Color{Val: "FF0000"}
+		paragraph.Runs = append(paragraph.Runs, Run{
+			Text:       Text{Content: redText, Space: "preserve"},
+			Properties: redProps,
+		})
+	}
+
+	// Add horizontal rule (bottom border)
+	paragraph.SetHorizontalRule(BorderStyleSingle, 12, "000000")
+
+	header.Paragraphs = append(header.Paragraphs, paragraph)
+
+	return d.registerHeaderFooterPart(kindHeader, headerType, header)
+}
+
+// ClearHeaderFooterReferences removes all header and footer references from section properties.
+func (d *Document) ClearHeaderFooterReferences() {
+	for _, elem := range d.Body.Elements {
+		if sectPr, ok := elem.(*SectionProperties); ok {
+			sectPr.HeaderReferences = nil
+			sectPr.FooterReferences = nil
+		}
+	}
+}
+
+// AddCurrentHeaderReference adds a header reference to the current (last) section properties.
+func (d *Document) AddCurrentHeaderReference(headerType HeaderFooterType, headerID string) {
+	sectPr := d.getSectionPropertiesForHeaderFooter()
+	headerRef := &HeaderFooterReference{
+		Type: string(headerType),
+		ID:   headerID,
+	}
+	sectPr.HeaderReferences = append(sectPr.HeaderReferences, headerRef)
+}
+
+// AddCurrentFooterReference adds a footer reference to the current (last) section properties.
+func (d *Document) AddCurrentFooterReference(footerType HeaderFooterType, footerID string) {
+	sectPr := d.getSectionPropertiesForHeaderFooter()
+	footerRef := &FooterReference{
+		Type: string(footerType),
+		ID:   footerID,
+	}
+	sectPr.FooterReferences = append(sectPr.FooterReferences, footerRef)
+}
+
 // addContentType adds a content type
 func (d *Document) addContentType(partName, contentType string) {
 	// Check if it already exists

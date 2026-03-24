@@ -180,6 +180,7 @@ type TableCellProperties struct {
 	TcMar         *TableCellMarginsCell `xml:"w:tcMar,omitempty"`     // cell margins
 	NoWrap        *NoWrap               `xml:"w:noWrap,omitempty"`    // no wrap
 	HideMark      *HideMark             `xml:"w:hideMark,omitempty"`  // hide mark
+	Placeholder   *SDTPlaceholder       `xml:"w:placeholder,omitempty"` // cell placeholder
 }
 
 // TableCellMarginsCell represents cell margins (different XML structure from table margins).
@@ -2999,4 +3000,293 @@ type CellImageConfig struct {
 	AltText string
 	// image title
 	Title string
+}
+
+// --------------------------------------------------------------------------
+// Feature 2: Table Cell Images
+// --------------------------------------------------------------------------
+
+// SetCellImage replaces the content of a table cell with an image.
+// The cell's existing paragraphs are discarded and replaced by a single
+// paragraph that contains the inline image drawing.
+func (t *Table) SetCellImage(row, col int, imageInfo *ImageInfo) error {
+	if imageInfo == nil {
+		return fmt.Errorf("imageInfo cannot be nil")
+	}
+	if row < 0 || row >= len(t.Rows) {
+		return fmt.Errorf("row index %d out of range (0-%d)", row, len(t.Rows)-1)
+	}
+	if col < 0 || col >= len(t.Rows[row].Cells) {
+		return fmt.Errorf("column index %d out of range (0-%d)", col, len(t.Rows[row].Cells)-1)
+	}
+
+	para := t.createImageParagraphInCell(imageInfo)
+	t.Rows[row].Cells[col].Paragraphs = []Paragraph{*para}
+	return nil
+}
+
+// AddCellImage appends an image to a table cell, preserving existing content.
+// A new paragraph containing the inline image drawing is appended after any
+// paragraphs that already exist in the cell.
+func (t *Table) AddCellImage(row, col int, imageInfo *ImageInfo) error {
+	if imageInfo == nil {
+		return fmt.Errorf("imageInfo cannot be nil")
+	}
+	if row < 0 || row >= len(t.Rows) {
+		return fmt.Errorf("row index %d out of range (0-%d)", row, len(t.Rows)-1)
+	}
+	if col < 0 || col >= len(t.Rows[row].Cells) {
+		return fmt.Errorf("column index %d out of range (0-%d)", col, len(t.Rows[row].Cells)-1)
+	}
+
+	para := t.createImageParagraphInCell(imageInfo)
+	t.Rows[row].Cells[col].Paragraphs = append(t.Rows[row].Cells[col].Paragraphs, *para)
+	return nil
+}
+
+// createImageParagraphInCell creates a paragraph containing an inline image
+// for use inside a table cell.
+func (t *Table) createImageParagraphInCell(imageInfo *ImageInfo) *Paragraph {
+	displayWidth, displayHeight := calculateCellImageDisplaySize(imageInfo)
+
+	altText := ""
+	title := ""
+	if imageInfo.Config != nil {
+		altText = imageInfo.Config.AltText
+		title = imageInfo.Config.Title
+	}
+
+	drawing := createInlineImageDrawingForCell(imageInfo, displayWidth, displayHeight, altText, title)
+
+	return &Paragraph{
+		Runs: []Run{
+			{Drawing: drawing},
+		},
+	}
+}
+
+// calculateCellImageDisplaySize calculates the display size in EMU
+// (English Metric Units). 1 pixel at 96 DPI = 9525 EMU.
+// When only one dimension is configured the aspect ratio is preserved.
+func calculateCellImageDisplaySize(imageInfo *ImageInfo) (int64, int64) {
+	const emuPerPixel = 9525 // 1 pixel at 96 DPI
+
+	width := int64(imageInfo.Width) * emuPerPixel
+	height := int64(imageInfo.Height) * emuPerPixel
+
+	// Apply configured size if provided.
+	if imageInfo.Config != nil && imageInfo.Config.Size != nil {
+		size := imageInfo.Config.Size
+		switch {
+		case size.Width > 0 && size.Height > 0:
+			width = int64(size.Width * 36000)  // mm to EMU
+			height = int64(size.Height * 36000) // mm to EMU
+		case size.Width > 0 && imageInfo.Width > 0:
+			ratio := float64(imageInfo.Height) / float64(imageInfo.Width)
+			width = int64(size.Width * 36000)
+			height = int64(float64(width) * ratio)
+		case size.Height > 0 && imageInfo.Height > 0:
+			ratio := float64(imageInfo.Width) / float64(imageInfo.Height)
+			height = int64(size.Height * 36000)
+			width = int64(float64(height) * ratio)
+		}
+	}
+
+	return width, height
+}
+
+// createInlineImageDrawingForCell builds a DrawingElement with an inline
+// image suitable for embedding in a table cell. It mirrors the structure
+// produced by Document.createInlineImageDrawing but does not require a
+// Document receiver.
+func createInlineImageDrawingForCell(imageInfo *ImageInfo, displayWidth, displayHeight int64, altText, title string) *DrawingElement {
+	return &DrawingElement{
+		Inline: &InlineDrawing{
+			DistT: "0",
+			DistB: "0",
+			DistL: "0",
+			DistR: "0",
+			Extent: &DrawingExtent{
+				Cx: fmt.Sprintf("%d", displayWidth),
+				Cy: fmt.Sprintf("%d", displayHeight),
+			},
+			DocPr: &DrawingDocPr{
+				ID:    imageInfo.ID,
+				Name:  fmt.Sprintf("Image %s", imageInfo.ID),
+				Descr: altText,
+				Title: title,
+			},
+			Graphic: &DrawingGraphic{
+				Xmlns: "http://schemas.openxmlformats.org/drawingml/2006/main",
+				GraphicData: &GraphicData{
+					URI: "http://schemas.openxmlformats.org/drawingml/2006/picture",
+					Pic: &PicElement{
+						Xmlns: "http://schemas.openxmlformats.org/drawingml/2006/picture",
+						NvPicPr: &NvPicPr{
+							CNvPr: &CNvPr{
+								ID:    imageInfo.ID,
+								Name:  fmt.Sprintf("Image %s", imageInfo.ID),
+								Descr: altText,
+								Title: title,
+							},
+							CNvPicPr: &CNvPicPr{
+								PicLocks: &PicLocks{
+									NoChangeAspect: "1",
+								},
+							},
+						},
+						BlipFill: &BlipFill{
+							Blip: &Blip{
+								Embed: imageInfo.RelationID,
+							},
+							Stretch: &Stretch{
+								FillRect: &FillRect{},
+							},
+						},
+						SpPr: &SpPr{
+							Xfrm: &Xfrm{
+								Off: &Off{
+									X: "0",
+									Y: "0",
+								},
+								Ext: &Ext{
+									Cx: fmt.Sprintf("%d", displayWidth),
+									Cy: fmt.Sprintf("%d", displayHeight),
+								},
+							},
+							PrstGeom: &PrstGeom{
+								Prst:  "rect",
+								AvLst: &AvLst{},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+}
+
+// --------------------------------------------------------------------------
+// Feature 3: Table Cell Placeholders
+// --------------------------------------------------------------------------
+
+// SetCellPlaceholder sets a placeholder text on a table cell.
+// If the cell does not already have properties they are created automatically.
+func (t *Table) SetCellPlaceholder(row, col int, placeholderText string) error {
+	if row < 0 || row >= len(t.Rows) {
+		return fmt.Errorf("row index %d out of range (0-%d)", row, len(t.Rows)-1)
+	}
+	if col < 0 || col >= len(t.Rows[row].Cells) {
+		return fmt.Errorf("column index %d out of range (0-%d)", col, len(t.Rows[row].Cells)-1)
+	}
+
+	cell := &t.Rows[row].Cells[col]
+	if cell.Properties == nil {
+		cell.Properties = &TableCellProperties{}
+	}
+	cell.Properties.Placeholder = &SDTPlaceholder{
+		DocPart: &DocPart{Val: placeholderText},
+	}
+	return nil
+}
+
+// GetCellPlaceholder returns the placeholder text of a table cell, or an
+// empty string if no placeholder has been set.
+func (t *Table) GetCellPlaceholder(row, col int) (string, error) {
+	if row < 0 || row >= len(t.Rows) {
+		return "", fmt.Errorf("row index %d out of range (0-%d)", row, len(t.Rows)-1)
+	}
+	if col < 0 || col >= len(t.Rows[row].Cells) {
+		return "", fmt.Errorf("column index %d out of range (0-%d)", col, len(t.Rows[row].Cells)-1)
+	}
+
+	cell := &t.Rows[row].Cells[col]
+	if cell.Properties == nil || cell.Properties.Placeholder == nil || cell.Properties.Placeholder.DocPart == nil {
+		return "", nil
+	}
+	return cell.Properties.Placeholder.DocPart.Val, nil
+}
+
+// RemoveCellPlaceholder removes the placeholder from a table cell.
+func (t *Table) RemoveCellPlaceholder(row, col int) error {
+	if row < 0 || row >= len(t.Rows) {
+		return fmt.Errorf("row index %d out of range (0-%d)", row, len(t.Rows)-1)
+	}
+	if col < 0 || col >= len(t.Rows[row].Cells) {
+		return fmt.Errorf("column index %d out of range (0-%d)", col, len(t.Rows[row].Cells)-1)
+	}
+
+	cell := &t.Rows[row].Cells[col]
+	if cell.Properties != nil {
+		cell.Properties.Placeholder = nil
+	}
+	return nil
+}
+
+// HasCellPlaceholder returns true if the cell has a placeholder set.
+func (t *Table) HasCellPlaceholder(row, col int) (bool, error) {
+	if row < 0 || row >= len(t.Rows) {
+		return false, fmt.Errorf("row index %d out of range (0-%d)", row, len(t.Rows)-1)
+	}
+	if col < 0 || col >= len(t.Rows[row].Cells) {
+		return false, fmt.Errorf("column index %d out of range (0-%d)", col, len(t.Rows[row].Cells)-1)
+	}
+
+	cell := &t.Rows[row].Cells[col]
+	if cell.Properties == nil || cell.Properties.Placeholder == nil || cell.Properties.Placeholder.DocPart == nil {
+		return false, nil
+	}
+	return cell.Properties.Placeholder.DocPart.Val != "", nil
+}
+
+// SetCellPlaceholderRange sets the same placeholder text on every cell in the
+// rectangular region from (startRow, startCol) to (endRow, endCol) inclusive.
+func (t *Table) SetCellPlaceholderRange(startRow, startCol, endRow, endCol int, text string) error {
+	if startRow > endRow {
+		return fmt.Errorf("startRow (%d) must be <= endRow (%d)", startRow, endRow)
+	}
+	if startCol > endCol {
+		return fmt.Errorf("startCol (%d) must be <= endCol (%d)", startCol, endCol)
+	}
+	if startRow < 0 || endRow >= len(t.Rows) {
+		return fmt.Errorf("row range [%d-%d] out of bounds (0-%d)", startRow, endRow, len(t.Rows)-1)
+	}
+
+	for r := startRow; r <= endRow; r++ {
+		if startCol < 0 || endCol >= len(t.Rows[r].Cells) {
+			return fmt.Errorf("column range [%d-%d] out of bounds for row %d (0-%d)", startCol, endCol, r, len(t.Rows[r].Cells)-1)
+		}
+		for c := startCol; c <= endCol; c++ {
+			if err := t.SetCellPlaceholder(r, c, text); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// RemoveCellPlaceholderRange removes placeholders from every cell in the
+// rectangular region from (startRow, startCol) to (endRow, endCol) inclusive.
+func (t *Table) RemoveCellPlaceholderRange(startRow, startCol, endRow, endCol int) error {
+	if startRow > endRow {
+		return fmt.Errorf("startRow (%d) must be <= endRow (%d)", startRow, endRow)
+	}
+	if startCol > endCol {
+		return fmt.Errorf("startCol (%d) must be <= endCol (%d)", startCol, endCol)
+	}
+	if startRow < 0 || endRow >= len(t.Rows) {
+		return fmt.Errorf("row range [%d-%d] out of bounds (0-%d)", startRow, endRow, len(t.Rows)-1)
+	}
+
+	for r := startRow; r <= endRow; r++ {
+		if startCol < 0 || endCol >= len(t.Rows[r].Cells) {
+			return fmt.Errorf("column range [%d-%d] out of bounds for row %d (0-%d)", startCol, endCol, r, len(t.Rows[r].Cells)-1)
+		}
+		for c := startCol; c <= endCol; c++ {
+			if err := t.RemoveCellPlaceholder(r, c); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }

@@ -161,6 +161,7 @@ type ParagraphProperties struct {
 	PageBreakBefore     *PageBreakBefore     `xml:"w:pageBreakBefore,omitempty"` // Page break before paragraph
 	WidowControl        *WidowControl        `xml:"w:widowControl,omitempty"`    // Widow/orphan control
 	OutlineLevel        *OutlineLevel        `xml:"w:outlineLvl,omitempty"`      // Outline level
+	SectionProperties   *SectionProperties   `xml:"w:sectPr,omitempty"`          // Section properties (for section breaks)
 }
 
 // SnapToGrid controls snap-to-grid alignment.
@@ -1149,6 +1150,43 @@ func (p *Paragraph) AddPageBreak() {
 	DebugMsg(MsgAddingPageBreakToParagraph)
 }
 
+// AddLineBreak adds a line break to the paragraph, optionally followed by text.
+// If text is non-empty, it is added as a separate run after the break.
+func (p *Paragraph) AddLineBreak(text string) {
+	// Add a run with a Break element (line break, not page break)
+	breakRun := Run{
+		Break: &Break{}, // Empty Type = line break (no Type attr = line break)
+	}
+	p.Runs = append(p.Runs, breakRun)
+
+	// If text provided, add it as a separate run after the break
+	if text != "" {
+		textRun := Run{
+			Text: Text{Content: text},
+		}
+		p.Runs = append(p.Runs, textRun)
+	}
+}
+
+// AddRun adds a formatted text run to the paragraph.
+// format and runProps are both optional (can be nil).
+// If both are provided, runProps takes precedence for overlapping properties.
+func (p *Paragraph) AddRun(text string, format *TextFormat, runProps *RunProperties) {
+	run := Run{
+		Text: Text{Content: text},
+	}
+
+	if runProps != nil {
+		run.Properties = runProps
+	} else if format != nil {
+		props := &RunProperties{}
+		applyTextFormat(props, format)
+		run.Properties = props
+	}
+
+	p.Runs = append(p.Runs, run)
+}
+
 // AddHeadingParagraph adds a heading paragraph to the document.
 //
 // The text parameter is the heading's text content.
@@ -1196,6 +1234,30 @@ func (d *Document) AddHeadingParagraph(text string, level int) *Paragraph {
 //	// Add level 3 heading with auto-generated bookmark name
 //	h3 := doc.AddHeadingParagraphWithBookmark("1.1.1 Research Goals", 3, "auto_bookmark")
 func (d *Document) AddHeadingParagraphWithBookmark(text string, level int, bookmarkName string) *Paragraph {
+	return d.AddHeadingParagraphWithBookmarkFormatted(text, level, bookmarkName, nil)
+}
+
+// AddHeadingParagraphWithBookmarkFormatted adds a heading paragraph with a bookmark and optional text formatting.
+// If format is nil, default heading style formatting is used.
+//
+// The text parameter is the heading's text content.
+// The level parameter is the heading level (1-9), corresponding to Heading1 through Heading9.
+// The bookmarkName parameter is the bookmark name; if empty, no bookmark is added.
+// The format parameter allows overriding the default heading style formatting.
+//
+// Returns a pointer to the newly created paragraph for further property setting.
+//
+// Example:
+//
+//	doc := document.New()
+//
+//	// Add heading with custom formatting
+//	h1 := doc.AddHeadingParagraphWithBookmarkFormatted("Chapter 1", 1, "ch1", &document.TextFormat{
+//		Bold:      true,
+//		FontSize:  24,
+//		FontColor: "FF0000",
+//	})
+func (d *Document) AddHeadingParagraphWithBookmarkFormatted(text string, level int, bookmarkName string, format *TextFormat) *Paragraph {
 	if level < 1 || level > 9 {
 		DebugMsgf(MsgHeadingLevelOutOfRange, level)
 		level = 1
@@ -1211,23 +1273,30 @@ func (d *Document) AddHeadingParagraphWithBookmark(text string, level int, bookm
 		return d.AddParagraph(text)
 	}
 
-	// Create run properties, applying character formatting from the style
-	runProps := &RunProperties{}
-	if headingStyle.RunPr != nil {
-		if headingStyle.RunPr.Bold != nil {
-			runProps.Bold = &Bold{}
-		}
-		if headingStyle.RunPr.Italic != nil {
-			runProps.Italic = &Italic{}
-		}
-		if headingStyle.RunPr.FontSize != nil {
-			runProps.FontSize = &FontSize{Val: headingStyle.RunPr.FontSize.Val}
-		}
-		if headingStyle.RunPr.Color != nil {
-			runProps.Color = &Color{Val: headingStyle.RunPr.Color.Val}
-		}
-		if headingStyle.RunPr.FontFamily != nil {
-			runProps.FontFamily = &FontFamily{ASCII: headingStyle.RunPr.FontFamily.ASCII}
+	// Build run properties from explicit format, falling back to style defaults
+	var runProps *RunProperties
+	if format != nil {
+		runProps = &RunProperties{}
+		applyTextFormat(runProps, format)
+	} else {
+		// Apply character formatting from the style
+		runProps = &RunProperties{}
+		if headingStyle.RunPr != nil {
+			if headingStyle.RunPr.Bold != nil {
+				runProps.Bold = &Bold{}
+			}
+			if headingStyle.RunPr.Italic != nil {
+				runProps.Italic = &Italic{}
+			}
+			if headingStyle.RunPr.FontSize != nil {
+				runProps.FontSize = &FontSize{Val: headingStyle.RunPr.FontSize.Val}
+			}
+			if headingStyle.RunPr.Color != nil {
+				runProps.Color = &Color{Val: headingStyle.RunPr.Color.Val}
+			}
+			if headingStyle.RunPr.FontFamily != nil {
+				runProps.FontFamily = &FontFamily{ASCII: headingStyle.RunPr.FontFamily.ASCII}
+			}
 		}
 	}
 

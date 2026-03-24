@@ -56,18 +56,26 @@ var (
 	ErrInvalidPageSettings = errors.New("invalid page settings")
 )
 
+// SectionType represents the section type (e.g., continuous, nextPage).
+type SectionType struct {
+	XMLName xml.Name `xml:"w:type"`
+	Val     string   `xml:"w:val,attr"`
+}
+
 // SectionProperties holds section properties including page settings.
+// Field order must match OOXML CT_SectPr schema (ECMA-376 §17.6.17).
 type SectionProperties struct {
 	XMLName          xml.Name                 `xml:"w:sectPr"`
 	XmlnsR           string                   `xml:"xmlns:r,attr,omitempty"`
+	HeaderReferences []*HeaderFooterReference `xml:"w:headerReference,omitempty"`
+	FooterReferences []*FooterReference       `xml:"w:footerReference,omitempty"`
 	PageSize         *PageSizeXML             `xml:"w:pgSz,omitempty"`
 	PageMargins      *PageMargin              `xml:"w:pgMar,omitempty"`
 	Columns          *Columns                 `xml:"w:cols,omitempty"`
-	HeaderReferences []*HeaderFooterReference `xml:"w:headerReference,omitempty"`
-	FooterReferences []*FooterReference       `xml:"w:footerReference,omitempty"`
 	TitlePage        *TitlePage               `xml:"w:titlePg,omitempty"`
 	PageNumType      *PageNumType             `xml:"w:pgNumType,omitempty"`
 	DocGrid          *DocGrid                 `xml:"w:docGrid,omitempty"`
+	SectionType      *SectionType             `xml:"w:type,omitempty"`
 }
 
 // PageSizeXML represents the page size XML structure.
@@ -101,6 +109,7 @@ type Columns struct {
 type PageNumType struct {
 	XMLName xml.Name `xml:"w:pgNumType"`
 	Fmt     string   `xml:"w:fmt,attr,omitempty"`
+	Start   string   `xml:"w:start,attr,omitempty"` // Starting page number
 }
 
 // PageSettings holds page settings configuration.
@@ -493,4 +502,54 @@ func (d *Document) ClearDocGrid() error {
 	sectPr := d.getSectionProperties()
 	sectPr.DocGrid = nil
 	return nil
+}
+
+// SetStartPageNumber sets the starting page number for the document.
+// Valid range is 0-32767 per OOXML specification.
+func (d *Document) SetStartPageNumber(startPage int) error {
+	if startPage < 0 {
+		return fmt.Errorf("page number cannot be negative: %d", startPage)
+	}
+	sectPr := d.getSectionPropertiesForHeaderFooter()
+	if sectPr.PageNumType == nil {
+		sectPr.PageNumType = &PageNumType{}
+	}
+	sectPr.PageNumType.Start = strconv.Itoa(startPage)
+	return nil
+}
+
+// ResetPageNumber resets the page number at the most recent section break.
+// It searches Body.Elements in reverse for a paragraph with SectionProperties
+// and sets the PageNumType.Start on it. If no section break is found, it falls
+// back to the document end section properties.
+func (d *Document) ResetPageNumber(startNumber int) {
+	if d.Body == nil {
+		return
+	}
+
+	// Search Body.Elements in reverse for a paragraph with SectionProperties
+	for i := len(d.Body.Elements) - 1; i >= 0; i-- {
+		if para, ok := d.Body.Elements[i].(*Paragraph); ok {
+			if para.Properties != nil && para.Properties.SectionProperties != nil {
+				sectPr := para.Properties.SectionProperties
+				if sectPr.PageNumType == nil {
+					sectPr.PageNumType = &PageNumType{}
+				}
+				sectPr.PageNumType.Start = strconv.Itoa(startNumber)
+				return
+			}
+		}
+	}
+
+	// Fall back to document end section properties
+	sectPr := d.getSectionPropertiesForHeaderFooter()
+	if sectPr.PageNumType == nil {
+		sectPr.PageNumType = &PageNumType{}
+	}
+	sectPr.PageNumType.Start = strconv.Itoa(startNumber)
+}
+
+// RestartPageNumber restarts page numbering from 1 at the most recent section break.
+func (d *Document) RestartPageNumber() {
+	d.ResetPageNumber(1)
 }
