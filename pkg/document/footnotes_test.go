@@ -584,6 +584,18 @@ func TestFootnoteXML_ContainsFootnoteTextStyle(t *testing.T) {
 	}
 }
 
+func TestFootnoteContentNoVerticalAlign(t *testing.T) {
+	doc := New()
+	doc.AddFootnote("text", "footnote content")
+
+	xmlStr := string(doc.parts[testFootnotesXMLPath])
+	// The footnote content self-reference run should use rStyle only,
+	// not vertAlign (the style provides superscript)
+	if strings.Contains(xmlStr, "vertAlign") {
+		t.Error("footnote content should not contain vertAlign (style provides superscript)")
+	}
+}
+
 func TestFootnoteReferenceHasRunStyle(t *testing.T) {
 	doc := New()
 	doc.AddFootnote("text", "footnote")

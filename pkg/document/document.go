@@ -109,6 +109,35 @@ func (t *Table) ElementType() string {
 	return "table"
 }
 
+// RawXMLElement preserves an unknown XML element encountered during document parsing.
+// It stores the original element name, attributes, and inner XML content so it can
+// be re-emitted during serialization without loss.
+type RawXMLElement struct {
+	XMLName  xml.Name
+	Attrs    []xml.Attr `xml:"-"`
+	InnerXML string     `xml:",innerxml"`
+}
+
+// ElementType returns "raw_xml" for preserved unknown elements.
+func (r *RawXMLElement) ElementType() string {
+	return "raw_xml"
+}
+
+// MarshalXML custom serializes the raw XML element, preserving original attributes.
+func (r *RawXMLElement) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	// Use the preserved element name and attributes
+	start.Name = r.XMLName
+	start.Attr = r.Attrs
+
+	// For elements with inner XML, we need to write the raw content
+	// Use a temporary struct with innerxml tag
+	type rawContent struct {
+		InnerXML string `xml:",innerxml"`
+	}
+
+	return e.EncodeElement(rawContent{InnerXML: r.InnerXML}, start)
+}
+
 // Paragraph represents a paragraph
 type Paragraph struct {
 	XMLName    xml.Name             `xml:"w:p"`
@@ -2144,9 +2173,7 @@ func (d *Document) parseBodyElement(decoder *xml.Decoder) error {
 			if err != nil {
 				return err
 			}
-			if element != nil {
-				d.Body.Elements = append(d.Body.Elements, element)
-			}
+			d.Body.Elements = append(d.Body.Elements, element)
 		case xml.EndElement:
 			if t.Name.Local == "body" {
 				return nil
@@ -2170,9 +2197,9 @@ func (d *Document) parseBodySubElement(decoder *xml.Decoder, startElement xml.St
 		// Parse section properties
 		return d.parseSectionProperties(decoder, startElement)
 	default:
-		// Skip unknown element
-		DebugMsgf(MsgSkippingUnknownElement, startElement.Name.Local)
-		return nil, d.skipElement(decoder, startElement.Name.Local)
+		// Preserve unknown element as raw XML for round-trip fidelity
+		DebugMsgf(MsgPreservingUnknownElement, startElement.Name.Local)
+		return d.captureElement(decoder, startElement)
 	}
 }
 
@@ -2347,6 +2374,8 @@ func (d *Document) parseNumberingProperties(decoder *xml.Decoder) (*NumberingPro
 }
 
 // parseRun parses a text run
+//
+//nolint:gocognit
 func (d *Document) parseRun(decoder *xml.Decoder, startElement xml.StartElement) (*Run, error) {
 	run := &Run{
 		Text: Text{},
@@ -2384,6 +2413,57 @@ func (d *Document) parseRun(decoder *xml.Decoder, startElement xml.StartElement)
 					return nil, err
 				}
 				run.Drawing = drawing
+			case "fldChar":
+				fldCharType := getAttributeValue(t.Attr, "fldCharType")
+				run.FieldChar = &FieldChar{FieldCharType: fldCharType}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "instrText":
+				space := getAttributeValue(t.Attr, "space")
+				content, err := d.readElementText(decoder, "instrText")
+				if err != nil {
+					return nil, err
+				}
+				run.InstrText = &InstrText{Space: space, Content: content}
+			case "footnoteReference":
+				id := getAttributeValue(t.Attr, "id")
+				run.FootnoteReference = &FootnoteReference{ID: id}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "endnoteReference":
+				id := getAttributeValue(t.Attr, "id")
+				run.EndnoteReference = &EndnoteReference{ID: id}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "footnoteRef":
+				run.FootnoteRef = &FootnoteRef{}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "endnoteRef":
+				run.EndnoteRef = &EndnoteRef{}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "separator":
+				run.Separator = &Separator{}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "continuationSeparator":
+				run.ContinuationSeparator = &ContinuationSeparator{}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "br":
+				brType := getAttributeValue(t.Attr, "type")
+				run.Break = &Break{Type: brType}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
 			default:
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
@@ -2488,6 +2568,22 @@ func (d *Document) parseRunProperties(decoder *xml.Decoder, run *Run) error {
 					EastAsia: eastAsia,
 					CS:       cs,
 					Hint:     hint,
+				}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return err
+				}
+			case "rStyle":
+				val := getAttributeValue(t.Attr, "val")
+				if val != "" {
+					run.Properties.RunStyle = &RunStyle{Val: val}
+				}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return err
+				}
+			case "vertAlign":
+				val := getAttributeValue(t.Attr, "val")
+				if val != "" {
+					run.Properties.VerticalAlign = &VerticalAlignment{Val: val}
 				}
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return err
@@ -2933,6 +3029,45 @@ func (d *Document) skipElement(decoder *xml.Decoder, elementName string) error {
 		}
 	}
 	return nil
+}
+
+// captureElement captures an unknown XML element and all its children as a RawXMLElement.
+// The decoder should have already consumed the start element token.
+func (d *Document) captureElement(decoder *xml.Decoder, startElement xml.StartElement) (*RawXMLElement, error) {
+	var buf bytes.Buffer
+	enc := xml.NewEncoder(&buf)
+
+	depth := 1
+	for depth > 0 {
+		token, err := decoder.Token()
+		if err != nil {
+			return nil, WrapError("capture_element", err)
+		}
+
+		switch token.(type) {
+		case xml.StartElement:
+			depth++
+		case xml.EndElement:
+			depth--
+		}
+
+		// Encode all tokens except the final end element
+		if depth > 0 {
+			if err := enc.EncodeToken(xml.CopyToken(token)); err != nil {
+				return nil, WrapError("capture_element", err)
+			}
+		}
+	}
+
+	if err := enc.Flush(); err != nil {
+		return nil, WrapError("capture_element", err)
+	}
+
+	return &RawXMLElement{
+		XMLName:  startElement.Name,
+		Attrs:    startElement.Attr,
+		InnerXML: buf.String(),
+	}, nil
 }
 
 // readElementText reads the text content of an element

@@ -107,6 +107,7 @@ const (
 	MsgDisablingParagraphGrid            MsgKey = "disabling_paragraph_grid"
 	MsgEnablingParagraphGrid             MsgKey = "enabling_paragraph_grid"
 	MsgSkippingUnknownElement            MsgKey = "skipping_unknown_element"
+	MsgPreservingUnknownElement          MsgKey = "preserving_unknown_element"
 	MsgExistingStylesDetected            MsgKey = "existing_styles_detected"
 	MsgDocRelFileNotFound                MsgKey = "doc_rel_file_not_found"
 	MsgParagraphIndexNegative            MsgKey = "paragraph_index_negative"
@@ -284,6 +285,7 @@ var messagesZH = map[MsgKey]string{
 	MsgDisablingParagraphGrid:            "禁用段落网格对齐",
 	MsgEnablingParagraphGrid:             "启用段落网格对齐（默认）",
 	MsgSkippingUnknownElement:            "跳过未知元素: %s",
+	MsgPreservingUnknownElement:          "保留未知元素: %s",
 	MsgExistingStylesDetected:            "检测到已有 styles.xml，跳过样式重建以保留模板默认样式",
 	MsgDocRelFileNotFound:                "文档关系文件不存在，文档可能不包含图片等资源",
 	MsgParagraphIndexNegative:            "错误：段落索引不能为负数: %d",
@@ -441,6 +443,7 @@ var messagesEN = map[MsgKey]string{
 	MsgDisablingParagraphGrid:            "Disabling paragraph grid alignment",
 	MsgEnablingParagraphGrid:             "Enabling paragraph grid alignment (default)",
 	MsgSkippingUnknownElement:            "Skipping unknown element: %s",
+	MsgPreservingUnknownElement:          "Preserving unknown element: %s",
 	MsgExistingStylesDetected:            "Existing styles.xml detected, skipping style rebuild to preserve template styles",
 	MsgDocRelFileNotFound:                "Document relationships file not found, document may not contain images or resources",
 	MsgParagraphIndexNegative:            "Error: paragraph index cannot be negative: %d",

@@ -525,10 +525,10 @@ func (d *Document) createNoteContent(noteID string, noteText string, noteType Fo
 	}
 
 	// Create self-reference Run (displays footnote/endnote number)
+	// Note: only rStyle is needed — the style itself provides superscript
 	selfRefRun := Run{
 		Properties: &RunProperties{
-			RunStyle:      &RunStyle{Val: refRunStyle},
-			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+			RunStyle: &RunStyle{Val: refRunStyle},
 		},
 	}
 	if noteType == FootnoteTypeFootnote {
