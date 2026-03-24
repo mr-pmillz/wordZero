@@ -1475,13 +1475,13 @@ func TestRowHeightConstants(t *testing.T) {
 // TestTableAlignmentConstants tests table alignment constants
 func TestTableAlignmentConstants(t *testing.T) {
 	// Verify table alignment constants are correctly defined
-	if TableAlignLeft != "left" {
+	if string(TableAlignLeft) != string(CellAlignLeft) {
 		t.Errorf("expected TableAlignLeft to be 'left', got '%s'", TableAlignLeft)
 	}
-	if TableAlignCenter != "center" {
+	if string(TableAlignCenter) != "center" {
 		t.Errorf("expected TableAlignCenter to be 'center', got '%s'", TableAlignCenter)
 	}
-	if TableAlignRight != "right" {
+	if string(TableAlignRight) != string(CellAlignRight) {
 		t.Errorf("expected TableAlignRight to be 'right', got '%s'", TableAlignRight)
 	}
 }

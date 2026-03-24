@@ -10,9 +10,10 @@ import (
 
 // TestRealWorldNestedTableScenario 测试真实场景：简历中的家庭成员表格
 // 这个测试模拟了issue中描述的场景
+//nolint:dupl
 func TestRealWorldNestedTableScenario(t *testing.T) {
 	// 确保输出目录存在
-	outputDir := "output"
+	outputDir := testOutputDir
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
 		err = os.Mkdir(outputDir, 0755)
 		if err != nil {
@@ -97,7 +98,7 @@ func TestRealWorldNestedTableScenario(t *testing.T) {
 
 	// 将家庭成员表格嵌套到主表格的单元格中
 	mainTable.Rows[1].Cells[1].Tables = []document.Table{*familyTable}
-	
+
 	// 保存模板文档
 	templatePath := "output/resume_template.docx"
 	err = doc.Save(templatePath)

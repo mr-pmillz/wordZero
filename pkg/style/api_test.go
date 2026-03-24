@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+const testAlignCenter = "center"
+
 func TestNewQuickStyleAPI(t *testing.T) {
 	sm := NewStyleManager()
 	api := NewQuickStyleAPI(sm)
@@ -63,7 +65,7 @@ func TestGetAllStylesInfo(t *testing.T) {
 	// Check if it contains expected styles
 	styleFound := false
 	for _, info := range allStyles {
-		if info.ID == "Normal" {
+		if info.ID == StyleNormal {
 			styleFound = true
 			break
 		}
@@ -143,9 +145,9 @@ func TestCreateQuickStyle(t *testing.T) {
 		ID:      "TestCustomStyle",
 		Name:    "测试自定义样式",
 		Type:    StyleTypeParagraph,
-		BasedOn: "Normal",
+		BasedOn: StyleNormal,
 		ParagraphConfig: &QuickParagraphConfig{
-			Alignment:   "center",
+			Alignment:   testAlignCenter,
 			LineSpacing: 1.5,
 			SpaceBefore: 12,
 			SpaceAfter:  6,
@@ -174,22 +176,18 @@ func TestCreateQuickStyle(t *testing.T) {
 	// Verify paragraph properties
 	if style.ParagraphPr == nil {
 		t.Error("custom style should have paragraph properties")
-	} else {
-		if style.ParagraphPr.Justification == nil || style.ParagraphPr.Justification.Val != "center" {
-			t.Error("paragraph alignment not set correctly")
-		}
+	} else if style.ParagraphPr.Justification == nil || style.ParagraphPr.Justification.Val != testAlignCenter {
+		t.Error("paragraph alignment not set correctly")
 	}
 
 	// Verify run properties
-	if style.RunPr == nil {
+	switch {
+	case style.RunPr == nil:
 		t.Error("custom style should have run properties")
-	} else {
-		if style.RunPr.Bold == nil {
-			t.Error("bold property not set correctly")
-		}
-		if style.RunPr.FontSize == nil || style.RunPr.FontSize.Val != "28" {
-			t.Error("font size not set correctly")
-		}
+	case style.RunPr.Bold == nil:
+		t.Error("bold property not set correctly")
+	case style.RunPr.FontSize == nil || style.RunPr.FontSize.Val != "28":
+		t.Error("font size not set correctly")
 	}
 
 	// Test creating style with duplicate ID
@@ -201,7 +199,7 @@ func TestCreateQuickStyle(t *testing.T) {
 
 func TestCreateParagraphProperties(t *testing.T) {
 	config := &QuickParagraphConfig{
-		Alignment:       "center",
+		Alignment:       testAlignCenter,
 		LineSpacing:     1.5,
 		SpaceBefore:     12,
 		SpaceAfter:      6,
@@ -217,7 +215,7 @@ func TestCreateParagraphProperties(t *testing.T) {
 	}
 
 	// Check alignment
-	if props.Justification == nil || props.Justification.Val != "center" {
+	if props.Justification == nil || props.Justification.Val != testAlignCenter {
 		t.Error("alignment not set correctly")
 	}
 
@@ -236,10 +234,8 @@ func TestCreateParagraphProperties(t *testing.T) {
 	// Check indentation
 	if props.Indentation == nil {
 		t.Error("indentation properties not set")
-	} else {
-		if props.Indentation.FirstLine != "480" { // 24 * 20
-			t.Errorf("first line indent not set correctly, expected '480', got '%s'", props.Indentation.FirstLine)
-		}
+	} else if props.Indentation.FirstLine != "480" { // 24 * 20
+		t.Errorf("first line indent not set correctly, expected '480', got '%s'", props.Indentation.FirstLine)
 	}
 }
 
@@ -264,10 +260,8 @@ func TestCreateRunProperties(t *testing.T) {
 	// Check font settings
 	if props.FontFamily == nil {
 		t.Error("font family not set")
-	} else {
-		if props.FontFamily.ASCII != "微软雅黑" {
-			t.Errorf("ASCII font not set correctly, expected '微软雅黑', got '%s'", props.FontFamily.ASCII)
-		}
+	} else if props.FontFamily.ASCII != "微软雅黑" {
+		t.Errorf("ASCII font not set correctly, expected '微软雅黑', got '%s'", props.FontFamily.ASCII)
 	}
 
 	if props.FontSize == nil || props.FontSize.Val != "28" { // 14 * 2
@@ -318,10 +312,8 @@ func TestCreateParagraphPropertiesWithSnapToGrid(t *testing.T) {
 	// Check SnapToGrid setting
 	if props.SnapToGrid == nil {
 		t.Error("SnapToGrid should be set")
-	} else {
-		if props.SnapToGrid.Val != "0" {
-			t.Errorf("SnapToGrid.Val not set correctly, expected '0', got '%s'", props.SnapToGrid.Val)
-		}
+	} else if props.SnapToGrid.Val != "0" {
+		t.Errorf("SnapToGrid.Val not set correctly, expected '0', got '%s'", props.SnapToGrid.Val)
 	}
 
 	// Check line spacing

@@ -11,6 +11,8 @@ import (
 	"testing"
 )
 
+const testTitleKey = "title"
+
 // TestNewTemplateEngine tests creating a template engine
 func TestNewTemplateEngine(t *testing.T) {
 	engine := NewTemplateEngine()
@@ -266,12 +268,12 @@ func TestTemplateData(t *testing.T) {
 
 	// Test batch setting variables
 	variables := map[string]interface{}{
-		"title":   "测试标题",
-		"content": "测试内容",
+		testTitleKey: "测试标题",
+		"content":    "测试内容",
 	}
 	data.SetVariables(variables)
 
-	title, exists := data.GetVariable("title")
+	title, exists := data.GetVariable(testTitleKey)
 	if !exists || title != "测试标题" {
 		t.Error("Expected batch set variables to work")
 	}
@@ -447,6 +449,7 @@ func TestComplexTemplateRendering(t *testing.T) {
 }
 
 // TestImagePlaceholder tests image placeholder functionality
+//nolint:gocognit
 func TestImagePlaceholder(t *testing.T) {
 	engine := NewTemplateEngine()
 
@@ -589,7 +592,7 @@ func TestImagePlaceholder(t *testing.T) {
 		data.SetImageFromData("test2", imageData, config)
 
 		// Test SetImageWithDetails method
-		data.SetImageWithDetails("test3", "path/to/image2.jpg", imageData, config, "alt text", "title")
+		data.SetImageWithDetails("test3", "path/to/image2.jpg", imageData, config, "alt text", testTitleKey)
 
 		// Test GetImage method
 		img1, exists1 := data.GetImage("test1")
@@ -603,7 +606,7 @@ func TestImagePlaceholder(t *testing.T) {
 		}
 
 		img3, exists3 := data.GetImage("test3")
-		if !exists3 || img3.AltText != "alt text" || img3.Title != "title" {
+		if !exists3 || img3.AltText != "alt text" || img3.Title != testTitleKey {
 			t.Error("image 3 data is incorrect")
 		}
 

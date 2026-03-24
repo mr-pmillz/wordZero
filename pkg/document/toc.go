@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+const (
+	// styleHeading1 is the style name for heading level 1.
+	styleHeading1 = "Heading1"
+)
+
 // TOCConfig holds table of contents configuration.
 type TOCConfig struct {
 	Title        string // TOC title, defaults to "Table of Contents"
@@ -120,7 +125,7 @@ func (d *Document) UpdateTOC() error {
 		entries := d.collectHeadings(config.MaxLevel)
 		for _, entry := range entries {
 			if err := d.addTOCEntry(entry, config); err != nil {
-				return fmt.Errorf("failed to update TOC entry: %v", err)
+				return fmt.Errorf("failed to update TOC entry: %w", err)
 			}
 		}
 		return nil
@@ -280,7 +285,7 @@ func (d *Document) getHeadingLevel(paragraph *Paragraph) int {
 
 		// Support standard style name matching
 		switch styleVal {
-		case "Heading1", "heading1", "Title1":
+		case styleHeading1, "heading1", "Title1":
 			return 1
 		case "Heading2", "heading2", "Title2":
 			return 2
@@ -347,48 +352,6 @@ func (d *Document) extractParagraphText(paragraph *Paragraph) string {
 		text.WriteString(run.Text.Content)
 	}
 	return text.String()
-}
-
-// insertTOCField inserts a TOC field into the document.
-func (d *Document) insertTOCField(config *TOCConfig) error {
-	// Build the TOC instruction
-	instr := fmt.Sprintf("TOC \\o \"1-%d\"", config.MaxLevel)
-	if config.UseHyperlink {
-		instr += " \\h"
-	}
-	if !config.ShowPageNum {
-		instr += " \\n"
-	}
-
-	// Create the TOC field paragraph
-	tocPara := &Paragraph{
-		Properties: &ParagraphProperties{
-			ParagraphStyle: &ParagraphStyle{Val: "TOC1"},
-		},
-	}
-
-	// Add field begin
-	fieldStart := Run{
-		Properties: &RunProperties{},
-		Text:       Text{Content: ""}, // Field begin marker
-	}
-
-	// Add field instruction
-	fieldInstr := Run{
-		Properties: &RunProperties{},
-		Text:       Text{Content: instr},
-	}
-
-	// Add field end
-	fieldEnd := Run{
-		Properties: &RunProperties{},
-		Text:       Text{Content: ""}, // Field end marker
-	}
-
-	tocPara.Runs = append(tocPara.Runs, fieldStart, fieldInstr, fieldEnd)
-	d.Body.Elements = append(d.Body.Elements, tocPara)
-
-	return nil
 }
 
 // addTOCEntry adds a table of contents entry to the document.

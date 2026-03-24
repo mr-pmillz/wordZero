@@ -99,31 +99,31 @@ func TestDebugPageSettings(t *testing.T) {
 		// 横向后应该是：279.4mm x 215.9mm
 		// 转换为twips：279.4 * 56.69 ≈ 15840，215.9 * 56.69 ≈ 12240
 
-		width_twips := 15840.0
-		height_twips := 12240.0
-		width_mm := width_twips / 56.692913385827
-		height_mm := height_twips / 56.692913385827
+		widthTwips := 15840.0
+		heightTwips := 12240.0
+		widthMm := widthTwips / 56.692913385827
+		heightMm := heightTwips / 56.692913385827
 
-		fmt.Printf("  从XML读取: 宽度=%d twips, 高度=%d twips\n", int(width_twips), int(height_twips))
-		fmt.Printf("  转换为毫米: 宽度=%.1fmm, 高度=%.1fmm\n", width_mm, height_mm)
+		fmt.Printf("  从XML读取: 宽度=%d twips, 高度=%d twips\n", int(widthTwips), int(heightTwips))
+		fmt.Printf("  转换为毫米: 宽度=%.1fmm, 高度=%.1fmm\n", widthMm, heightMm)
 
 		// 测试页面尺寸识别
 		fmt.Printf("  Letter纵向尺寸: 215.9mm x 279.4mm\n")
 		fmt.Printf("  Letter横向尺寸: 279.4mm x 215.9mm\n")
-		fmt.Printf("  实际解析尺寸: %.1fmm x %.1fmm\n", width_mm, height_mm)
+		fmt.Printf("  实际解析尺寸: %.1fmm x %.1fmm\n", widthMm, heightMm)
 
 		// 检查容差
 		tolerance := 1.0
-		letter_width := 215.9
-		letter_height := 279.4
+		letterWidth := 215.9
+		letterHeight := 279.4
 
 		// 检查横向匹配
-		landscape_match := (math.Abs(width_mm-letter_height) < tolerance && math.Abs(height_mm-letter_width) < tolerance)
-		fmt.Printf("  横向Letter匹配: %t (容差=%.1fmm)\n", landscape_match, tolerance)
+		landscapeMatch := (math.Abs(widthMm-letterHeight) < tolerance && math.Abs(heightMm-letterWidth) < tolerance)
+		fmt.Printf("  横向Letter匹配: %t (容差=%.1fmm)\n", landscapeMatch, tolerance)
 
 		// 检查纵向匹配
-		portrait_match := (math.Abs(width_mm-letter_width) < tolerance && math.Abs(height_mm-letter_height) < tolerance)
-		fmt.Printf("  纵向Letter匹配: %t (容差=%.1fmm)\n", portrait_match, tolerance)
+		portraitMatch := (math.Abs(widthMm-letterWidth) < tolerance && math.Abs(heightMm-letterHeight) < tolerance)
+		fmt.Printf("  纵向Letter匹配: %t (容差=%.1fmm)\n", portraitMatch, tolerance)
 	} else {
 		fmt.Printf("未找到document.xml\n")
 	}

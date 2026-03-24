@@ -7,6 +7,8 @@ import (
 )
 
 // TestMarkdownTableConversion 测试Markdown表格转换
+//
+//nolint:dupl
 func TestMarkdownTableConversion(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -68,6 +70,7 @@ func TestMarkdownTableConversion(t *testing.T) {
 }
 
 // TestMarkdownTaskListConversion 测试Markdown任务列表转换
+//nolint:dupl
 func TestMarkdownTaskListConversion(t *testing.T) {
 	tests := []struct {
 		name     string

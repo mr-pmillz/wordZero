@@ -250,9 +250,9 @@ func createTestImageRGBA(width, height int) []byte {
 	// Create gradient colors
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
-			r := uint8(x * 255 / width)
-			g := uint8(y * 255 / height)
-			b := uint8((x + y) * 255 / (width + height))
+			r := uint8(x * 255 / width)   //nolint:gosec
+			g := uint8(y * 255 / height)  //nolint:gosec
+			b := uint8((x + y) * 255 / (width + height)) //nolint:gosec
 			img.SetRGBA(x, y, color.RGBA{r, g, b, 255})
 		}
 	}

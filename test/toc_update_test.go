@@ -17,9 +17,9 @@ func TestTOCUpdate(t *testing.T) {
 	// 配置目录
 	tocConfig := &document.TOCConfig{
 		Title:       "目录", // 目录标题
-		MaxLevel:    3,      // 包含到哪个标题级别
-		ShowPageNum: true,   // 是否显示页码
-		DotLeader:   true,   // 是否使用点状引导线
+		MaxLevel:    3,    // 包含到哪个标题级别
+		ShowPageNum: true, // 是否显示页码
+		DotLeader:   true, // 是否使用点状引导线
 	}
 
 	// 添加封面

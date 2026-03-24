@@ -309,7 +309,7 @@ func (d *Document) addFootnoteOrEndnote(text string, noteText string, noteType F
 
 	// Create footnote/endnote content
 	if err := d.createNoteContent(noteID, noteText, noteType); err != nil {
-		return fmt.Errorf("failed to create %s content: %v", noteType, err)
+		return fmt.Errorf("failed to create %s content: %w", noteType, err)
 	}
 
 	return nil
@@ -404,7 +404,7 @@ func (d *Document) SetFootnoteConfig(config *FootnoteConfig) error {
 
 	// Update document settings
 	if err := d.updateDocumentSettings(footnoteProps, endnoteProps); err != nil {
-		return fmt.Errorf("failed to update footnote configuration: %v", err)
+		return fmt.Errorf("failed to update footnote configuration: %w", err)
 	}
 
 	return nil
@@ -423,120 +423,90 @@ func (d *Document) ensureFootnoteInitialized(noteType FootnoteType) {
 	}
 }
 
-// initializeFootnotes initializes the footnote system
-func (d *Document) initializeFootnotes() {
-	footnotes := &Footnotes{
-		Xmlns:     "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-		Footnotes: []*Footnote{},
-	}
-
-	// Add the default separator footnote (id=-1)
-	separatorFootnote := &Footnote{
-		Type: "separator",
-		ID:   "-1",
-		Paragraphs: []*Paragraph{
-			{
-				Properties: &ParagraphProperties{
-					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-				},
-				Runs: []Run{
-					{Separator: &Separator{}},
-				},
+// initializeNotes is a shared helper that initializes either the footnote or endnote system.
+func (d *Document) initializeNotes(noteType FootnoteType) {
+	separatorParagraphs := []*Paragraph{
+		{
+			Properties: &ParagraphProperties{
+				Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
+			},
+			Runs: []Run{
+				{Separator: &Separator{}},
 			},
 		},
 	}
-	footnotes.Footnotes = append(footnotes.Footnotes, separatorFootnote)
-
-	// Add continuation separator footnote (id=0)
-	continuationFootnote := &Footnote{
-		Type: "continuationSeparator",
-		ID:   "0",
-		Paragraphs: []*Paragraph{
-			{
-				Properties: &ParagraphProperties{
-					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-				},
-				Runs: []Run{
-					{ContinuationSeparator: &ContinuationSeparator{}},
-				},
+	continuationParagraphs := []*Paragraph{
+		{
+			Properties: &ParagraphProperties{
+				Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
+			},
+			Runs: []Run{
+				{ContinuationSeparator: &ContinuationSeparator{}},
 			},
 		},
 	}
-	footnotes.Footnotes = append(footnotes.Footnotes, continuationFootnote)
 
-	// Serialize footnotes
-	footnotesXML, err := xml.MarshalIndent(footnotes, "", "  ")
+	var xmlBytes []byte
+	var err error
+	var partName, contentTypeName, relType, target string
+
+	if noteType == FootnoteTypeFootnote {
+		footnotes := &Footnotes{
+			Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+			Footnotes: []*Footnote{
+				{Type: "separator", ID: "-1", Paragraphs: separatorParagraphs},
+				{Type: "continuationSeparator", ID: "0", Paragraphs: continuationParagraphs},
+			},
+		}
+		xmlBytes, err = xml.MarshalIndent(footnotes, "", "  ")
+		partName = "word/footnotes.xml"
+		contentTypeName = "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"
+		relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes"
+		target = "footnotes.xml"
+	} else {
+		endnotes := &Endnotes{
+			Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+			Endnotes: []*Endnote{
+				{Type: "separator", ID: "-1", Paragraphs: separatorParagraphs},
+				{Type: "continuationSeparator", ID: "0", Paragraphs: continuationParagraphs},
+			},
+		}
+		xmlBytes, err = xml.MarshalIndent(endnotes, "", "  ")
+		partName = "word/endnotes.xml"
+		contentTypeName = "application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml"
+		relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes"
+		target = "endnotes.xml"
+	}
+
 	if err != nil {
 		return
 	}
 
 	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
-	d.parts["word/footnotes.xml"] = append(xmlDeclaration, footnotesXML...)
+	d.parts[partName] = append(xmlDeclaration, xmlBytes...)
 
 	// Add content type
-	d.addContentType("word/footnotes.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml")
+	d.addContentType(partName, contentTypeName)
 
 	// Add relationship
-	d.addFootnoteRelationship()
+	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
+	relationship := Relationship{
+		ID:     relationshipID,
+		Type:   relType,
+		Target: target,
+	}
+	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
+}
+
+// initializeFootnotes initializes the footnote system
+func (d *Document) initializeFootnotes() {
+	d.initializeNotes(FootnoteTypeFootnote)
 }
 
 // initializeEndnotes initializes the endnote system
 func (d *Document) initializeEndnotes() {
-	endnotes := &Endnotes{
-		Xmlns:    "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-		Endnotes: []*Endnote{},
-	}
-
-	// Add the default separator endnote (id=-1)
-	separatorEndnote := &Endnote{
-		Type: "separator",
-		ID:   "-1",
-		Paragraphs: []*Paragraph{
-			{
-				Properties: &ParagraphProperties{
-					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-				},
-				Runs: []Run{
-					{Separator: &Separator{}},
-				},
-			},
-		},
-	}
-	endnotes.Endnotes = append(endnotes.Endnotes, separatorEndnote)
-
-	// Add continuation separator endnote (id=0)
-	continuationEndnote := &Endnote{
-		Type: "continuationSeparator",
-		ID:   "0",
-		Paragraphs: []*Paragraph{
-			{
-				Properties: &ParagraphProperties{
-					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-				},
-				Runs: []Run{
-					{ContinuationSeparator: &ContinuationSeparator{}},
-				},
-			},
-		},
-	}
-	endnotes.Endnotes = append(endnotes.Endnotes, continuationEndnote)
-
-	// Serialize endnotes
-	endnotesXML, err := xml.MarshalIndent(endnotes, "", "  ")
-	if err != nil {
-		return
-	}
-
-	// Add XML declaration
-	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
-	d.parts["word/endnotes.xml"] = append(xmlDeclaration, endnotesXML...)
-
-	// Add content type
-	d.addContentType("word/endnotes.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml")
-
-	// Add relationship
-	d.addEndnoteRelationship()
+	d.initializeNotes(FootnoteTypeEndnote)
 }
 
 // createNoteContent creates footnote/endnote content
@@ -605,147 +575,80 @@ func (d *Document) createNoteContent(noteID string, noteText string, noteType Fo
 	return nil
 }
 
-// updateFootnotesFile updates the footnotes file
-func (d *Document) updateFootnotesFile() {
+// updateNotesFile is a shared helper that updates either the footnotes or endnotes file.
+func (d *Document) updateNotesFile(noteType FootnoteType) {
 	manager := d.getFootnoteManager()
 
-	footnotes := &Footnotes{
-		Xmlns:     "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-		Footnotes: []*Footnote{},
-	}
-
-	// Add default separator (id=-1)
-	separatorFootnote := &Footnote{
-		Type: "separator",
-		ID:   "-1",
-		Paragraphs: []*Paragraph{
-			{
-				Properties: &ParagraphProperties{
-					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-				},
-				Runs: []Run{
-					{Separator: &Separator{}},
-				},
+	separatorParagraphs := []*Paragraph{
+		{
+			Properties: &ParagraphProperties{
+				Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
+			},
+			Runs: []Run{
+				{Separator: &Separator{}},
 			},
 		},
 	}
-	footnotes.Footnotes = append(footnotes.Footnotes, separatorFootnote)
-
-	// Add continuation separator (id=0)
-	continuationFootnote := &Footnote{
-		Type: "continuationSeparator",
-		ID:   "0",
-		Paragraphs: []*Paragraph{
-			{
-				Properties: &ParagraphProperties{
-					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-				},
-				Runs: []Run{
-					{ContinuationSeparator: &ContinuationSeparator{}},
-				},
+	continuationParagraphs := []*Paragraph{
+		{
+			Properties: &ParagraphProperties{
+				Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
+			},
+			Runs: []Run{
+				{ContinuationSeparator: &ContinuationSeparator{}},
 			},
 		},
 	}
-	footnotes.Footnotes = append(footnotes.Footnotes, continuationFootnote)
 
-	// Add all footnotes
-	for _, footnote := range manager.footnotes {
-		footnotes.Footnotes = append(footnotes.Footnotes, footnote)
+	var xmlBytes []byte
+	var err error
+	var partName string
+
+	if noteType == FootnoteTypeFootnote {
+		footnotes := &Footnotes{
+			Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+			Footnotes: []*Footnote{
+				{Type: "separator", ID: "-1", Paragraphs: separatorParagraphs},
+				{Type: "continuationSeparator", ID: "0", Paragraphs: continuationParagraphs},
+			},
+		}
+		for _, footnote := range manager.footnotes {
+			footnotes.Footnotes = append(footnotes.Footnotes, footnote)
+		}
+		xmlBytes, err = xml.MarshalIndent(footnotes, "", "  ")
+		partName = "word/footnotes.xml"
+	} else {
+		endnotes := &Endnotes{
+			Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
+			Endnotes: []*Endnote{
+				{Type: "separator", ID: "-1", Paragraphs: separatorParagraphs},
+				{Type: "continuationSeparator", ID: "0", Paragraphs: continuationParagraphs},
+			},
+		}
+		for _, endnote := range manager.endnotes {
+			endnotes.Endnotes = append(endnotes.Endnotes, endnote)
+		}
+		xmlBytes, err = xml.MarshalIndent(endnotes, "", "  ")
+		partName = "word/endnotes.xml"
 	}
 
-	// Serialize
-	footnotesXML, err := xml.MarshalIndent(footnotes, "", "  ")
 	if err != nil {
 		return
 	}
 
 	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
-	d.parts["word/footnotes.xml"] = append(xmlDeclaration, footnotesXML...)
+	d.parts[partName] = append(xmlDeclaration, xmlBytes...)
+}
+
+// updateFootnotesFile updates the footnotes file
+func (d *Document) updateFootnotesFile() {
+	d.updateNotesFile(FootnoteTypeFootnote)
 }
 
 // updateEndnotesFile updates the endnotes file
 func (d *Document) updateEndnotesFile() {
-	manager := d.getFootnoteManager()
-
-	endnotes := &Endnotes{
-		Xmlns:    "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-		Endnotes: []*Endnote{},
-	}
-
-	// Add default separator (id=-1)
-	separatorEndnote := &Endnote{
-		Type: "separator",
-		ID:   "-1",
-		Paragraphs: []*Paragraph{
-			{
-				Properties: &ParagraphProperties{
-					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-				},
-				Runs: []Run{
-					{Separator: &Separator{}},
-				},
-			},
-		},
-	}
-	endnotes.Endnotes = append(endnotes.Endnotes, separatorEndnote)
-
-	// Add continuation separator (id=0)
-	continuationEndnote := &Endnote{
-		Type: "continuationSeparator",
-		ID:   "0",
-		Paragraphs: []*Paragraph{
-			{
-				Properties: &ParagraphProperties{
-					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-				},
-				Runs: []Run{
-					{ContinuationSeparator: &ContinuationSeparator{}},
-				},
-			},
-		},
-	}
-	endnotes.Endnotes = append(endnotes.Endnotes, continuationEndnote)
-
-	// Add all endnotes
-	for _, endnote := range manager.endnotes {
-		endnotes.Endnotes = append(endnotes.Endnotes, endnote)
-	}
-
-	// Serialize
-	endnotesXML, err := xml.MarshalIndent(endnotes, "", "  ")
-	if err != nil {
-		return
-	}
-
-	// Add XML declaration
-	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
-	d.parts["word/endnotes.xml"] = append(xmlDeclaration, endnotesXML...)
-}
-
-// addFootnoteRelationship adds the footnote relationship
-func (d *Document) addFootnoteRelationship() {
-	// +2 because rId1 is reserved for styles.xml in serializeDocumentRelationships
-	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
-
-	relationship := Relationship{
-		ID:     relationshipID,
-		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
-		Target: "footnotes.xml",
-	}
-	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
-}
-
-// addEndnoteRelationship adds the endnote relationship
-func (d *Document) addEndnoteRelationship() {
-	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
-
-	relationship := Relationship{
-		ID:     relationshipID,
-		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes",
-		Target: "endnotes.xml",
-	}
-	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
+	d.updateNotesFile(FootnoteTypeEndnote)
 }
 
 // GetFootnoteCount returns the number of footnotes
@@ -824,7 +727,7 @@ func (d *Document) updateDocumentSettings(footnoteProps *FootnoteProperties, end
 	// Parse existing settings.xml
 	settings, err := d.parseSettings()
 	if err != nil {
-		return fmt.Errorf("failed to parse settings file: %v", err)
+		return fmt.Errorf("failed to parse settings file: %w", err)
 	}
 
 	// Update footnote settings
@@ -924,7 +827,7 @@ func (d *Document) saveSettings(settings *Settings) error {
 	// Serialize to XML
 	settingsXML, err := xml.MarshalIndent(settings, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to serialize settings.xml: %v", err)
+		return fmt.Errorf("failed to serialize settings.xml: %w", err)
 	}
 
 	// Add XML declaration

@@ -17,9 +17,9 @@ func main() {
 	// 配置目录
 	tocConfig := &document.TOCConfig{
 		Title:       "目录", // 目录标题
-		MaxLevel:    3,      // 包含到哪个标题级别
-		ShowPageNum: true,   // 是否显示页码
-		DotLeader:   true,   // 是否使用点状引导线
+		MaxLevel:    3,    // 包含到哪个标题级别
+		ShowPageNum: true, // 是否显示页码
+		DotLeader:   true, // 是否使用点状引导线
 	}
 
 	// 添加封面
@@ -36,16 +36,16 @@ func main() {
 	fmt.Println("添加标题...")
 	doc.AddHeadingParagraph("第一章", 1)
 	doc.AddParagraph("这是第一章的内容。")
-	
+
 	doc.AddHeadingParagraph("1.1 第一节", 2)
 	doc.AddParagraph("这是第一节的内容。")
-	
+
 	doc.AddHeadingParagraph("1.1.1 第一小节", 3)
 	doc.AddParagraph("这是第一小节的内容。")
-	
+
 	doc.AddHeadingParagraph("第二章", 1)
 	doc.AddParagraph("这是第二章的内容。")
-	
+
 	doc.AddHeadingParagraph("2.1 第二节", 2)
 	doc.AddParagraph("这是第二节的内容。")
 

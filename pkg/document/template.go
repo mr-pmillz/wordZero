@@ -486,7 +486,7 @@ func (te *TemplateEngine) renderLoops(content string, lists map[string][]interfa
 }
 
 // renderLoopsNested handles nested loops using recursion.
-func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]interface{}, depth int) string {
+func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]interface{}, depth int) string { //nolint:gocognit
 	// Find the first {{#each}} tag
 	eachStartPattern := regexp.MustCompile(`\{\{#each\s+(\w+)\}\}`)
 	startMatch := eachStartPattern.FindStringIndex(content)
@@ -507,7 +507,7 @@ func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]i
 	blockStart := startMatch[1] // position after {{#each xxx}}
 
 	// Use a stack to find the matching {{/each}}
-	depth_counter := 1
+	depthCounter := 1
 	pos := blockStart
 	blockEnd := -1
 
@@ -525,17 +525,17 @@ func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]i
 		// Determine whether the next match is a start or end tag
 		if nextEach != nil && nextEach[0] < nextEnd[0] {
 			// Next is a nested start tag
-			depth_counter++
-			pos = pos + nextEach[1]
+			depthCounter++
+			pos += nextEach[1]
 		} else {
 			// Next is an end tag
-			depth_counter--
-			if depth_counter == 0 {
+			depthCounter--
+			if depthCounter == 0 {
 				// Found the matching end tag
 				blockEnd = pos + nextEnd[0]
 				break
 			}
-			pos = pos + nextEnd[1]
+			pos += nextEnd[1]
 		}
 	}
 
@@ -760,13 +760,6 @@ func (te *TemplateEngine) validateEachStatements(content string) error {
 	}
 
 	return nil
-}
-
-// documentToTemplateString converts a document to a template string.
-func (te *TemplateEngine) documentToTemplateString(doc *Document) (string, error) {
-	// No longer convert to a plain string; instead preserve the original document structure.
-	// Variable substitution should be performed directly on the original document.
-	return "", nil // handled in a separate method
 }
 
 // extractTemplateContentFromDocument extracts template content from a document.
@@ -1001,26 +994,6 @@ func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *Sec
 	}
 
 	return sectPr
-}
-
-// cloneHeaderFooterParts copies header/footer parts (kept for backward compatibility; now handled by cloneAllDocumentParts).
-func (te *TemplateEngine) cloneHeaderFooterParts(source, dest *Document) {
-	if source.parts == nil {
-		return
-	}
-
-	for partName, partData := range source.parts {
-		// Copy header files
-		if strings.HasPrefix(partName, "word/header") {
-			dest.parts[partName] = make([]byte, len(partData))
-			copy(dest.parts[partName], partData)
-		}
-		// Copy footer files
-		if strings.HasPrefix(partName, "word/footer") {
-			dest.parts[partName] = make([]byte, len(partData))
-			copy(dest.parts[partName], partData)
-		}
-	}
 }
 
 // cloneParagraph deep copies a paragraph.
@@ -1850,7 +1823,7 @@ func (te *TemplateEngine) replaceVariablesInHeadersFooters(doc *Document, data *
 		if strings.HasPrefix(partName, "word/header") && strings.HasSuffix(partName, ".xml") {
 			newData, err := te.replaceVariablesInXMLPart(partData, data)
 			if err != nil {
-				return fmt.Errorf("failed to replace variables in header %s: %v", partName, err)
+				return fmt.Errorf("failed to replace variables in header %s: %w", partName, err)
 			}
 			doc.parts[partName] = newData
 		}
@@ -1858,7 +1831,7 @@ func (te *TemplateEngine) replaceVariablesInHeadersFooters(doc *Document, data *
 		if strings.HasPrefix(partName, "word/footer") && strings.HasSuffix(partName, ".xml") {
 			newData, err := te.replaceVariablesInXMLPart(partData, data)
 			if err != nil {
-				return fmt.Errorf("failed to replace variables in footer %s: %v", partName, err)
+				return fmt.Errorf("failed to replace variables in footer %s: %w", partName, err)
 			}
 			doc.parts[partName] = newData
 		}
@@ -1902,7 +1875,7 @@ func (te *TemplateEngine) escapeXMLContent(s string) string {
 }
 
 // processDocumentLevelLoops processes document-level loops (across paragraphs).
-func (te *TemplateEngine) processDocumentLevelLoops(doc *Document, data *TemplateData) error {
+func (te *TemplateEngine) processDocumentLevelLoops(doc *Document, data *TemplateData) error { //nolint:gocognit
 	elements := doc.Body.Elements
 	newElements := make([]interface{}, 0)
 
@@ -2131,7 +2104,6 @@ func (te *TemplateEngine) replaceVariablesSequentially(originalRunInfos []struct
 	endIndex   int
 	run        *Run
 }, originalText string, data *TemplateData) ([]Run, bool) {
-
 	// Find all variable positions
 	varPattern := regexp.MustCompile(`\{\{(\w+)\}\}`)
 	varMatches := varPattern.FindAllStringSubmatchIndex(originalText, -1)
@@ -2234,7 +2206,6 @@ func (te *TemplateEngine) processConditionals(originalRunInfos []struct {
 	endIndex   int
 	run        *Run
 }, originalText string, data *TemplateData) ([]Run, bool) {
-
 	processedText := te.renderConditionals(originalText, data.Conditions)
 
 	if processedText == originalText {
@@ -2395,7 +2366,7 @@ func (te *TemplateEngine) containsTemplateLoopInRuns(runs []Run) bool {
 }
 
 // renderTableTemplate renders a table template.
-func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) error {
+func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) error { //nolint:gocognit
 	if len(table.Rows) == 0 {
 		return nil
 	}
@@ -2770,7 +2741,7 @@ func (te *TemplateEngine) processImagePlaceholders(doc *Document, data *Template
 }
 
 // processImagePlaceholdersInTable processes image placeholders in a table (Fix for Issue #91).
-func (te *TemplateEngine) processImagePlaceholdersInTable(table *Table, data *TemplateData, doc *Document) error {
+func (te *TemplateEngine) processImagePlaceholdersInTable(table *Table, data *TemplateData, doc *Document) error { //nolint:gocognit
 	for rowIdx := range table.Rows {
 		for cellIdx := range table.Rows[rowIdx].Cells {
 			cell := &table.Rows[rowIdx].Cells[cellIdx]
@@ -2861,7 +2832,7 @@ func (te *TemplateEngine) processImagePlaceholdersInParagraph(para *Paragraph, d
 		if imageData, exists := data.Images[imageName]; exists {
 			imagePara, err := te.createImageParagraph(imageData, doc)
 			if err != nil {
-				return nil, fmt.Errorf("failed to create image paragraph: %v", err)
+				return nil, fmt.Errorf("failed to create image paragraph: %w", err)
 			}
 			result = append(result, imagePara)
 		} else {
@@ -2924,51 +2895,52 @@ func (te *TemplateEngine) createImageParagraph(imageData *TemplateImageData, doc
 	var imageInfo *ImageInfo
 	var err error
 
-	if len(imageData.Data) > 0 {
+	switch {
+	case len(imageData.Data) > 0:
 		// Use binary data
 		var format ImageFormat
 		format, err = detectImageFormat(imageData.Data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to detect image format: %v", err)
+			return nil, fmt.Errorf("failed to detect image format: %w", err)
 		}
 
 		var width, height int
 		width, height, err = getImageDimensions(imageData.Data, format)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get image dimensions: %v", err)
+			return nil, fmt.Errorf("failed to get image dimensions: %w", err)
 		}
 
 		// Use a unique filename that includes the image ID counter
 		fileName := fmt.Sprintf("image_%d.%s", doc.nextImageID, string(format))
 		// Use the method that does not create a paragraph element; the template engine manages paragraphs
 		imageInfo, err = doc.AddImageFromDataWithoutElement(imageData.Data, fileName, format, width, height, config)
-	} else if imageData.FilePath != "" {
+	case imageData.FilePath != "":
 		// Use file path, but first read the data, then use AddImageFromDataWithoutElement
 		data, readErr := os.ReadFile(imageData.FilePath)
 		if readErr != nil {
-			return nil, fmt.Errorf("failed to read image file: %v", readErr)
+			return nil, fmt.Errorf("failed to read image file: %w", readErr)
 		}
 
 		var format ImageFormat
 		format, err = detectImageFormat(data)
 		if err != nil {
-			return nil, fmt.Errorf("failed to detect image format: %v", err)
+			return nil, fmt.Errorf("failed to detect image format: %w", err)
 		}
 
 		var width, height int
 		width, height, err = getImageDimensions(data, format)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get image dimensions: %v", err)
+			return nil, fmt.Errorf("failed to get image dimensions: %w", err)
 		}
 
 		fileName := filepath.Base(imageData.FilePath)
 		imageInfo, err = doc.AddImageFromDataWithoutElement(data, fileName, format, width, height, config)
-	} else {
+	default:
 		return nil, fmt.Errorf("both image data and file path are empty")
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("failed to add image: %v", err)
+		return nil, fmt.Errorf("failed to add image: %w", err)
 	}
 
 	// Set image description and title

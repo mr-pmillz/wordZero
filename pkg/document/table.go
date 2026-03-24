@@ -7,6 +7,43 @@ import (
 	"strings"
 )
 
+// newDefaultTableProperties creates default table properties for a given width.
+func newDefaultTableProperties(width int) *TableProperties {
+	return &TableProperties{
+		TableW: &TableWidth{
+			W:    fmt.Sprintf("%d", width),
+			Type: "dxa",
+		},
+		TableJc: &TableJc{
+			Val: "center",
+		},
+		TableLook: &TableLook{
+			Val:      "04A0",
+			FirstRow: "1",
+			LastRow:  "0",
+			FirstCol: "1",
+			LastCol:  "0",
+			NoHBand:  "0",
+			NoVBand:  "1",
+		},
+		TableBorders: &TableBorders{
+			Top:     &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
+			Left:    &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
+			Bottom:  &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
+			Right:   &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
+			InsideH: &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
+			InsideV: &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
+		},
+		TableLayout: &TableLayoutType{
+			Type: "autofit",
+		},
+		TableCellMar: &TableCellMargins{
+			Left:  &TableCellSpace{W: "108", Type: "dxa"},
+			Right: &TableCellSpace{W: "108", Type: "dxa"},
+		},
+	}
+}
+
 // Table represents a table.
 type Table struct {
 	XMLName    xml.Name         `xml:"w:tbl"`
@@ -209,79 +246,9 @@ func (d *Document) CreateTable(config *TableConfig) (*Table, error) {
 	}
 
 	table := &Table{
-		Properties: &TableProperties{
-			TableW: &TableWidth{
-				W:    fmt.Sprintf("%d", config.Width),
-				Type: "dxa", // unit in twips
-			},
-			TableJc: &TableJc{
-				Val: "center", // default center alignment
-			},
-			TableLook: &TableLook{
-				Val:      "04A0",
-				FirstRow: "1",
-				LastRow:  "0",
-				FirstCol: "1",
-				LastCol:  "0",
-				NoHBand:  "0",
-				NoVBand:  "1",
-			},
-			// add default table borders using single-line border style matching the tmp_test reference table
-			TableBorders: &TableBorders{
-				Top: &TableBorder{
-					Val:   "single", // single line border style
-					Sz:    "4",      // border thickness (1/8 point)
-					Space: "0",      // border spacing
-					Color: "auto",   // automatic color
-				},
-				Left: &TableBorder{
-					Val:   "single",
-					Sz:    "4",
-					Space: "0",
-					Color: "auto",
-				},
-				Bottom: &TableBorder{
-					Val:   "single",
-					Sz:    "4",
-					Space: "0",
-					Color: "auto",
-				},
-				Right: &TableBorder{
-					Val:   "single",
-					Sz:    "4",
-					Space: "0",
-					Color: "auto",
-				},
-				InsideH: &TableBorder{
-					Val:   "single",
-					Sz:    "4",
-					Space: "0",
-					Color: "auto",
-				},
-				InsideV: &TableBorder{
-					Val:   "single",
-					Sz:    "4",
-					Space: "0",
-					Color: "auto",
-				},
-			},
-			// add table layout and cell margin settings consistent with the reference table
-			TableLayout: &TableLayoutType{
-				Type: "autofit", // auto-fit layout
-			},
-			TableCellMar: &TableCellMargins{
-				Left: &TableCellSpace{
-					W:    "108", // left margin (matching reference table)
-					Type: "dxa",
-				},
-				Right: &TableCellSpace{
-					W:    "108", // right margin (matching reference table)
-					Type: "dxa",
-				},
-			},
-		},
-		Grid: &TableGrid{},
-		Rows: make([]TableRow, 0, config.Rows),
+		Properties: newDefaultTableProperties(config.Width),
+		Grid:       &TableGrid{},
+		Rows:       make([]TableRow, 0, config.Rows),
 	}
 
 	// set column widths
@@ -1126,7 +1093,7 @@ func (t *Table) MergeCellsRange(startRow, endRow, startCol, endCol int) error {
 		if startCol != endCol {
 			err := t.MergeCellsHorizontal(i, startCol, endCol)
 			if err != nil {
-				return fmt.Errorf("failed to merge row %d horizontally: %v", i, err)
+				return fmt.Errorf("failed to merge row %d horizontally: %w", i, err)
 			}
 		}
 	}
@@ -1135,7 +1102,7 @@ func (t *Table) MergeCellsRange(startRow, endRow, startCol, endCol int) error {
 	if startRow != endRow {
 		err := t.MergeCellsVertical(startRow, endRow, startCol)
 		if err != nil {
-			return fmt.Errorf("vertical merge failed: %v", err)
+			return fmt.Errorf("vertical merge failed: %w", err)
 		}
 	}
 
@@ -1143,6 +1110,7 @@ func (t *Table) MergeCellsRange(startRow, endRow, startCol, endCol int) error {
 	return nil
 }
 
+//nolint:gocognit
 // UnmergeCells cancels cell merge.
 func (t *Table) UnmergeCells(row, col int) error {
 	cell, err := t.GetCell(row, col)
@@ -1265,10 +1233,11 @@ func (t *Table) GetMergedCellInfo(row, col int) (map[string]interface{}, error) 
 	// check for vertical merge
 	if cell.Properties.VMerge != nil {
 		info["is_merged"] = true
-		if cell.Properties.VMerge.Val == "restart" {
+		switch cell.Properties.VMerge.Val {
+		case "restart":
 			info["vertical_merge_start"] = true
 			info["merge_type"] = "vertical"
-		} else if cell.Properties.VMerge.Val == "continue" {
+		case "continue":
 			info["vertical_merge_continue"] = true
 			info["merge_type"] = "vertical"
 		}
@@ -1519,7 +1488,7 @@ func (t *Table) SetRowHeightRange(startRow, endRow int, config *RowHeightConfig)
 	for i := startRow; i <= endRow; i++ {
 		err := t.SetRowHeight(i, config)
 		if err != nil {
-			return fmt.Errorf("failed to set height for row %d: %v", i, err)
+			return fmt.Errorf("failed to set height for row %d: %w", i, err)
 		}
 	}
 
@@ -1730,7 +1699,7 @@ func (t *Table) SetHeaderRows(startRow, endRow int) error {
 	for i := startRow; i <= endRow; i++ {
 		err := t.SetRowAsHeader(i, true)
 		if err != nil {
-			return fmt.Errorf("failed to set row %d as header: %v", i, err)
+			return fmt.Errorf("failed to set row %d as header: %w", i, err)
 		}
 	}
 
@@ -2284,7 +2253,7 @@ func (t *Table) SetAlternatingRowColors(evenRowColor, oddRowColor string) error 
 				BackgroundColor: bgColor,
 			})
 			if err != nil {
-				return fmt.Errorf("failed to set background color for row %d, column %d: %v", i, j, err)
+				return fmt.Errorf("failed to set background color for row %d, column %d: %w", i, j, err)
 			}
 		}
 	}
@@ -2343,7 +2312,6 @@ func (t *Table) CreateCustomTableStyle(styleID, styleName string,
 	borderConfig *TableBorderConfig,
 	shadingConfig *ShadingConfig,
 	firstRowBold bool) error {
-
 	// apply style to table
 	config := &TableStyleConfig{
 		StyleID:        styleID,
@@ -2451,7 +2419,7 @@ func (iter *CellIterator) Next() (*CellInfo, error) {
 	// get current cell
 	cell, err := iter.table.GetCell(iter.currentRow, iter.currentCol)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get cell: %v", err)
+		return nil, fmt.Errorf("failed to get cell: %w", err)
 	}
 
 	// get cell text
@@ -2513,11 +2481,11 @@ func (t *Table) ForEach(fn func(row, col int, cell *TableCell, text string) erro
 	for iterator.HasNext() {
 		cellInfo, err := iterator.Next()
 		if err != nil {
-			return fmt.Errorf("iteration failed: %v", err)
+			return fmt.Errorf("iteration failed: %w", err)
 		}
 
 		if err := fn(cellInfo.Row, cellInfo.Col, cellInfo.Cell, cellInfo.Text); err != nil {
-			return fmt.Errorf("callback execution failed (row: %d, col: %d): %v", cellInfo.Row, cellInfo.Col, err)
+			return fmt.Errorf("callback execution failed (row: %d, col: %d): %w", cellInfo.Row, cellInfo.Col, err)
 		}
 	}
 
@@ -2534,13 +2502,13 @@ func (t *Table) ForEachInRow(rowIndex int, fn func(col int, cell *TableCell, tex
 	for col := 0; col < colCount; col++ {
 		cell, err := t.GetCell(rowIndex, col)
 		if err != nil {
-			return fmt.Errorf("failed to get cell (row: %d, col: %d): %v", rowIndex, col, err)
+			return fmt.Errorf("failed to get cell (row: %d, col: %d): %w", rowIndex, col, err)
 		}
 
 		text, _ := t.GetCellText(rowIndex, col)
 
 		if err := fn(col, cell, text); err != nil {
-			return fmt.Errorf("callback execution failed (row: %d, col: %d): %v", rowIndex, col, err)
+			return fmt.Errorf("callback execution failed (row: %d, col: %d): %w", rowIndex, col, err)
 		}
 	}
 
@@ -2557,13 +2525,13 @@ func (t *Table) ForEachInColumn(colIndex int, fn func(row int, cell *TableCell, 
 	for row := 0; row < rowCount; row++ {
 		cell, err := t.GetCell(row, colIndex)
 		if err != nil {
-			return fmt.Errorf("failed to get cell (row: %d, col: %d): %v", row, colIndex, err)
+			return fmt.Errorf("failed to get cell (row: %d, col: %d): %w", row, colIndex, err)
 		}
 
 		text, _ := t.GetCellText(row, colIndex)
 
 		if err := fn(row, cell, text); err != nil {
-			return fmt.Errorf("callback execution failed (row: %d, col: %d): %v", row, colIndex, err)
+			return fmt.Errorf("callback execution failed (row: %d, col: %d): %w", row, colIndex, err)
 		}
 	}
 
@@ -2587,7 +2555,7 @@ func (t *Table) GetCellRange(startRow, startCol, endRow, endCol int) ([]*CellInf
 		for col := startCol; col <= endCol; col++ {
 			cell, err := t.GetCell(row, col)
 			if err != nil {
-				return nil, fmt.Errorf("failed to get cell (row: %d, col: %d): %v", row, col, err)
+				return nil, fmt.Errorf("failed to get cell (row: %d, col: %d): %w", row, col, err)
 			}
 
 			text, _ := t.GetCellText(row, col)
@@ -2825,41 +2793,9 @@ func (t *Table) AddNestedTable(row, col int, config *TableConfig) (*Table, error
 
 	// create nested table
 	nestedTable := &Table{
-		Properties: &TableProperties{
-			TableW: &TableWidth{
-				W:    fmt.Sprintf("%d", config.Width),
-				Type: "dxa",
-			},
-			TableJc: &TableJc{
-				Val: "center",
-			},
-			TableLook: &TableLook{
-				Val:      "04A0",
-				FirstRow: "1",
-				LastRow:  "0",
-				FirstCol: "1",
-				LastCol:  "0",
-				NoHBand:  "0",
-				NoVBand:  "1",
-			},
-			TableBorders: &TableBorders{
-				Top:     &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
-				Left:    &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
-				Bottom:  &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
-				Right:   &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
-				InsideH: &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
-				InsideV: &TableBorder{Val: "single", Sz: "4", Space: "0", Color: "auto"},
-			},
-			TableLayout: &TableLayoutType{
-				Type: "autofit",
-			},
-			TableCellMar: &TableCellMargins{
-				Left:  &TableCellSpace{W: "108", Type: "dxa"},
-				Right: &TableCellSpace{W: "108", Type: "dxa"},
-			},
-		},
-		Grid: &TableGrid{},
-		Rows: make([]TableRow, 0, config.Rows),
+		Properties: newDefaultTableProperties(config.Width),
+		Grid:       &TableGrid{},
+		Rows:       make([]TableRow, 0, config.Rows),
 	}
 
 	// set column widths

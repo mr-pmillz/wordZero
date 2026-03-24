@@ -62,15 +62,15 @@ type MathSty struct {
 
 // MathFrac represents a fraction.
 type MathFrac struct {
-	XMLName xml.Name  `xml:"m:f"`
+	XMLName xml.Name    `xml:"m:f"`
 	FracPr  *MathFracPr `xml:"m:fPr,omitempty"`
-	Num     *MathNum  `xml:"m:num"`
-	Den     *MathDen  `xml:"m:den"`
+	Num     *MathNum    `xml:"m:num"`
+	Den     *MathDen    `xml:"m:den"`
 }
 
 // MathFracPr represents fraction properties.
 type MathFracPr struct {
-	XMLName xml.Name `xml:"m:fPr"`
+	XMLName xml.Name      `xml:"m:fPr"`
 	Type    *MathFracType `xml:"m:type,omitempty"`
 }
 
@@ -122,8 +122,8 @@ func (d *MathDen) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 // MathSup represents a superscript.
 type MathSup struct {
-	XMLName xml.Name `xml:"m:sSup"`
-	E       *MathE   `xml:"m:e"`
+	XMLName xml.Name        `xml:"m:sSup"`
+	E       *MathE          `xml:"m:e"`
 	Sup     *MathSupElement `xml:"m:sup"`
 }
 
@@ -169,8 +169,8 @@ func (s *MathSupElement) MarshalXML(e *xml.Encoder, start xml.StartElement) erro
 
 // MathSub represents a subscript.
 type MathSub struct {
-	XMLName xml.Name `xml:"m:sSub"`
-	E       *MathE   `xml:"m:e"`
+	XMLName xml.Name        `xml:"m:sSub"`
+	E       *MathE          `xml:"m:e"`
 	Sub     *MathSubElement `xml:"m:sub"`
 }
 
@@ -251,14 +251,20 @@ type MathDelim struct {
 
 // MathDelimPr represents delimiter properties.
 type MathDelimPr struct {
-	XMLName xml.Name       `xml:"m:dPr"`
-	BegChr  *MathDelimChar `xml:"m:begChr,omitempty"`
-	EndChr  *MathDelimChar `xml:"m:endChr,omitempty"`
+	XMLName xml.Name          `xml:"m:dPr"`
+	BegChr  *MathDelimBegChar `xml:"m:begChr,omitempty"`
+	EndChr  *MathDelimEndChar `xml:"m:endChr,omitempty"`
 }
 
-// MathDelimChar represents a delimiter character.
-type MathDelimChar struct {
+// MathDelimBegChar represents a beginning delimiter character.
+type MathDelimBegChar struct {
 	XMLName xml.Name `xml:"m:begChr"`
+	Val     string   `xml:"m:val,attr"`
+}
+
+// MathDelimEndChar represents an ending delimiter character.
+type MathDelimEndChar struct {
+	XMLName xml.Name `xml:"m:endChr"`
 	Val     string   `xml:"m:val,attr"`
 }
 
@@ -278,6 +284,8 @@ func LaTeXToOMML(latex string) *OfficeMath {
 }
 
 // parseLatex parses a LaTeX string and returns a list of OMML elements.
+//
+//nolint:gocognit
 func parseLatex(latex string) []interface{} {
 	var result []interface{}
 	latex = strings.TrimSpace(latex)
@@ -335,7 +343,7 @@ func parseLatex(latex string) []interface{} {
 
 		// Check for radical (square root)
 		if match := sqrtPattern.FindStringSubmatch(remaining); match != nil {
-			deg := match[1]  // may be empty (square root)
+			deg := match[1] // may be empty (square root)
 			content := match[2]
 			rad := &MathRad{
 				E: &MathE{Content: parseLatex(content)},
@@ -398,9 +406,10 @@ func parseLatex(latex string) []interface{} {
 			depth := 1
 			j := 1
 			for j < len(remaining) && depth > 0 {
-				if remaining[j] == '{' {
+				switch remaining[j] {
+				case '{':
 					depth++
-				} else if remaining[j] == '}' {
+				case '}':
 					depth--
 				}
 				j++
@@ -493,30 +502,30 @@ func convertLaTeXCommand(cmd string) string {
 		"Omega":   "Ω",
 
 		// Operators
-		"times":   "×",
-		"div":     "÷",
-		"pm":      "±",
-		"mp":      "∓",
-		"cdot":    "·",
-		"ast":     "∗",
-		"star":    "⋆",
-		"circ":    "∘",
-		"bullet":  "∙",
-		"oplus":   "⊕",
-		"ominus":  "⊖",
-		"otimes":  "⊗",
-		"oslash":  "⊘",
-		"odot":    "⊙",
+		"times":  "×",
+		"div":    "÷",
+		"pm":     "±",
+		"mp":     "∓",
+		"cdot":   "·",
+		"ast":    "∗",
+		"star":   "⋆",
+		"circ":   "∘",
+		"bullet": "∙",
+		"oplus":  "⊕",
+		"ominus": "⊖",
+		"otimes": "⊗",
+		"oslash": "⊘",
+		"odot":   "⊙",
 
 		// Relational symbols
-		"leq":     "≤",
-		"geq":     "≥",
-		"neq":     "≠",
-		"approx":  "≈",
-		"equiv":   "≡",
-		"sim":     "∼",
-		"simeq":   "≃",
-		"cong":    "≅",
+		"leq":      "≤",
+		"geq":      "≥",
+		"neq":      "≠",
+		"approx":   "≈",
+		"equiv":    "≡",
+		"sim":      "∼",
+		"simeq":    "≃",
+		"cong":     "≅",
 		"propto":   "∝",
 		"ll":       "≪",
 		"gg":       "≫",
@@ -542,77 +551,77 @@ func convertLaTeXCommand(cmd string) string {
 		"mapsto":         "↦",
 
 		// Miscellaneous symbols
-		"infty":    "∞",
-		"partial":  "∂",
-		"nabla":    "∇",
-		"forall":   "∀",
-		"exists":   "∃",
-		"nexists":  "∄",
-		"emptyset": "∅",
+		"infty":      "∞",
+		"partial":    "∂",
+		"nabla":      "∇",
+		"forall":     "∀",
+		"exists":     "∃",
+		"nexists":    "∄",
+		"emptyset":   "∅",
 		"varnothing": "∅",
-		"neg":      "¬",
-		"lnot":     "¬",
-		"land":     "∧",
-		"lor":      "∨",
-		"cap":      "∩",
-		"cup":      "∪",
-		"int":      "∫",
-		"iint":     "∬",
-		"iiint":    "∭",
-		"oint":     "∮",
-		"sum":      "∑",
-		"prod":     "∏",
-		"coprod":   "∐",
-		"lim":      "lim",
-		"limsup":   "lim sup",
-		"liminf":   "lim inf",
-		"max":      "max",
-		"min":      "min",
-		"sup":      "sup",
-		"inf":      "inf",
-		"sin":      "sin",
-		"cos":      "cos",
-		"tan":      "tan",
-		"cot":      "cot",
-		"sec":      "sec",
-		"csc":      "csc",
-		"arcsin":   "arcsin",
-		"arccos":   "arccos",
-		"arctan":   "arctan",
-		"sinh":     "sinh",
-		"cosh":     "cosh",
-		"tanh":     "tanh",
-		"log":      "log",
-		"ln":       "ln",
-		"exp":      "exp",
-		"deg":      "deg",
-		"det":      "det",
-		"dim":      "dim",
-		"ker":      "ker",
-		"hom":      "hom",
-		"arg":      "arg",
-		"gcd":      "gcd",
+		"neg":        "¬",
+		"lnot":       "¬",
+		"land":       "∧",
+		"lor":        "∨",
+		"cap":        "∩",
+		"cup":        "∪",
+		"int":        "∫",
+		"iint":       "∬",
+		"iiint":      "∭",
+		"oint":       "∮",
+		"sum":        "∑",
+		"prod":       "∏",
+		"coprod":     "∐",
+		"lim":        "lim",
+		"limsup":     "lim sup",
+		"liminf":     "lim inf",
+		"max":        "max",
+		"min":        "min",
+		"sup":        "sup",
+		"inf":        "inf",
+		"sin":        "sin",
+		"cos":        "cos",
+		"tan":        "tan",
+		"cot":        "cot",
+		"sec":        "sec",
+		"csc":        "csc",
+		"arcsin":     "arcsin",
+		"arccos":     "arccos",
+		"arctan":     "arctan",
+		"sinh":       "sinh",
+		"cosh":       "cosh",
+		"tanh":       "tanh",
+		"log":        "log",
+		"ln":         "ln",
+		"exp":        "exp",
+		"deg":        "deg",
+		"det":        "det",
+		"dim":        "dim",
+		"ker":        "ker",
+		"hom":        "hom",
+		"arg":        "arg",
+		"gcd":        "gcd",
 
 		// Brackets
-		"lbrace":   "{",
-		"rbrace":   "}",
-		"langle":   "⟨",
-		"rangle":   "⟩",
-		"lceil":    "⌈",
-		"rceil":    "⌉",
-		"lfloor":   "⌊",
-		"rfloor":   "⌋",
-		"left":     "",
-		"right":    "",
+		"lbrace": "{",
+		"rbrace": "}",
+		"langle": "⟨",
+		"rangle": "⟩",
+		"lceil":  "⌈",
+		"rceil":  "⌉",
+		"lfloor": "⌊",
+		"rfloor": "⌋",
+		"left":   "",
+		"right":  "",
 
 		// Other
-		"ldots":    "…",
-		"cdots":    "⋯",
-		"vdots":    "⋮",
-		"ddots":    "⋱",
-		"quad":     " ",
-		"qquad":    "  ",
-		"space":    " ",
+		"ldots": "…",
+		"cdots": "⋯",
+		"vdots": "⋮",
+		"ddots": "⋱",
+		"quad":  " ",
+		"qquad": "  ",
+		"space": " ",
 	}
 
 	if result, ok := commands[cmd]; ok {

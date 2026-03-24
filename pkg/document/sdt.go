@@ -15,7 +15,7 @@ type SDT struct {
 }
 
 // ElementType returns the SDT element type.
-func (s *SDT) ElementType() string {
+func (sdt *SDT) ElementType() string {
 	return "sdt"
 }
 

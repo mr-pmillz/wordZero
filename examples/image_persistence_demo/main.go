@@ -142,7 +142,7 @@ func main() {
 			fmt.Printf("   - 找到图片: %s\n", partName)
 		}
 	}
-	
+
 	if imageCount < 2 {
 		log.Fatalf("打开的文档应该包含2张图片，但只找到 %d 张", imageCount)
 	}
@@ -150,10 +150,10 @@ func main() {
 
 	// 步骤3: 修改文档内容
 	fmt.Println("\n步骤3: 修改文档内容...")
-	
+
 	// 在文档开头添加新段落
 	doc2.AddParagraph("【修改后的内容】这个段落是在打开文档后新添加的。")
-	
+
 	// 添加第三张图片（绿色）
 	fmt.Println("   添加第三张图片（绿色）...")
 	imageData3 := createSampleImage(200, 150, color.RGBA{100, 255, 100, 255}, "图片3")
@@ -174,9 +174,9 @@ func main() {
 	}
 
 	doc2.AddParagraph("上图：第三张图片（绿色，新添加）")
-	
+
 	doc2.AddParagraph("文档已修改完成。原有的两张图片应该仍然存在，同时新增了一张图片。")
-	
+
 	fmt.Println("   ✓ 文档内容修改完成")
 
 	// 步骤4: 保存修改后的文档

@@ -106,7 +106,7 @@ func TestAddCellFormattedParagraph(t *testing.T) {
 		t.Errorf("failed to add formatted paragraph: %v", err)
 	}
 	if para == nil {
-		t.Error("returned paragraph should not be nil")
+		t.Fatal("returned paragraph should not be nil")
 	}
 
 	// Verify format
@@ -392,7 +392,7 @@ func TestAddCellImage(t *testing.T) {
 		t.Errorf("failed to add image: %v", err)
 	}
 	if imageInfo == nil {
-		t.Error("returned image info should not be nil")
+		t.Fatal("returned image info should not be nil")
 	}
 
 	// Verify image ID is not empty

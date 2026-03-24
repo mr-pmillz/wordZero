@@ -8,10 +8,13 @@ import (
 	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
+const testOutputDir = "output"
+
 // TestNestedTableTemplate 测试嵌套表格模板功能
+//nolint:dupl
 func TestNestedTableTemplate(t *testing.T) {
 	// 确保输出目录存在
-	outputDir := "output"
+	outputDir := testOutputDir
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
 		err = os.Mkdir(outputDir, 0755)
 		if err != nil {

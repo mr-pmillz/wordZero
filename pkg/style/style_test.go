@@ -4,6 +4,8 @@ import (
 	"testing"
 )
 
+const testStyleNormal = "Normal"
+
 // TestNewStyleManager tests style manager creation
 func TestNewStyleManager(t *testing.T) {
 	sm := NewStyleManager()
@@ -32,7 +34,7 @@ func TestStyleExists(t *testing.T) {
 	sm := NewStyleManager()
 
 	// Test existing style
-	if !sm.StyleExists("Normal") {
+	if !sm.StyleExists(testStyleNormal) {
 		t.Error("Normal style should exist")
 	}
 
@@ -51,12 +53,12 @@ func TestGetStyle(t *testing.T) {
 	sm := NewStyleManager()
 
 	// Test getting existing style
-	normalStyle := sm.GetStyle("Normal")
+	normalStyle := sm.GetStyle(testStyleNormal)
 	if normalStyle == nil {
 		t.Fatal("Normal style should not be nil")
 	}
 
-	if normalStyle.StyleID != "Normal" {
+	if normalStyle.StyleID != testStyleNormal {
 		t.Errorf("Expected StyleID Normal, got %s", normalStyle.StyleID)
 	}
 

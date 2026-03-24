@@ -9,6 +9,11 @@ import (
 	"testing"
 )
 
+const (
+	testFootnoteReferenceStyle = "FootnoteReference"
+	testFootnotesXMLPath       = "word/footnotes.xml"
+)
+
 // --- Basic Add/Remove ---
 
 func TestAddFootnote_Basic(t *testing.T) {
@@ -23,7 +28,7 @@ func TestAddFootnote_Basic(t *testing.T) {
 		t.Errorf("expected footnote count 1, got %d", count)
 	}
 
-	footnotesXML, exists := doc.parts["word/footnotes.xml"]
+	footnotesXML, exists := doc.parts[testFootnotesXMLPath]
 	if !exists {
 		t.Fatal("word/footnotes.xml not created")
 	}
@@ -151,7 +156,7 @@ func TestAddFootnoteToParagraph(t *testing.T) {
 	if refRun.Properties == nil || refRun.Properties.RunStyle == nil {
 		t.Fatal("reference run should have RunStyle property")
 	}
-	if refRun.Properties.RunStyle.Val != "FootnoteReference" {
+	if refRun.Properties.RunStyle.Val != testFootnoteReferenceStyle {
 		t.Errorf("expected RunStyle 'FootnoteReference', got '%s'", refRun.Properties.RunStyle.Val)
 	}
 }
@@ -241,7 +246,7 @@ func TestMixedFootnotesAndEndnotes(t *testing.T) {
 		t.Errorf("expected 2 endnotes, got %d", count)
 	}
 
-	if _, exists := doc.parts["word/footnotes.xml"]; !exists {
+	if _, exists := doc.parts[testFootnotesXMLPath]; !exists {
 		t.Error("word/footnotes.xml not created")
 	}
 	if _, exists := doc.parts["word/endnotes.xml"]; !exists {
@@ -510,7 +515,7 @@ func TestFootnoteSeparatorInXML(t *testing.T) {
 	doc := New()
 	doc.AddFootnote("text", "footnote")
 
-	footnotesXML := string(doc.parts["word/footnotes.xml"])
+	footnotesXML := string(doc.parts[testFootnotesXMLPath])
 
 	if !strings.Contains(footnotesXML, `w:type="separator"`) {
 		t.Error("footnotes.xml missing separator footnote type")
@@ -535,7 +540,7 @@ func TestFootnoteXML_ValidStructure(t *testing.T) {
 	doc := New()
 	doc.AddFootnote("text", "my footnote content")
 
-	footnotesXML := doc.parts["word/footnotes.xml"]
+	footnotesXML := doc.parts[testFootnotesXMLPath]
 
 	// Verify the XML is well-formed
 	decoder := xml.NewDecoder(bytes.NewReader(footnotesXML))
@@ -559,7 +564,7 @@ func TestFootnoteXML_ContainsFootnoteRef(t *testing.T) {
 	doc := New()
 	doc.AddFootnote("text", "footnote content")
 
-	xmlStr := string(doc.parts["word/footnotes.xml"])
+	xmlStr := string(doc.parts[testFootnotesXMLPath])
 
 	// Verify it contains the w:footnoteRef self-reference element
 	if !strings.Contains(xmlStr, "w:footnoteRef") {
@@ -571,7 +576,7 @@ func TestFootnoteXML_ContainsFootnoteTextStyle(t *testing.T) {
 	doc := New()
 	doc.AddFootnote("text", "footnote content")
 
-	xmlStr := string(doc.parts["word/footnotes.xml"])
+	xmlStr := string(doc.parts[testFootnotesXMLPath])
 
 	// Verify it contains the FootnoteText paragraph style
 	if !strings.Contains(xmlStr, "FootnoteText") {
@@ -594,7 +599,7 @@ func TestFootnoteReferenceHasRunStyle(t *testing.T) {
 	if refRun.Properties.RunStyle == nil {
 		t.Fatal("reference run should have RunStyle")
 	}
-	if refRun.Properties.RunStyle.Val != "FootnoteReference" {
+	if refRun.Properties.RunStyle.Val != testFootnoteReferenceStyle {
 		t.Errorf("expected RunStyle 'FootnoteReference', got '%s'", refRun.Properties.RunStyle.Val)
 	}
 	// VerticalAlign should NOT be set on body references (the style provides it)
@@ -626,7 +631,7 @@ func TestFootnote_SaveAndVerifyZip(t *testing.T) {
 	defer zipReader.Close()
 
 	expectedParts := map[string]bool{
-		"word/footnotes.xml":           false,
+		testFootnotesXMLPath:           false,
 		"word/endnotes.xml":            false,
 		"[Content_Types].xml":          false,
 		"word/_rels/document.xml.rels": false,
@@ -662,7 +667,7 @@ func TestFootnote_SaveToBytes(t *testing.T) {
 
 	foundFootnotes := false
 	for _, f := range zipReader.File {
-		if f.Name == "word/footnotes.xml" {
+		if f.Name == testFootnotesXMLPath {
 			foundFootnotes = true
 			break
 		}

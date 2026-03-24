@@ -162,7 +162,7 @@ func (r *WordRenderer) renderInlineContent(node ast.Node, para *document.Paragra
 		case *ast.Text:
 			text := string(n.Segment.Value(r.source))
 			para.AddFormattedText(text, nil)
-			
+
 			// Handle soft line breaks (single \n)
 			// goldmark parses a single \n into multiple Text nodes, with the first node's SoftLineBreak set to true
 			// In Markdown, soft line breaks are typically rendered as spaces
@@ -420,15 +420,9 @@ func (r *WordRenderer) extractTextContentRecursive(node ast.Node, buf *strings.B
 	}
 }
 
-// cleanText cleans up text content by collapsing whitespace.
-func (r *WordRenderer) cleanText(text string) string {
-	// Remove excess whitespace characters
-	re := regexp.MustCompile(`\s+`)
-	text = re.ReplaceAllString(text, " ")
-	return strings.TrimSpace(text)
-}
-
 // renderTable renders a table node.
+//
+//nolint:gocognit
 func (r *WordRenderer) renderTable(node *extast.Table) (ast.WalkStatus, error) {
 	// Collect table data
 	var tableData [][]string
@@ -555,8 +549,7 @@ func extractCellEmphasis(cell *extast.TableCell) int {
 			return ast.WalkContinue, nil
 		}
 
-		switch node := n.(type) {
-		case *ast.Emphasis:
+		if node, ok := n.(*ast.Emphasis); ok {
 			// Handle emphasis text (bold or italic)
 			format = node.Level
 		}
@@ -693,13 +686,11 @@ func (r *WordRenderer) extractMathContent(node ast.Node) string {
 	// Check if this is a block-level node (MathBlock)
 	if node.Kind() == mathjax.KindMathBlock {
 		// MathBlock is a block-level node; Lines() can be safely accessed
-		if blockNode, ok := node.(ast.Node); ok {
-			lines := blockNode.Lines()
-			if lines != nil {
-				for i := 0; i < lines.Len(); i++ {
-					line := lines.At(i)
-					content.Write(line.Value(r.source))
-				}
+		lines := node.Lines()
+		if lines != nil {
+			for i := 0; i < lines.Len(); i++ {
+				line := lines.At(i)
+				content.Write(line.Value(r.source))
 			}
 		}
 	}
@@ -722,6 +713,8 @@ func (r *WordRenderer) extractMathContent(node ast.Node) string {
 }
 
 // convertLaTeXToDisplay converts LaTeX commands to displayable Unicode characters.
+//
+//nolint:gocognit
 func convertLaTeXToDisplay(latex string) string {
 	// Handle fractions: \frac{a}{b} -> a/b or (a)/(b)
 	fracPattern := regexp.MustCompile(`\\frac\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}`)
@@ -930,7 +923,7 @@ func convertLaTeXToDisplay(latex string) string {
 		`\,`:     " ",
 		`\;`:     " ",
 		`\:`:     " ",
-		`\ `:     " ",
+		"\\ ": " ", //nolint:gocritic // LaTeX backslash-space command
 
 		// Brackets
 		`\{`:      "{",

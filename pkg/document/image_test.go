@@ -9,6 +9,8 @@ import (
 	"testing"
 )
 
+const testImagePNG = "image/png"
+
 // createTestImage creates a test PNG image
 func createTestImage(width, height int) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
@@ -227,7 +229,7 @@ func TestAddImageFromData(t *testing.T) {
 	// Verify content type was added
 	foundPNG := false
 	for _, def := range doc.contentTypes.Defaults {
-		if def.Extension == "png" && def.ContentType == "image/png" {
+		if def.Extension == string(ImageFormatPNG) && def.ContentType == testImagePNG {
 			foundPNG = true
 			break
 		}
@@ -424,7 +426,7 @@ func TestAddImageContentType(t *testing.T) {
 
 	found := false
 	for _, def := range doc.contentTypes.Defaults {
-		if def.Extension == "png" && def.ContentType == "image/png" {
+		if def.Extension == string(ImageFormatPNG) && def.ContentType == testImagePNG {
 			found = true
 			break
 		}

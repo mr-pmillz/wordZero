@@ -15,9 +15,9 @@ func main() {
 	// 配置目录 - 完全按照issue中的代码
 	tocConfig := &document.TOCConfig{
 		Title:       "目录", // 目录标题
-		MaxLevel:    3,      // 包含到哪个标题级别
-		ShowPageNum: true,   // 是否显示页码
-		DotLeader:   true,   // 是否使用点状引导线
+		MaxLevel:    3,    // 包含到哪个标题级别
+		ShowPageNum: true, // 是否显示页码
+		DotLeader:   true, // 是否使用点状引导线
 	}
 
 	// 添加段落
@@ -49,14 +49,14 @@ func main() {
 
 	fmt.Println("✅ 成功！issue场景测试通过！")
 	fmt.Printf("文档已保存到: %s\n", filename)
-	
+
 	// 验证标题被正确收集
 	headings := doc.ListHeadings()
 	fmt.Printf("\n收集到 %d 个标题:\n", len(headings))
 	for _, h := range headings {
 		fmt.Printf("  - [级别%d] %s\n", h.Level, h.Text)
 	}
-	
+
 	fmt.Println("\n💡 在Word中打开文档，目录应该显示:")
 	fmt.Println("   目录")
 	fmt.Println("   第一章 .............. 1")

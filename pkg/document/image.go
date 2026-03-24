@@ -281,7 +281,7 @@ type DrawingGraphic struct {
 // GraphicData represents graphic data.
 type GraphicData struct {
 	XMLName xml.Name    `xml:"a:graphicData"`
-	Uri     string      `xml:"uri,attr"`
+	URI     string      `xml:"uri,attr"`
 	Pic     *PicElement `xml:"pic:pic"`
 }
 
@@ -396,21 +396,21 @@ func (d *Document) AddImageFromFile(filePath string, config *ImageConfig) (*Imag
 	imageData, err := os.ReadFile(filePath)
 	if err != nil {
 		Errorf("failed to read image file %s: %v", filePath, err)
-		return nil, fmt.Errorf("failed to read image file: %v", err)
+		return nil, fmt.Errorf("failed to read image file: %w", err)
 	}
 
 	// Detect image format
 	format, err := detectImageFormat(imageData)
 	if err != nil {
 		Errorf("failed to detect image format %s: %v", filePath, err)
-		return nil, fmt.Errorf("failed to detect image format: %v", err)
+		return nil, fmt.Errorf("failed to detect image format: %w", err)
 	}
 
 	// Get image dimensions
 	width, height, err := getImageDimensions(imageData, format)
 	if err != nil {
 		Errorf("failed to get image dimensions %s: %v", filePath, err)
-		return nil, fmt.Errorf("failed to get image dimensions: %v", err)
+		return nil, fmt.Errorf("failed to get image dimensions: %w", err)
 	}
 
 	fileName := filepath.Base(filePath)
@@ -693,30 +693,18 @@ func (d *Document) createFloatingImageDrawing(imageInfo *ImageInfo, displayWidth
 
 // setFloatingImagePosition sets the position of a floating image.
 func (d *Document) setFloatingImagePosition(anchor *AnchorDrawing, config *ImageConfig) {
-	if config.Position == ImagePositionFloatLeft {
-		// Float left
-		anchor.PositionH = &HorizontalPosition{
-			RelativeFrom: "margin",
-			Align: &PosAlign{
-				Value: "left",
-			},
-		}
-	} else if config.Position == ImagePositionFloatRight {
-		// Float right
-		anchor.PositionH = &HorizontalPosition{
-			RelativeFrom: "margin",
-			Align: &PosAlign{
-				Value: "right",
-			},
-		}
-	} else {
-		// Default center
-		anchor.PositionH = &HorizontalPosition{
-			RelativeFrom: "margin",
-			Align: &PosAlign{
-				Value: "center",
-			},
-		}
+	var alignValue string
+	switch config.Position {
+	case ImagePositionFloatLeft:
+		alignValue = "left"
+	case ImagePositionFloatRight:
+		alignValue = "right"
+	default:
+		alignValue = "center"
+	}
+	anchor.PositionH = &HorizontalPosition{
+		RelativeFrom: "margin",
+		Align:        &PosAlign{Value: alignValue},
 	}
 
 	// Set vertical position to top alignment
@@ -761,35 +749,35 @@ func (d *Document) setFloatingImageWrap(anchor *AnchorDrawing, config *ImageConf
 		wrapDistB = fmt.Sprintf("%.0f", config.OffsetY*36000)
 	}
 
+	// wrapTextForPosition determines wrap text value based on image position.
+	wrapTextForPosition := func() string {
+		switch config.Position {
+		case ImagePositionFloatLeft:
+			return "right"
+		case ImagePositionFloatRight:
+			return "left"
+		default:
+			return "bothSides"
+		}
+	}
+
 	switch config.WrapText {
 	case ImageWrapNone:
 		anchor.WrapNone = &WrapNone{}
 	case ImageWrapSquare:
-		wrapText := "bothSides"
-		if config.Position == ImagePositionFloatLeft {
-			wrapText = "right"
-		} else if config.Position == ImagePositionFloatRight {
-			wrapText = "left"
-		}
 		anchor.WrapSquare = &WrapSquare{
-			WrapText: wrapText,
+			WrapText: wrapTextForPosition(),
 			DistT:    wrapDistT,
 			DistB:    wrapDistB,
 			DistL:    wrapDistL,
 			DistR:    wrapDistR,
 		}
 	case ImageWrapTight:
-		wrapText := "bothSides"
-		if config.Position == ImagePositionFloatLeft {
-			wrapText = "right"
-		} else if config.Position == ImagePositionFloatRight {
-			wrapText = "left"
-		}
 		anchor.WrapTight = &WrapTight{
-			WrapText:    wrapText,
+			WrapText:    wrapTextForPosition(),
 			DistL:       wrapDistL,
 			DistR:       wrapDistR,
-			WrapPolygon: d.createDefaultWrapPolygon(), // Add required WrapPolygon
+			WrapPolygon: d.createDefaultWrapPolygon(),
 		}
 	case ImageWrapTopAndBottom:
 		anchor.WrapTopAndBottom = &WrapTopAndBottom{
@@ -798,14 +786,8 @@ func (d *Document) setFloatingImageWrap(anchor *AnchorDrawing, config *ImageConf
 		}
 	default:
 		// Default to square wrapping
-		wrapText := "bothSides"
-		if config.Position == ImagePositionFloatLeft {
-			wrapText = "right"
-		} else if config.Position == ImagePositionFloatRight {
-			wrapText = "left"
-		}
 		anchor.WrapSquare = &WrapSquare{
-			WrapText: wrapText,
+			WrapText: wrapTextForPosition(),
 			DistT:    wrapDistT,
 			DistB:    wrapDistB,
 			DistL:    wrapDistL,
@@ -836,7 +818,7 @@ func (d *Document) createImageGraphic(imageInfo *ImageInfo, displayWidth, displa
 	return &DrawingGraphic{
 		Xmlns: "http://schemas.openxmlformats.org/drawingml/2006/main",
 		GraphicData: &GraphicData{
-			Uri: "http://schemas.openxmlformats.org/drawingml/2006/picture",
+			URI: "http://schemas.openxmlformats.org/drawingml/2006/picture",
 			Pic: &PicElement{
 				Xmlns: "http://schemas.openxmlformats.org/drawingml/2006/picture",
 				NvPicPr: &NvPicPr{
@@ -893,16 +875,17 @@ func (d *Document) calculateDisplaySize(imageInfo *ImageInfo) (int64, int64) {
 	displayHeight := originalHeight * 9525
 
 	if config != nil && config.Size != nil {
-		if config.Size.Width > 0 && config.Size.Height > 0 {
+		switch {
+		case config.Size.Width > 0 && config.Size.Height > 0:
 			// User specified explicit dimensions
 			displayWidth = int64(config.Size.Width * 36000)   // mm to EMU
 			displayHeight = int64(config.Size.Height * 36000) // mm to EMU
-		} else if config.Size.Width > 0 && config.Size.KeepAspectRatio {
+		case config.Size.Width > 0 && config.Size.KeepAspectRatio:
 			// Only width specified, keep aspect ratio
 			displayWidth = int64(config.Size.Width * 36000)
 			ratio := float64(originalHeight) / float64(originalWidth)
 			displayHeight = int64(float64(displayWidth) * ratio)
-		} else if config.Size.Height > 0 && config.Size.KeepAspectRatio {
+		case config.Size.Height > 0 && config.Size.KeepAspectRatio:
 			// Only height specified, keep aspect ratio
 			displayHeight = int64(config.Size.Height * 36000)
 			ratio := float64(originalWidth) / float64(originalHeight)
@@ -956,7 +939,7 @@ func getImageDimensions(data []byte, format ImageFormat) (int, int, error) {
 	}
 
 	if err != nil {
-		return 0, 0, fmt.Errorf("failed to decode image: %v", err)
+		return 0, 0, fmt.Errorf("failed to decode image: %w", err)
 	}
 
 	bounds := img.Bounds()
@@ -1119,28 +1102,29 @@ func (d *Document) AddCellImage(table *Table, row, col int, config *CellImageCon
 	var width, height int
 
 	// Get image from file or data
-	if config.FilePath != "" {
+	switch {
+	case config.FilePath != "":
 		// Read image from file
 		imageData, err = os.ReadFile(config.FilePath)
 		if err != nil {
 			Errorf("failed to read image file %s: %v", config.FilePath, err)
-			return nil, fmt.Errorf("failed to read image file: %v", err)
+			return nil, fmt.Errorf("failed to read image file: %w", err)
 		}
 
 		// Detect image format
 		format, err = detectImageFormat(imageData)
 		if err != nil {
 			Errorf("failed to detect image format %s: %v", config.FilePath, err)
-			return nil, fmt.Errorf("failed to detect image format: %v", err)
+			return nil, fmt.Errorf("failed to detect image format: %w", err)
 		}
 
 		// Get image dimensions
 		width, height, err = getImageDimensions(imageData, format)
 		if err != nil {
 			Errorf("failed to get image dimensions %s: %v", config.FilePath, err)
-			return nil, fmt.Errorf("failed to get image dimensions: %v", err)
+			return nil, fmt.Errorf("failed to get image dimensions: %w", err)
 		}
-	} else if len(config.Data) > 0 {
+	case len(config.Data) > 0:
 		// Use the provided binary data
 		imageData = config.Data
 
@@ -1148,7 +1132,7 @@ func (d *Document) AddCellImage(table *Table, row, col int, config *CellImageCon
 			// Detect image format
 			format, err = detectImageFormat(imageData)
 			if err != nil {
-				return nil, fmt.Errorf("failed to detect image format: %v", err)
+				return nil, fmt.Errorf("failed to detect image format: %w", err)
 			}
 		} else {
 			format = config.Format
@@ -1157,9 +1141,9 @@ func (d *Document) AddCellImage(table *Table, row, col int, config *CellImageCon
 		// Get image dimensions
 		width, height, err = getImageDimensions(imageData, format)
 		if err != nil {
-			return nil, fmt.Errorf("failed to get image dimensions: %v", err)
+			return nil, fmt.Errorf("failed to get image dimensions: %w", err)
 		}
-	} else {
+	default:
 		return nil, fmt.Errorf("either image file path or binary data must be provided")
 	}
 

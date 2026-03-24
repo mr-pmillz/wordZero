@@ -5,6 +5,7 @@ import (
 	"archive/zip"
 	"bytes"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -13,6 +14,19 @@ import (
 	"strings"
 
 	"github.com/mr-pmillz/wordZero/pkg/style"
+)
+
+// XML element and attribute name constants used in parsing.
+const (
+	xmlElemSectPr   = "sectPr"
+	xmlElemGraphic  = "graphic"
+	xmlAttrDistT    = "distT"
+	xmlAttrDistB    = "distB"
+	xmlAttrDistL    = "distL"
+	xmlAttrDistR    = "distR"
+	xmlAttrName     = "name"
+	xmlAttrDescr    = "descr"
+	xmlAttrTitle    = "title"
 )
 
 // Document represents a Word document
@@ -192,23 +206,25 @@ type OutlineLevel struct {
 
 // Run represents a text run
 type Run struct {
-	XMLName                xml.Name               `xml:"w:r"`
-	Properties             *RunProperties         `xml:"w:rPr,omitempty"`
-	FootnoteReference      *FootnoteReference     `xml:"w:footnoteReference,omitempty"`
-	EndnoteReference       *EndnoteReference      `xml:"w:endnoteReference,omitempty"`
-	FootnoteRef            *FootnoteRef           `xml:"w:footnoteRef,omitempty"`
-	EndnoteRef             *EndnoteRef            `xml:"w:endnoteRef,omitempty"`
-	Separator              *Separator             `xml:"w:separator,omitempty"`
-	ContinuationSeparator  *ContinuationSeparator `xml:"w:continuationSeparator,omitempty"`
-	Text                   Text                   `xml:"w:t,omitempty"`
-	Break                  *Break                 `xml:"w:br,omitempty"` // Page break
-	Drawing                *DrawingElement        `xml:"w:drawing,omitempty"`
-	FieldChar              *FieldChar             `xml:"w:fldChar,omitempty"`
-	InstrText              *InstrText             `xml:"w:instrText,omitempty"`
+	XMLName               xml.Name               `xml:"w:r"`
+	Properties            *RunProperties         `xml:"w:rPr,omitempty"`
+	FootnoteReference     *FootnoteReference     `xml:"w:footnoteReference,omitempty"`
+	EndnoteReference      *EndnoteReference      `xml:"w:endnoteReference,omitempty"`
+	FootnoteRef           *FootnoteRef           `xml:"w:footnoteRef,omitempty"`
+	EndnoteRef            *EndnoteRef            `xml:"w:endnoteRef,omitempty"`
+	Separator             *Separator             `xml:"w:separator,omitempty"`
+	ContinuationSeparator *ContinuationSeparator `xml:"w:continuationSeparator,omitempty"`
+	Text                  Text                   `xml:"w:t,omitempty"`
+	Break                 *Break                 `xml:"w:br,omitempty"` // Page break
+	Drawing               *DrawingElement        `xml:"w:drawing,omitempty"`
+	FieldChar             *FieldChar             `xml:"w:fldChar,omitempty"`
+	InstrText             *InstrText             `xml:"w:instrText,omitempty"`
 }
 
 // MarshalXML performs custom XML serialization for Run.
 // This method ensures only non-empty elements are serialized, especially for Drawing elements.
+//
+//nolint:gocognit
 func (r *Run) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	// Start Run element
 	if err := e.EncodeToken(start); err != nil {
@@ -729,7 +745,6 @@ func openFromZipReader(zipReader *zip.Reader, filename string) (*Document, error
 	doc.updateNextImageID()
 
 	return doc, nil
-
 }
 
 // Save saves the document to the specified file path.
@@ -854,6 +869,60 @@ func (d *Document) AddParagraph(text string) *Paragraph {
 	return p
 }
 
+// applyTextFormat applies a TextFormat to RunProperties, setting font, bold, italic,
+// color, size, underline, strikethrough, and highlight as specified.
+func applyTextFormat(runProps *RunProperties, format *TextFormat) {
+	if format == nil {
+		return
+	}
+
+	// Support both FontFamily and FontName fields
+	fontName := ""
+	if format.FontFamily != "" {
+		fontName = format.FontFamily
+	} else if format.FontName != "" { // Backward compatibility
+		fontName = format.FontName
+	}
+	if fontName != "" {
+		runProps.FontFamily = &FontFamily{
+			ASCII:    fontName,
+			HAnsi:    fontName,
+			EastAsia: fontName,
+			CS:       fontName,
+		}
+	}
+
+	if format.Bold {
+		runProps.Bold = &Bold{}
+	}
+
+	if format.Italic {
+		runProps.Italic = &Italic{}
+	}
+
+	if format.FontColor != "" {
+		color := strings.TrimPrefix(format.FontColor, "#")
+		runProps.Color = &Color{Val: color}
+	}
+
+	if format.FontSize > 0 {
+		// Word uses half-points for font size, so multiply by 2
+		runProps.FontSize = &FontSize{Val: strconv.Itoa(format.FontSize * 2)}
+	}
+
+	if format.Underline {
+		runProps.Underline = &Underline{Val: "single"}
+	}
+
+	if format.Strike {
+		runProps.Strike = &Strike{}
+	}
+
+	if format.Highlight != "" {
+		runProps.Highlight = &Highlight{Val: format.Highlight}
+	}
+}
+
 // AddFormattedParagraph adds a formatted paragraph to the document.
 //
 // The text parameter is the paragraph's text content.
@@ -879,56 +948,8 @@ func (d *Document) AddParagraph(text string) *Paragraph {
 func (d *Document) AddFormattedParagraph(text string, format *TextFormat) *Paragraph {
 	DebugMsgf(MsgAddingFormattedParagraph, text)
 
-	// Create run properties
 	runProps := &RunProperties{}
-
-	if format != nil {
-		// Support both FontFamily and FontName fields
-		fontName := ""
-		if format.FontFamily != "" {
-			fontName = format.FontFamily
-		} else if format.FontName != "" { // Backward compatibility with example code
-			fontName = format.FontName
-		}
-		if fontName != "" {
-			runProps.FontFamily = &FontFamily{ // Set all related fields to ensure consistent testing and rendering
-				ASCII:    fontName,
-				HAnsi:    fontName,
-				EastAsia: fontName,
-				CS:       fontName,
-			}
-		}
-
-		if format.Bold {
-			runProps.Bold = &Bold{}
-		}
-
-		if format.Italic {
-			runProps.Italic = &Italic{}
-		}
-
-		if format.FontColor != "" {
-			// Ensure correct color format (remove # prefix)
-			color := strings.TrimPrefix(format.FontColor, "#")
-			runProps.Color = &Color{Val: color}
-		}
-
-		if format.FontSize > 0 {
-			// Word uses half-points for font size, so multiply by 2
-			runProps.FontSize = &FontSize{Val: strconv.Itoa(format.FontSize * 2)}
-		}
-		if format.Underline {
-			runProps.Underline = &Underline{Val: "single"} // Default single underline
-		}
-
-		if format.Strike {
-			runProps.Strike = &Strike{} // Add strikethrough
-		}
-
-		if format.Highlight != "" {
-			runProps.Highlight = &Highlight{Val: format.Highlight}
-		}
-	}
+	applyTextFormat(runProps, format)
 
 	p := &Paragraph{
 		Runs: []Run{
@@ -1064,53 +1085,8 @@ func (p *Paragraph) SetSpacing(config *SpacingConfig) {
 //		FontSize: 14,
 //	})
 func (p *Paragraph) AddFormattedText(text string, format *TextFormat) {
-	// Create run properties
 	runProps := &RunProperties{}
-
-	if format != nil {
-		fontName := ""
-		if format.FontFamily != "" {
-			fontName = format.FontFamily
-		} else if format.FontName != "" { // Backward compatibility with old examples
-			fontName = format.FontName
-		}
-		if fontName != "" {
-			runProps.FontFamily = &FontFamily{
-				ASCII:    fontName,
-				HAnsi:    fontName,
-				EastAsia: fontName,
-				CS:       fontName,
-			}
-		}
-
-		if format.Bold {
-			runProps.Bold = &Bold{}
-		}
-
-		if format.Italic {
-			runProps.Italic = &Italic{}
-		}
-
-		if format.FontColor != "" {
-			color := strings.TrimPrefix(format.FontColor, "#")
-			runProps.Color = &Color{Val: color}
-		}
-
-		if format.FontSize > 0 {
-			runProps.FontSize = &FontSize{Val: strconv.Itoa(format.FontSize * 2)}
-		}
-		if format.Underline {
-			runProps.Underline = &Underline{Val: "single"} // Default single underline
-		}
-
-		if format.Strike {
-			runProps.Strike = &Strike{} // Add strikethrough
-		}
-
-		if format.Highlight != "" {
-			runProps.Highlight = &Highlight{Val: format.Highlight}
-		}
-	}
+	applyTextFormat(runProps, format)
 
 	run := Run{
 		Properties: runProps,
@@ -2094,15 +2070,14 @@ func (d *Document) parseDocument() error {
 	decoder := xml.NewDecoder(bytes.NewReader(docData))
 	for {
 		token, err := decoder.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
 			return WrapError("parse_document", err)
 		}
 
-		switch t := token.(type) {
-		case xml.StartElement:
+		if t, ok := token.(xml.StartElement); ok {
 			if t.Name.Local == "document" && t.Name.Space == "http://schemas.openxmlformats.org/wordprocessingml/2006/main" {
 				// Start parsing document
 				if err := d.parseDocumentElement(decoder); err != nil {
@@ -2127,7 +2102,7 @@ func (d *Document) parseDocumentElement(decoder *xml.Decoder) error {
 
 	for {
 		token, err := decoder.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -2136,8 +2111,7 @@ func (d *Document) parseDocumentElement(decoder *xml.Decoder) error {
 
 		switch t := token.(type) {
 		case xml.StartElement:
-			switch {
-			case t.Name.Local == "body":
+			if t.Name.Local == "body" {
 				// Parse document body
 				if err := d.parseBodyElement(decoder); err != nil {
 					return err
@@ -2157,7 +2131,7 @@ func (d *Document) parseDocumentElement(decoder *xml.Decoder) error {
 func (d *Document) parseBodyElement(decoder *xml.Decoder) error {
 	for {
 		token, err := decoder.Token()
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -2192,7 +2166,7 @@ func (d *Document) parseBodySubElement(decoder *xml.Decoder, startElement xml.St
 	case "tbl":
 		// Parse table
 		return d.parseTable(decoder, startElement)
-	case "sectPr":
+	case xmlElemSectPr:
 		// Parse section properties
 		return d.parseSectionProperties(decoder, startElement)
 	default:
@@ -2246,6 +2220,8 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 }
 
 // parseParagraphProperties parses paragraph properties
+//
+//nolint:gocognit
 func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Paragraph) error {
 	paragraph.Properties = &ParagraphProperties{}
 
@@ -2304,7 +2280,7 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 					return err
 				}
 				paragraph.Properties.NumberingProperties = numPr
-			case "sectPr":
+			case xmlElemSectPr:
 				// Some documents store section properties within paragraph properties
 				sectPr, err := d.parseSectionProperties(decoder, t)
 				if err != nil {
@@ -2325,6 +2301,8 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 }
 
 // parseNumberingProperties parses numbering properties
+//
+//nolint:gocognit
 func (d *Document) parseNumberingProperties(decoder *xml.Decoder) (*NumberingProperties, error) {
 	numPr := &NumberingProperties{}
 
@@ -2420,6 +2398,8 @@ func (d *Document) parseRun(decoder *xml.Decoder, startElement xml.StartElement)
 }
 
 // parseRunProperties parses run properties
+//
+//nolint:gocognit
 func (d *Document) parseRunProperties(decoder *xml.Decoder, run *Run) error {
 	run.Properties = &RunProperties{}
 
@@ -2526,6 +2506,8 @@ func (d *Document) parseRunProperties(decoder *xml.Decoder, run *Run) error {
 }
 
 // parseTable parses a table
+//
+//nolint:gocognit
 func (d *Document) parseTable(decoder *xml.Decoder, startElement xml.StartElement) (*Table, error) {
 	table := &Table{
 		Rows: make([]TableRow, 0),
@@ -2573,6 +2555,8 @@ func (d *Document) parseTable(decoder *xml.Decoder, startElement xml.StartElemen
 }
 
 // parseTableProperties parses table properties
+//
+//nolint:gocognit
 func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) error {
 	table.Properties = &TableProperties{}
 
@@ -2720,95 +2704,106 @@ func (d *Document) parseTableGrid(decoder *xml.Decoder, table *Table) error {
 	}
 }
 
+// parseXMLChildren is a generic helper that iterates over XML child elements, dispatching
+// each start element to the provided handler. It returns when it encounters an end element
+// matching endTag. The errContext string is used for wrapping errors.
+func (d *Document) parseXMLChildren(decoder *xml.Decoder, endTag string, errContext string, handler func(xml.StartElement) error) error {
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			return WrapError(errContext, err)
+		}
+
+		switch t := token.(type) {
+		case xml.StartElement:
+			if err := handler(t); err != nil {
+				return err
+			}
+		case xml.EndElement:
+			if t.Name.Local == endTag {
+				return nil
+			}
+		}
+	}
+}
+
 // parseTableRow parses a table row
+//
+//nolint:dupl
 func (d *Document) parseTableRow(decoder *xml.Decoder, startElement xml.StartElement) (*TableRow, error) {
 	row := &TableRow{
 		Cells: make([]TableCell, 0),
 	}
 
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return nil, WrapError("parse_table_row", err)
-		}
-
-		switch t := token.(type) {
-		case xml.StartElement:
-			switch t.Name.Local {
-			case "trPr":
-				// Parse row properties
-				props, err := d.parseTableRowProperties(decoder)
-				if err != nil {
-					return nil, err
-				}
-				row.Properties = props
-			case "tc":
-				// Parse table cell
-				cell, err := d.parseTableCell(decoder, t)
-				if err != nil {
-					return nil, err
-				}
-				if cell != nil {
-					row.Cells = append(row.Cells, *cell)
-				}
-			default:
-				if err := d.skipElement(decoder, t.Name.Local); err != nil {
-					return nil, err
-				}
+	err := d.parseXMLChildren(decoder, "tr", "parse_table_row", func(t xml.StartElement) error {
+		switch t.Name.Local {
+		case "trPr":
+			props, err := d.parseTableRowProperties(decoder)
+			if err != nil {
+				return err
 			}
-		case xml.EndElement:
-			if t.Name.Local == "tr" {
-				return row, nil
+			row.Properties = props
+		case "tc":
+			cell, err := d.parseTableCell(decoder, t)
+			if err != nil {
+				return err
+			}
+			if cell != nil {
+				row.Cells = append(row.Cells, *cell)
+			}
+		default:
+			if err := d.skipElement(decoder, t.Name.Local); err != nil {
+				return err
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+	return row, nil
 }
 
 // parseTableCell parses a table cell
+//
+//nolint:dupl
 func (d *Document) parseTableCell(decoder *xml.Decoder, startElement xml.StartElement) (*TableCell, error) {
 	cell := &TableCell{
 		Paragraphs: make([]Paragraph, 0),
 	}
 
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return nil, WrapError("parse_table_cell", err)
-		}
-
-		switch t := token.(type) {
-		case xml.StartElement:
-			switch t.Name.Local {
-			case "tcPr":
-				// Parse cell properties
-				props, err := d.parseTableCellProperties(decoder)
-				if err != nil {
-					return nil, err
-				}
-				cell.Properties = props
-			case "p":
-				// Parse paragraph
-				para, err := d.parseParagraph(decoder, t)
-				if err != nil {
-					return nil, err
-				}
-				if para != nil {
-					cell.Paragraphs = append(cell.Paragraphs, *para)
-				}
-			default:
-				if err := d.skipElement(decoder, t.Name.Local); err != nil {
-					return nil, err
-				}
+	err := d.parseXMLChildren(decoder, "tc", "parse_table_cell", func(t xml.StartElement) error {
+		switch t.Name.Local {
+		case "tcPr":
+			props, err := d.parseTableCellProperties(decoder)
+			if err != nil {
+				return err
 			}
-		case xml.EndElement:
-			if t.Name.Local == "tc" {
-				return cell, nil
+			cell.Properties = props
+		case "p":
+			para, err := d.parseParagraph(decoder, t)
+			if err != nil {
+				return err
+			}
+			if para != nil {
+				cell.Paragraphs = append(cell.Paragraphs, *para)
+			}
+		default:
+			if err := d.skipElement(decoder, t.Name.Local); err != nil {
+				return err
 			}
 		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
 	}
+	return cell, nil
 }
 
 // parseSectionProperties parses section properties
+//
+//nolint:gocognit
 func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml.StartElement) (*SectionProperties, error) {
 	sectPr := &SectionProperties{
 		XmlnsR: getAttributeValue(startElement.Attr, "xmlns:r"),
@@ -2914,7 +2909,7 @@ func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml
 				}
 			}
 		case xml.EndElement:
-			if t.Name.Local == "sectPr" {
+			if t.Name.Local == xmlElemSectPr {
 				return sectPr, nil
 			}
 		}
@@ -3402,13 +3397,13 @@ func (d *Document) parseTableBorders(decoder *xml.Decoder) (*TableBorders, error
 			}
 
 			switch t.Name.Local {
-			case "top":
+			case string(CellVAlignTop):
 				borders.Top = border
-			case "left":
+			case string(CellAlignLeft):
 				borders.Left = border
-			case "bottom":
+			case string(CellVAlignBottom):
 				borders.Bottom = border
-			case "right":
+			case string(CellAlignRight):
 				borders.Right = border
 			case "insideH":
 				borders.InsideH = border
@@ -3428,6 +3423,8 @@ func (d *Document) parseTableBorders(decoder *xml.Decoder) (*TableBorders, error
 }
 
 // parseTableCellMargins parses table cell margins
+//
+//nolint:dupl
 func (d *Document) parseTableCellMargins(decoder *xml.Decoder) (*TableCellMargins, error) {
 	margins := &TableCellMargins{}
 
@@ -3445,13 +3442,13 @@ func (d *Document) parseTableCellMargins(decoder *xml.Decoder) (*TableCellMargin
 			}
 
 			switch t.Name.Local {
-			case "top":
+			case string(CellVAlignTop):
 				margins.Top = space
-			case "left":
+			case string(CellAlignLeft):
 				margins.Left = space
-			case "bottom":
+			case string(CellVAlignBottom):
 				margins.Bottom = space
-			case "right":
+			case string(CellAlignRight):
 				margins.Right = space
 			}
 
@@ -3467,6 +3464,8 @@ func (d *Document) parseTableCellMargins(decoder *xml.Decoder) (*TableCellMargin
 }
 
 // parseTableCellProperties parses table cell properties
+//
+//nolint:gocognit
 func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellProperties, error) {
 	props := &TableCellProperties{}
 
@@ -3598,13 +3597,13 @@ func (d *Document) parseTableCellBorders(decoder *xml.Decoder) (*TableCellBorder
 			}
 
 			switch t.Name.Local {
-			case "top":
+			case string(CellVAlignTop):
 				borders.Top = border
-			case "left":
+			case string(CellAlignLeft):
 				borders.Left = border
-			case "bottom":
+			case string(CellVAlignBottom):
 				borders.Bottom = border
-			case "right":
+			case string(CellAlignRight):
 				borders.Right = border
 			case "insideH":
 				borders.InsideH = border
@@ -3628,6 +3627,8 @@ func (d *Document) parseTableCellBorders(decoder *xml.Decoder) (*TableCellBorder
 }
 
 // parseTableCellMarginsCell parses table cell margins (cell level)
+//
+//nolint:dupl
 func (d *Document) parseTableCellMarginsCell(decoder *xml.Decoder) (*TableCellMarginsCell, error) {
 	margins := &TableCellMarginsCell{}
 
@@ -3645,13 +3646,13 @@ func (d *Document) parseTableCellMarginsCell(decoder *xml.Decoder) (*TableCellMa
 			}
 
 			switch t.Name.Local {
-			case "top":
+			case string(CellVAlignTop):
 				margins.Top = space
-			case "left":
+			case string(CellAlignLeft):
 				margins.Left = space
-			case "bottom":
+			case string(CellVAlignBottom):
 				margins.Bottom = space
-			case "right":
+			case string(CellAlignRight):
 				margins.Right = space
 			}
 
@@ -3667,6 +3668,8 @@ func (d *Document) parseTableCellMarginsCell(decoder *xml.Decoder) (*TableCellMa
 }
 
 // parseTableRowProperties parses table row properties
+//
+//nolint:gocognit
 func (d *Document) parseTableRowProperties(decoder *xml.Decoder) (*TableRowProperties, error) {
 	props := &TableRowProperties{}
 
@@ -3759,19 +3762,21 @@ func (d *Document) parseDrawingElement(decoder *xml.Decoder, startElement xml.St
 }
 
 // parseInlineDrawing parses an inline drawing
+//
+//nolint:gocognit
 func (d *Document) parseInlineDrawing(decoder *xml.Decoder, startElement xml.StartElement) (*InlineDrawing, error) {
 	inline := &InlineDrawing{}
 
 	// Parse attributes
 	for _, attr := range startElement.Attr {
 		switch attr.Name.Local {
-		case "distT":
+		case xmlAttrDistT:
 			inline.DistT = attr.Value
-		case "distB":
+		case xmlAttrDistB:
 			inline.DistB = attr.Value
-		case "distL":
+		case xmlAttrDistL:
 			inline.DistL = attr.Value
-		case "distR":
+		case xmlAttrDistR:
 			inline.DistR = attr.Value
 		}
 	}
@@ -3805,11 +3810,11 @@ func (d *Document) parseInlineDrawing(decoder *xml.Decoder, startElement xml.Sta
 					switch attr.Name.Local {
 					case "id":
 						docPr.ID = attr.Value
-					case "name":
+					case xmlAttrName:
 						docPr.Name = attr.Value
-					case "descr":
+					case xmlAttrDescr:
 						docPr.Descr = attr.Value
-					case "title":
+					case xmlAttrTitle:
 						docPr.Title = attr.Value
 					}
 				}
@@ -3817,7 +3822,7 @@ func (d *Document) parseInlineDrawing(decoder *xml.Decoder, startElement xml.Sta
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
-			case "graphic":
+			case xmlElemGraphic:
 				graphic, err := d.parseDrawingGraphic(decoder, t)
 				if err != nil {
 					return nil, err
@@ -3837,19 +3842,21 @@ func (d *Document) parseInlineDrawing(decoder *xml.Decoder, startElement xml.Sta
 }
 
 // parseAnchorDrawing parses an anchor (floating) drawing
+//
+//nolint:gocognit
 func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.StartElement) (*AnchorDrawing, error) {
 	anchor := &AnchorDrawing{}
 
 	// Parse attributes
 	for _, attr := range startElement.Attr {
 		switch attr.Name.Local {
-		case "distT":
+		case xmlAttrDistT:
 			anchor.DistT = attr.Value
-		case "distB":
+		case xmlAttrDistB:
 			anchor.DistB = attr.Value
-		case "distL":
+		case xmlAttrDistL:
 			anchor.DistL = attr.Value
-		case "distR":
+		case xmlAttrDistR:
 			anchor.DistR = attr.Value
 		case "simplePos":
 			anchor.SimplePos = attr.Value
@@ -3895,11 +3902,11 @@ func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.Sta
 					switch attr.Name.Local {
 					case "id":
 						docPr.ID = attr.Value
-					case "name":
+					case xmlAttrName:
 						docPr.Name = attr.Value
-					case "descr":
+					case xmlAttrDescr:
 						docPr.Descr = attr.Value
-					case "title":
+					case xmlAttrTitle:
 						docPr.Title = attr.Value
 					}
 				}
@@ -3907,7 +3914,7 @@ func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.Sta
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
-			case "graphic":
+			case xmlElemGraphic:
 				graphic, err := d.parseDrawingGraphic(decoder, t)
 				if err != nil {
 					return nil, err
@@ -3924,13 +3931,13 @@ func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.Sta
 					switch attr.Name.Local {
 					case "wrapText":
 						wrapSquare.WrapText = attr.Value
-					case "distT":
+					case xmlAttrDistT:
 						wrapSquare.DistT = attr.Value
-					case "distB":
+					case xmlAttrDistB:
 						wrapSquare.DistB = attr.Value
-					case "distL":
+					case xmlAttrDistL:
 						wrapSquare.DistL = attr.Value
-					case "distR":
+					case xmlAttrDistR:
 						wrapSquare.DistR = attr.Value
 					}
 				}
@@ -3986,7 +3993,7 @@ func (d *Document) parseDrawingGraphic(decoder *xml.Decoder, startElement xml.St
 				}
 			}
 		case xml.EndElement:
-			if t.Name.Local == "graphic" {
+			if t.Name.Local == xmlElemGraphic {
 				return graphic, nil
 			}
 		}
@@ -4000,7 +4007,7 @@ func (d *Document) parseGraphicData(decoder *xml.Decoder, startElement xml.Start
 	// Parse attributes
 	for _, attr := range startElement.Attr {
 		if attr.Name.Local == "uri" {
-			graphicData.Uri = attr.Value
+			graphicData.URI = attr.Value
 		}
 	}
 
@@ -4033,6 +4040,8 @@ func (d *Document) parseGraphicData(decoder *xml.Decoder, startElement xml.Start
 }
 
 // parsePicElement parses a picture element
+//
+//nolint:gocognit
 func (d *Document) parsePicElement(decoder *xml.Decoder, startElement xml.StartElement) (*PicElement, error) {
 	pic := &PicElement{}
 
@@ -4087,6 +4096,8 @@ func (d *Document) parsePicElement(decoder *xml.Decoder, startElement xml.StartE
 }
 
 // parseNvPicPr parses non-visual picture properties
+//
+//nolint:gocognit
 func (d *Document) parseNvPicPr(decoder *xml.Decoder, startElement xml.StartElement) (*NvPicPr, error) {
 	nvPicPr := &NvPicPr{}
 
@@ -4105,9 +4116,9 @@ func (d *Document) parseNvPicPr(decoder *xml.Decoder, startElement xml.StartElem
 					switch attr.Name.Local {
 					case "id":
 						cNvPr.ID = attr.Value
-					case "name":
+					case xmlAttrName:
 						cNvPr.Name = attr.Value
-					case "descr":
+					case xmlAttrDescr:
 						cNvPr.Descr = attr.Value
 					case "title":
 						cNvPr.Title = attr.Value
@@ -4138,6 +4149,8 @@ func (d *Document) parseNvPicPr(decoder *xml.Decoder, startElement xml.StartElem
 }
 
 // parseBlipFill parses picture fill
+//
+//nolint:gocognit
 func (d *Document) parseBlipFill(decoder *xml.Decoder, startElement xml.StartElement) (*BlipFill, error) {
 	blipFill := &BlipFill{}
 
@@ -4180,6 +4193,8 @@ func (d *Document) parseBlipFill(decoder *xml.Decoder, startElement xml.StartEle
 }
 
 // parseSpPr parses shape properties
+//
+//nolint:gocognit
 func (d *Document) parseSpPr(decoder *xml.Decoder, startElement xml.StartElement) (*SpPr, error) {
 	spPr := &SpPr{}
 
@@ -4223,6 +4238,8 @@ func (d *Document) parseSpPr(decoder *xml.Decoder, startElement xml.StartElement
 }
 
 // parseXfrm parses transform elements
+//
+//nolint:gocognit
 func (d *Document) parseXfrm(decoder *xml.Decoder, startElement xml.StartElement) (*Xfrm, error) {
 	xfrm := &Xfrm{}
 

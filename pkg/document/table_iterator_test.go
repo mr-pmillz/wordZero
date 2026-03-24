@@ -214,6 +214,8 @@ func TestTableForEach(t *testing.T) {
 }
 
 // TestForEachInRow tests row traversal
+//
+//nolint:dupl
 func TestForEachInRow(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -264,6 +266,7 @@ func TestForEachInRow(t *testing.T) {
 }
 
 // TestForEachInColumn tests column traversal
+//nolint:dupl
 func TestForEachInColumn(t *testing.T) {
 	doc := New()
 	config := &TableConfig{

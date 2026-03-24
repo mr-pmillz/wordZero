@@ -1,0 +1,142 @@
+name: CI
+
+# Controls when the action will run. Triggers the workflow on push with tags
+on:
+  push:
+    tags:
+      - '*'
+  pull_request:
+
+permissions:
+  contents: write
+  packages: write
+  attestations: write
+  id-token: write
+  artifact-metadata: write
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # The "build" workflow
+  build:
+    # The type of runner that the job will run on
+    strategy:
+      matrix:
+        go-version: ['1.25']
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v6
+
+      # Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      # Run build of the application
+      - name: Run build
+        run: |
+          go env -w GOFLAGS=-mod=mod
+          go mod tidy
+          make build
+  test:
+    needs: build
+    strategy:
+      matrix:
+        go-version: ['1.25']
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v6
+
+      # Setup Go
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: ${{ matrix.go-version }}
+          cache: true
+
+      - name: Set GOPATH
+        run: |
+          echo "GOPATH=$(go env GOPATH)/bin" >> $GITHUB_ENV
+
+      # Install gotestfmt on the VM running the action.
+      - name: Set up gotestfmt
+        uses: GoTestTools/gotestfmt-action@v2
+        with:
+          # Optional: pass GITHUB_TOKEN to avoid rate limiting.
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # Run Tests
+      - name: Tests
+        run: |
+          set -euo pipefail
+          mkdir -p coverage
+          go test -json -v ./pkg/... ./test/... 2>&1 | tee coverage/gotest.log | gotestfmt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Upload the original go test log as an artifact for later review.
+      - name: Upload test log
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: test-log
+          path: coverage/gotest.log
+          if-no-files-found: error
+  golangci:
+    needs: build
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@v6
+        with:
+          go-version: '1.25'
+      - uses: actions/checkout@v6
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          # Optional: the value can be v2.3 or v2.3.4 or latest to use the latest version.
+          version: latest
+          # Optional: golangci-lint command line arguments.
+          args: --config ./.golangci-lint.yml
+
+  # ================
+  # Generate CHANGELOG.md after release finishes to avoid git in a dirty state error.
+  #   only runs on push "*" tag
+  # ================
+  changelog:
+    name: Generate changelog
+    needs: [ build, test, golangci ]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Commit
+        run: |
+          git checkout main
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
+          set +e
+          git add CHANGELOG.md
+          git commit -m "Update changelog"
+          git push https://${{ secrets.GITHUB_TOKEN }}@github.com/${GITHUB_REPOSITORY}.git main

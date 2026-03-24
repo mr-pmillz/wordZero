@@ -8,6 +8,7 @@ import (
 )
 
 // TestTableInsertAndMergeFix 测试动态添加行后合并单元格的修复
+//nolint:gocognit
 func TestTableInsertAndMergeFix(t *testing.T) {
 	// 开启日志
 	document.SetGlobalLevel(document.LogLevelInfo)
@@ -202,6 +203,7 @@ func TestTableInsertAndMergeFix(t *testing.T) {
 }
 
 // TestTableGridConsistencyAfterFix 测试修复后的表格网格一致性
+//nolint:gocognit
 func TestTableGridConsistencyAfterFix(t *testing.T) {
 	doc := document.New()
 

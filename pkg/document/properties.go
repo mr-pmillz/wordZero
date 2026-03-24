@@ -96,12 +96,12 @@ func (d *Document) SetDocumentProperties(properties *DocumentProperties) error {
 
 	// Generate core properties XML
 	if err := d.generateCoreProperties(properties); err != nil {
-		return fmt.Errorf("failed to generate core properties: %v", err)
+		return fmt.Errorf("failed to generate core properties: %w", err)
 	}
 
 	// Generate application properties XML
 	if err := d.generateAppProperties(properties); err != nil {
-		return fmt.Errorf("failed to generate application properties: %v", err)
+		return fmt.Errorf("failed to generate application properties: %w", err)
 	}
 
 	// Add content types and relationships
@@ -122,13 +122,13 @@ func (d *Document) GetDocumentProperties() (*DocumentProperties, error) {
 	// Read from saved properties if they exist
 	if coreData, exists := d.parts["docProps/core.xml"]; exists {
 		if err := d.parseCoreProperties(coreData, properties); err != nil {
-			return nil, fmt.Errorf("failed to parse core properties: %v", err)
+			return nil, fmt.Errorf("failed to parse core properties: %w", err)
 		}
 	}
 
 	if appData, exists := d.parts["docProps/app.xml"]; exists {
 		if err := d.parseAppProperties(appData, properties); err != nil {
-			return nil, fmt.Errorf("failed to parse application properties: %v", err)
+			return nil, fmt.Errorf("failed to parse application properties: %w", err)
 		}
 	}
 

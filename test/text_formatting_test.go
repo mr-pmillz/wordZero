@@ -77,11 +77,12 @@ func TestParagraphAlignment(t *testing.T) {
 		p := doc.AddParagraph("测试对齐")
 		p.SetAlignment(align)
 
-		if p.Properties == nil {
+		switch {
+		case p.Properties == nil:
 			t.Errorf("段落属性为空，对齐方式: %s", align)
-		} else if p.Properties.Justification == nil {
+		case p.Properties.Justification == nil:
 			t.Errorf("对齐属性为空，对齐方式: %s", align)
-		} else if p.Properties.Justification.Val != string(align) {
+		case p.Properties.Justification.Val != string(align):
 			t.Errorf("对齐方式不匹配，预期: %s，实际: %s", align, p.Properties.Justification.Val)
 		}
 	}
@@ -123,10 +124,8 @@ func TestParagraphSpacing(t *testing.T) {
 
 	if p.Properties.Indentation == nil {
 		t.Error("缩进属性为空")
-	} else {
-		if p.Properties.Indentation.FirstLine != "480" { // 24 * 20
-			t.Errorf("首行缩进不正确，预期: 480，实际: %s", p.Properties.Indentation.FirstLine)
-		}
+	} else if p.Properties.Indentation.FirstLine != "480" { // 24 * 20
+		t.Errorf("首行缩进不正确，预期: 480，实际: %s", p.Properties.Indentation.FirstLine)
 	}
 }
 

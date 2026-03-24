@@ -304,7 +304,7 @@ func (w *MarkdownWriter) writeSimpleTable(table *document.Table) error {
 func (w *MarkdownWriter) writeFootnotes() {
 	w.output.WriteString("\n---\n\n")
 	for i, footnote := range w.footnotes {
-		w.output.WriteString(fmt.Sprintf("[^%d]: %s\n", i+1, footnote))
+		fmt.Fprintf(&w.output, "[^%d]: %s\n", i+1, footnote)
 	}
 }
 

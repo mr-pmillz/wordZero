@@ -14,9 +14,9 @@ func main() {
 	title := doc.AddParagraph("第一章：段落格式自定义功能演示")
 	title.SetAlignment(document.AlignCenter)
 	title.SetStyle("Heading1")
-	title.SetKeepWithNext(true)     // 与下一段保持在同一页
-	title.SetPageBreakBefore(true)  // 从新页开始
-	title.SetOutlineLevel(0)        // 设置为一级大纲
+	title.SetKeepWithNext(true)    // 与下一段保持在同一页
+	title.SetPageBreakBefore(true) // 从新页开始
+	title.SetOutlineLevel(0)       // 设置为一级大纲
 
 	// 示例2：使用SetParagraphFormat一次性设置多个属性
 	intro := doc.AddParagraph("本章将介绍WordZero库的段落格式自定义功能，包括分页控制、行控制、大纲级别等高级特性。")

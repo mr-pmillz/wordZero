@@ -7,6 +7,8 @@ import (
 	"testing"
 )
 
+const testImageRelType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"
+
 // TestChineseFilename tests whether images with Chinese filenames can be saved and opened correctly
 func TestChineseFilename(t *testing.T) {
 	doc := New()
@@ -68,7 +70,7 @@ func TestChineseFilename(t *testing.T) {
 	// Verify relationships also use safe filename
 	foundImageRelationship := false
 	for _, rel := range doc.documentRelationships.Relationships {
-		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
+		if rel.Type == testImageRelType {
 			foundImageRelationship = true
 			if !strings.Contains(rel.Target, "image0.png") {
 				t.Errorf("image relationship not using safe filename, Target=%s", rel.Target)

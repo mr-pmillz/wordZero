@@ -7,7 +7,10 @@ import (
 	"testing"
 )
 
+const testWordMediaPrefix = "word/media/"
+
 // TestTemplateImagePreservation tests whether images and formatting are preserved after template replacement
+//nolint:gocognit
 func TestTemplateImagePreservation(t *testing.T) {
 	// Create a minimal valid PNG image data for testing
 	testImageData := []byte{
@@ -85,7 +88,7 @@ func TestTemplateImagePreservation(t *testing.T) {
 	// Check media files in opened document
 	openedHasImageMedia := false
 	for partName := range openedDoc.parts {
-		if len(partName) > 11 && partName[:11] == "word/media/" {
+		if len(partName) > 11 && partName[:11] == testWordMediaPrefix {
 			openedHasImageMedia = true
 			t.Logf("opened document contains media file: %s", partName)
 		}
@@ -134,7 +137,7 @@ func TestTemplateImagePreservation(t *testing.T) {
 	// Check media files in result document
 	resultHasImageMedia := false
 	for partName := range resultDoc.parts {
-		if len(partName) > 11 && partName[:11] == "word/media/" {
+		if len(partName) > 11 && partName[:11] == testWordMediaPrefix {
 			resultHasImageMedia = true
 			t.Logf("result document contains media file: %s", partName)
 		}

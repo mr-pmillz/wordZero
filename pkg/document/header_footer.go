@@ -18,6 +18,9 @@ const (
 	HeaderFooterTypeFirst HeaderFooterType = "first"
 	// HeaderFooterTypeEven represents the even page header/footer
 	HeaderFooterTypeEven HeaderFooterType = "even"
+
+	// ooXMLRelationshipsBase is the base namespace for OOXML relationships
+	ooXMLRelationshipsBase = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 )
 
 // Header represents a header structure
@@ -100,7 +103,7 @@ func createStandardHeader() *Header {
 		XmlnsWPC:    "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas",
 		XmlnsMC:     "http://schemas.openxmlformats.org/markup-compatibility/2006",
 		XmlnsO:      "urn:schemas-microsoft-com:office:office",
-		XmlnsR:      "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+		XmlnsR:      ooXMLRelationshipsBase,
 		XmlnsM:      "http://schemas.openxmlformats.org/officeDocument/2006/math",
 		XmlnsV:      "urn:schemas-microsoft-com:vml",
 		XmlnsWP14:   "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing",
@@ -125,7 +128,7 @@ func createStandardFooter() *Footer {
 		XmlnsWPC:    "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas",
 		XmlnsMC:     "http://schemas.openxmlformats.org/markup-compatibility/2006",
 		XmlnsO:      "urn:schemas-microsoft-com:office:office",
-		XmlnsR:      "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+		XmlnsR:      ooXMLRelationshipsBase,
 		XmlnsM:      "http://schemas.openxmlformats.org/officeDocument/2006/math",
 		XmlnsV:      "urn:schemas-microsoft-com:vml",
 		XmlnsWP14:   "http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing",
@@ -190,250 +193,118 @@ func getFileNameForType(typePrefix string, headerType HeaderFooterType) string {
 	}
 }
 
-// AddHeader adds a header to the document
-func (d *Document) AddHeader(headerType HeaderFooterType, text string) error {
-	header := createStandardHeader()
+// headerFooterKind distinguishes between header and footer for shared helpers.
+type headerFooterKind int
 
-	// Create header paragraph
-	paragraph := &Paragraph{}
-	if text != "" {
-		run := Run{
-			Text: Text{
-				Content: text,
-				Space:   "preserve",
-			},
-		}
-		paragraph.Runs = append(paragraph.Runs, run)
-	}
-	header.Paragraphs = append(header.Paragraphs, paragraph)
+const (
+	kindHeader headerFooterKind = iota
+	kindFooter
+)
 
-	// Generate relationship ID
-	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
+// registerHeaderFooterPart serializes XML content for a header or footer, stores the part,
+// adds the relationship and content type, and updates the section properties reference.
+func (d *Document) registerHeaderFooterPart(kind headerFooterKind, hfType HeaderFooterType, xmlContent interface{}) error {
+	relID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
 
-	// Serialize header
-	headerXML, err := xml.MarshalIndent(header, "", "  ")
+	xmlBytes, err := xml.MarshalIndent(xmlContent, "", "  ")
 	if err != nil {
-		return fmt.Errorf("failed to serialize header: %v", err)
+		return fmt.Errorf("failed to serialize header/footer: %w", err)
+	}
+	fullXML := append([]byte(xml.Header), xmlBytes...)
+
+	var typePrefix, relType, contentType string
+	if kind == kindHeader {
+		typePrefix = "header"
+		relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header"
+		contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml"
+	} else {
+		typePrefix = "footer"
+		relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer"
+		contentType = "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml"
 	}
 
-	// Add XML declaration
-	fullXML := append([]byte(xml.Header), headerXML...)
+	fileName := getFileNameForType(typePrefix, hfType)
+	partName := fmt.Sprintf("word/%s", fileName)
 
-	// Get file name
-	fileName := getFileNameForType("header", headerType)
-	headerPartName := fmt.Sprintf("word/%s", fileName)
+	d.parts[partName] = fullXML
 
-	// Store header content
-	d.parts[headerPartName] = fullXML
-
-	// Add relationship to document relationships
 	relationship := Relationship{
-		ID:     headerID,
-		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header",
+		ID:     relID,
+		Type:   relType,
 		Target: fileName,
 	}
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 
-	// Add content type
-	d.addContentType(headerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml")
+	d.addContentType(partName, contentType)
 
-	// Update section properties
-	d.addHeaderReference(headerType, headerID)
+	if kind == kindHeader {
+		d.addHeaderReference(hfType, relID)
+	} else {
+		d.addFooterReference(hfType, relID)
+	}
 
 	return nil
+}
+
+// AddHeader adds a header to the document
+func (d *Document) AddHeader(headerType HeaderFooterType, text string) error {
+	header := createStandardHeader()
+	paragraph := &Paragraph{}
+	if text != "" {
+		run := Run{
+			Text: Text{Content: text, Space: "preserve"},
+		}
+		paragraph.Runs = append(paragraph.Runs, run)
+	}
+	header.Paragraphs = append(header.Paragraphs, paragraph)
+	return d.registerHeaderFooterPart(kindHeader, headerType, header)
 }
 
 // AddFooter adds a footer to the document
 func (d *Document) AddFooter(footerType HeaderFooterType, text string) error {
 	footer := createStandardFooter()
-
-	// Create footer paragraph
 	paragraph := &Paragraph{}
 	if text != "" {
 		run := Run{
-			Text: Text{
-				Content: text,
-				Space:   "preserve",
-			},
+			Text: Text{Content: text, Space: "preserve"},
 		}
 		paragraph.Runs = append(paragraph.Runs, run)
 	}
 	footer.Paragraphs = append(footer.Paragraphs, paragraph)
+	return d.registerHeaderFooterPart(kindFooter, footerType, footer)
+}
 
-	// Generate relationship ID
-	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
-
-	// Serialize footer
-	footerXML, err := xml.MarshalIndent(footer, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to serialize footer: %v", err)
+// buildPageNumberParagraph creates a paragraph with optional text and page number runs.
+func buildPageNumberParagraph(text string, showPageNum bool) *Paragraph {
+	paragraph := &Paragraph{}
+	if text != "" {
+		run := Run{
+			Text: Text{Content: text, Space: "preserve"},
+		}
+		paragraph.Runs = append(paragraph.Runs, run)
 	}
-
-	// Add XML declaration
-	fullXML := append([]byte(xml.Header), footerXML...)
-
-	// Get file name
-	fileName := getFileNameForType("footer", footerType)
-	footerPartName := fmt.Sprintf("word/%s", fileName)
-
-	// Store footer content
-	d.parts[footerPartName] = fullXML
-
-	// Add relationship to document relationships
-	relationship := Relationship{
-		ID:     footerID,
-		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer",
-		Target: fileName,
+	if showPageNum {
+		pageNumRun := Run{
+			Text: Text{Content: " Page ", Space: "preserve"},
+		}
+		paragraph.Runs = append(paragraph.Runs, pageNumRun)
+		paragraph.Runs = append(paragraph.Runs, createPageNumberRuns()...)
 	}
-	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
-
-	// Add content type
-	d.addContentType(footerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml")
-
-	// Update section properties
-	d.addFooterReference(footerType, footerID)
-
-	return nil
+	return paragraph
 }
 
 // AddHeaderWithPageNumber adds a header with a page number
 func (d *Document) AddHeaderWithPageNumber(headerType HeaderFooterType, text string, showPageNum bool) error {
 	header := createStandardHeader()
-
-	// Create header paragraph
-	paragraph := &Paragraph{}
-
-	if text != "" {
-		run := Run{
-			Text: Text{
-				Content: text,
-				Space:   "preserve",
-			},
-		}
-		paragraph.Runs = append(paragraph.Runs, run)
-	}
-
-	if showPageNum {
-		// Add "Page" prefix
-		pageNumRun := Run{
-			Text: Text{
-				Content: " Page ",
-				Space:   "preserve",
-			},
-		}
-		paragraph.Runs = append(paragraph.Runs, pageNumRun)
-
-		// Add page number field code
-		pageNumberRuns := createPageNumberRuns()
-		paragraph.Runs = append(paragraph.Runs, pageNumberRuns...)
-	}
-
-	header.Paragraphs = append(header.Paragraphs, paragraph)
-
-	// Generate relationship ID
-	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
-
-	// Serialize header
-	headerXML, err := xml.MarshalIndent(header, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to serialize header: %v", err)
-	}
-
-	// Add XML declaration
-	fullXML := append([]byte(xml.Header), headerXML...)
-
-	// Get file name
-	fileName := getFileNameForType("header", headerType)
-	headerPartName := fmt.Sprintf("word/%s", fileName)
-
-	// Store header content
-	d.parts[headerPartName] = fullXML
-
-	// Add relationship to document relationships
-	relationship := Relationship{
-		ID:     headerID,
-		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header",
-		Target: fileName,
-	}
-	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
-
-	// Add content type
-	d.addContentType(headerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml")
-
-	// Update section properties
-	d.addHeaderReference(headerType, headerID)
-
-	return nil
+	header.Paragraphs = append(header.Paragraphs, buildPageNumberParagraph(text, showPageNum))
+	return d.registerHeaderFooterPart(kindHeader, headerType, header)
 }
 
 // AddFooterWithPageNumber adds a footer with a page number
 func (d *Document) AddFooterWithPageNumber(footerType HeaderFooterType, text string, showPageNum bool) error {
 	footer := createStandardFooter()
-
-	// Create footer paragraph
-	paragraph := &Paragraph{}
-
-	if text != "" {
-		run := Run{
-			Text: Text{
-				Content: text,
-				Space:   "preserve",
-			},
-		}
-		paragraph.Runs = append(paragraph.Runs, run)
-	}
-
-	if showPageNum {
-		// Add "Page" prefix
-		pageNumRun := Run{
-			Text: Text{
-				Content: " Page ",
-				Space:   "preserve",
-			},
-		}
-		paragraph.Runs = append(paragraph.Runs, pageNumRun)
-
-		// Add page number field code
-		pageNumberRuns := createPageNumberRuns()
-		paragraph.Runs = append(paragraph.Runs, pageNumberRuns...)
-	}
-
-	footer.Paragraphs = append(footer.Paragraphs, paragraph)
-
-	// Generate relationship ID
-	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
-
-	// Serialize footer
-	footerXML, err := xml.MarshalIndent(footer, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to serialize footer: %v", err)
-	}
-
-	// Add XML declaration
-	fullXML := append([]byte(xml.Header), footerXML...)
-
-	// Get file name
-	fileName := getFileNameForType("footer", footerType)
-	footerPartName := fmt.Sprintf("word/%s", fileName)
-
-	// Store footer content
-	d.parts[footerPartName] = fullXML
-
-	// Add relationship to document relationships
-	relationship := Relationship{
-		ID:     footerID,
-		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer",
-		Target: fileName,
-	}
-	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
-
-	// Add content type
-	d.addContentType(footerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml")
-
-	// Update section properties
-	d.addFooterReference(footerType, footerID)
-
-	return nil
+	footer.Paragraphs = append(footer.Paragraphs, buildPageNumberParagraph(text, showPageNum))
+	return d.registerHeaderFooterPart(kindFooter, footerType, footer)
 }
 
 // HeaderFooterConfig represents header/footer configuration
@@ -444,7 +315,7 @@ type HeaderFooterConfig struct {
 }
 
 // createFormattedParagraph creates a formatted paragraph
-func createFormattedParagraph(text string, format *TextFormat, alignment AlignmentType) *Paragraph {
+func createFormattedParagraph(text string, format *TextFormat, alignment AlignmentType) *Paragraph { //nolint:gocognit
 	paragraph := &Paragraph{}
 
 	// Set paragraph alignment
@@ -551,48 +422,12 @@ func createFormattedParagraph(text string, format *TextFormat, alignment Alignme
 //	})
 func (d *Document) AddFormattedHeader(headerType HeaderFooterType, config *HeaderFooterConfig) error {
 	header := createStandardHeader()
-
-	// Create formatted header paragraph
 	if config == nil {
 		config = &HeaderFooterConfig{}
 	}
 	paragraph := createFormattedParagraph(config.Text, config.Format, config.Alignment)
 	header.Paragraphs = append(header.Paragraphs, paragraph)
-
-	// Generate relationship ID
-	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
-
-	// Serialize header
-	headerXML, err := xml.MarshalIndent(header, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to serialize header: %v", err)
-	}
-
-	// Add XML declaration
-	fullXML := append([]byte(xml.Header), headerXML...)
-
-	// Get file name
-	fileName := getFileNameForType("header", headerType)
-	headerPartName := fmt.Sprintf("word/%s", fileName)
-
-	// Store header content
-	d.parts[headerPartName] = fullXML
-
-	// Add relationship to document relationships
-	relationship := Relationship{
-		ID:     headerID,
-		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header",
-		Target: fileName,
-	}
-	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
-
-	// Add content type
-	d.addContentType(headerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml")
-
-	// Update section properties
-	d.addHeaderReference(headerType, headerID)
-
-	return nil
+	return d.registerHeaderFooterPart(kindHeader, headerType, header)
 }
 
 // AddFormattedFooter adds a formatted footer.
@@ -616,48 +451,12 @@ func (d *Document) AddFormattedHeader(headerType HeaderFooterType, config *Heade
 //	})
 func (d *Document) AddFormattedFooter(footerType HeaderFooterType, config *HeaderFooterConfig) error {
 	footer := createStandardFooter()
-
-	// Create formatted footer paragraph
 	if config == nil {
 		config = &HeaderFooterConfig{}
 	}
 	paragraph := createFormattedParagraph(config.Text, config.Format, config.Alignment)
 	footer.Paragraphs = append(footer.Paragraphs, paragraph)
-
-	// Generate relationship ID
-	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
-
-	// Serialize footer
-	footerXML, err := xml.MarshalIndent(footer, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to serialize footer: %v", err)
-	}
-
-	// Add XML declaration
-	fullXML := append([]byte(xml.Header), footerXML...)
-
-	// Get file name
-	fileName := getFileNameForType("footer", footerType)
-	footerPartName := fmt.Sprintf("word/%s", fileName)
-
-	// Store footer content
-	d.parts[footerPartName] = fullXML
-
-	// Add relationship to document relationships
-	relationship := Relationship{
-		ID:     footerID,
-		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer",
-		Target: fileName,
-	}
-	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
-
-	// Add content type
-	d.addContentType(footerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml")
-
-	// Update section properties
-	d.addFooterReference(footerType, footerID)
-
-	return nil
+	return d.registerHeaderFooterPart(kindFooter, footerType, footer)
 }
 
 // SetDifferentFirstPage sets whether the first page has a different header/footer
@@ -676,7 +475,7 @@ func (d *Document) addHeaderReference(headerType HeaderFooterType, headerID stri
 
 	// Ensure the relationship namespace is set
 	if sectPr.XmlnsR == "" {
-		sectPr.XmlnsR = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+		sectPr.XmlnsR = ooXMLRelationshipsBase
 	}
 
 	headerRef := &HeaderFooterReference{
@@ -693,7 +492,7 @@ func (d *Document) addFooterReference(footerType HeaderFooterType, footerID stri
 
 	// Ensure the relationship namespace is set
 	if sectPr.XmlnsR == "" {
-		sectPr.XmlnsR = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+		sectPr.XmlnsR = ooXMLRelationshipsBase
 	}
 
 	footerRef := &FooterReference{
@@ -711,7 +510,7 @@ func (d *Document) getSectionPropertiesForHeaderFooter() *SectionProperties {
 		if sectPr, ok := element.(*SectionProperties); ok {
 			// Ensure the relationship namespace is set
 			if sectPr.XmlnsR == "" {
-				sectPr.XmlnsR = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+				sectPr.XmlnsR = ooXMLRelationshipsBase
 			}
 			return sectPr
 		}
@@ -720,7 +519,7 @@ func (d *Document) getSectionPropertiesForHeaderFooter() *SectionProperties {
 	// If none exists, create new section properties
 	sectPr := &SectionProperties{
 		XMLName: xml.Name{Local: "w:sectPr"},
-		XmlnsR:  "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+		XmlnsR:  ooXMLRelationshipsBase,
 		PageNumType: &PageNumType{
 			Fmt: "decimal",
 		},

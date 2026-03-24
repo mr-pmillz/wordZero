@@ -64,7 +64,7 @@ func TestImagePersistenceAfterOpenAndSave(t *testing.T) {
 	// Verify document relationships contain image relationship
 	foundImageRelationship := false
 	for _, rel := range doc2.documentRelationships.Relationships {
-		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
+		if rel.Type == testImageRelType {
 			foundImageRelationship = true
 			t.Logf("found image relationship: ID=%s, Target=%s", rel.ID, rel.Target)
 			break
@@ -98,7 +98,7 @@ func TestImagePersistenceAfterOpenAndSave(t *testing.T) {
 	// Verify image relationship still exists
 	foundImageRelationship = false
 	for _, rel := range doc3.documentRelationships.Relationships {
-		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
+		if rel.Type == testImageRelType {
 			foundImageRelationship = true
 			t.Logf("found image relationship in second document: ID=%s, Target=%s", rel.ID, rel.Target)
 			break
@@ -201,7 +201,7 @@ func TestAddImageToOpenedDocument(t *testing.T) {
 	// Verify image relationship count
 	imageRelCount := 0
 	for _, rel := range doc3.documentRelationships.Relationships {
-		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
+		if rel.Type == testImageRelType {
 			imageRelCount++
 			t.Logf("found image relationship: ID=%s, Target=%s", rel.ID, rel.Target)
 		}
@@ -286,7 +286,7 @@ func TestImageIDCounterAfterOpen(t *testing.T) {
 	// Verify image relationship count
 	imageRelCount := 0
 	for _, rel := range doc3.documentRelationships.Relationships {
-		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
+		if rel.Type == testImageRelType {
 			imageRelCount++
 		}
 	}

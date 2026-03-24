@@ -11,7 +11,7 @@ import (
 // TestTemplateInheritanceComplete 完整的模板继承测试
 func TestTemplateInheritanceComplete(t *testing.T) {
 	// 确保输出目录存在
-	outputDir := "output"
+	outputDir := testOutputDir
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
 		err = os.Mkdir(outputDir, 0755)
 		if err != nil {

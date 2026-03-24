@@ -6,6 +6,8 @@ import (
 	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
+const testBorderStyleSingle = "single"
+
 // TestTableDefaultStyle 测试表格默认样式
 func TestTableDefaultStyle(t *testing.T) {
 	// 创建文档
@@ -42,22 +44,22 @@ func TestTableDefaultStyle(t *testing.T) {
 
 	// 验证边框样式
 	borders := table.Properties.TableBorders
-	if borders.Top == nil || borders.Top.Val != "single" {
+	if borders.Top == nil || borders.Top.Val != testBorderStyleSingle {
 		t.Error("顶部边框样式不正确")
 	}
-	if borders.Left == nil || borders.Left.Val != "single" {
+	if borders.Left == nil || borders.Left.Val != testBorderStyleSingle {
 		t.Error("左边框样式不正确")
 	}
-	if borders.Bottom == nil || borders.Bottom.Val != "single" {
+	if borders.Bottom == nil || borders.Bottom.Val != testBorderStyleSingle {
 		t.Error("底部边框样式不正确")
 	}
-	if borders.Right == nil || borders.Right.Val != "single" {
+	if borders.Right == nil || borders.Right.Val != testBorderStyleSingle {
 		t.Error("右边框样式不正确")
 	}
-	if borders.InsideH == nil || borders.InsideH.Val != "single" {
+	if borders.InsideH == nil || borders.InsideH.Val != testBorderStyleSingle {
 		t.Error("内部水平边框样式不正确")
 	}
-	if borders.InsideV == nil || borders.InsideV.Val != "single" {
+	if borders.InsideV == nil || borders.InsideV.Val != testBorderStyleSingle {
 		t.Error("内部垂直边框样式不正确")
 	}
 
@@ -116,7 +118,7 @@ func TestDefaultStyleMatchesTmpTest(t *testing.T) {
 	borders := table.Properties.TableBorders
 
 	// 验证所有边框都是单线样式
-	expectedBorderStyle := "single"
+	expectedBorderStyle := testBorderStyleSingle
 	expectedBorderSize := "4"
 
 	if borders.Top.Val != expectedBorderStyle {
@@ -182,7 +184,7 @@ func TestDefaultStyleOverride(t *testing.T) {
 	}
 
 	// 验证默认边框已设置
-	if table.Properties.TableBorders.Top.Val != "single" {
+	if table.Properties.TableBorders.Top.Val != testBorderStyleSingle {
 		t.Error("默认边框样式设置失败")
 	}
 

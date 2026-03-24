@@ -1912,7 +1912,7 @@ func (sm *StyleManager) ParseStylesFromXML(xmlData []byte) error {
 
 	var styles stylesXML
 	if err := xml.Unmarshal(xmlData, &styles); err != nil {
-		return fmt.Errorf("failed to parse styles XML: %v", err)
+		return fmt.Errorf("failed to parse styles XML: %w", err)
 	}
 
 	// Clear existing styles (unless merging)
@@ -1935,7 +1935,7 @@ func (sm *StyleManager) MergeStylesFromXML(xmlData []byte) error {
 
 	var styles stylesXML
 	if err := xml.Unmarshal(xmlData, &styles); err != nil {
-		return fmt.Errorf("failed to parse styles XML: %v", err)
+		return fmt.Errorf("failed to parse styles XML: %w", err)
 	}
 
 	// Only add styles that don't already exist
@@ -1960,7 +1960,7 @@ func (sm *StyleManager) LoadStylesFromDocument(xmlData []byte) error {
 	if err := sm.ParseStylesFromXML(xmlData); err != nil {
 		// If parsing fails, fall back to default styles
 		sm.initializePredefinedStyles()
-		return fmt.Errorf("failed to parse existing styles, using defaults: %v", err)
+		return fmt.Errorf("failed to parse existing styles, using defaults: %w", err)
 	}
 
 	// Ensure the basic Normal style exists; add it if missing

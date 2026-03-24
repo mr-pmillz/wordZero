@@ -7,6 +7,11 @@ import (
 	"github.com/mr-pmillz/wordZero/pkg/style"
 )
 
+const (
+	testColorBlue      = "0000FF"
+	testHeaderPartName = "word/header1.xml"
+)
+
 // assertParagraphContent verifies the text content of a paragraph with bounds checking
 func assertParagraphContent(t *testing.T, paragraphs []*Paragraph, index int, expectedContent string) {
 	t.Helper()
@@ -93,7 +98,7 @@ func TestAddHeadingParagraph(t *testing.T) {
 		level   int
 		styleID string
 	}{
-		{"第一级标题", 1, "Heading1"},
+		{"第一级标题", 1, styleHeading1},
 		{"第二级标题", 2, "Heading2"},
 		{"第三级标题", 3, "Heading3"},
 		{"第九级标题", 9, "Heading9"},
@@ -130,12 +135,12 @@ func TestAddHeadingParagraph(t *testing.T) {
 
 	// Test out-of-range level
 	para := doc.AddHeadingParagraph("超出范围", 10)
-	if para.Properties.ParagraphStyle.Val != "Heading1" {
+	if para.Properties.ParagraphStyle.Val != styleHeading1 {
 		t.Error("Out of range level should default to Heading1")
 	}
 
 	para = doc.AddHeadingParagraph("负数级别", -1)
-	if para.Properties.ParagraphStyle.Val != "Heading1" {
+	if para.Properties.ParagraphStyle.Val != styleHeading1 {
 		t.Error("Negative level should default to Heading1")
 	}
 }
@@ -271,7 +276,7 @@ func TestParagraphAddFormattedText(t *testing.T) {
 	// Add formatted text
 	format := &TextFormat{
 		Bold:      true,
-		FontColor: "0000FF",
+		FontColor: testColorBlue,
 	}
 
 	para.AddFormattedText("格式化文本", format)
@@ -291,7 +296,7 @@ func TestParagraphAddFormattedText(t *testing.T) {
 		t.Error("Second run should be bold")
 	}
 
-	if run.Properties.Color == nil || run.Properties.Color.Val != "0000FF" {
+	if run.Properties.Color == nil || run.Properties.Color.Val != testColorBlue {
 		t.Error("Second run should be blue")
 	}
 
@@ -305,7 +310,7 @@ func TestParagraphSetStyle(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试样式")
 
-	para.SetStyle("Heading1")
+	para.SetStyle(styleHeading1)
 
 	if para.Properties == nil {
 		t.Fatal("Properties should not be nil")
@@ -315,7 +320,7 @@ func TestParagraphSetStyle(t *testing.T) {
 		t.Fatal("ParagraphStyle should not be nil")
 	}
 
-	if para.Properties.ParagraphStyle.Val != "Heading1" {
+	if para.Properties.ParagraphStyle.Val != styleHeading1 {
 		t.Errorf("Expected style Heading1, got %s", para.Properties.ParagraphStyle.Val)
 	}
 }
@@ -528,7 +533,7 @@ func TestParagraphSetParagraphFormat(t *testing.T) {
 	// Test full configuration
 	config := &ParagraphFormatConfig{
 		Alignment:       AlignCenter,
-		Style:           "Heading1",
+		Style:           styleHeading1,
 		LineSpacing:     1.5,
 		BeforePara:      24,
 		AfterPara:       12,
@@ -555,7 +560,7 @@ func TestParagraphSetParagraphFormat(t *testing.T) {
 	}
 
 	// Verify style
-	if para.Properties.ParagraphStyle == nil || para.Properties.ParagraphStyle.Val != "Heading1" {
+	if para.Properties.ParagraphStyle == nil || para.Properties.ParagraphStyle.Val != styleHeading1 {
 		t.Error("Style not set correctly")
 	}
 
@@ -686,7 +691,7 @@ func TestDocumentGetStyleManager(t *testing.T) {
 		t.Error("Normal style should exist")
 	}
 
-	if !styleManager.StyleExists("Heading1") {
+	if !styleManager.StyleExists(styleHeading1) {
 		t.Error("Heading1 style should exist")
 	}
 }
@@ -1222,7 +1227,7 @@ func TestAddFormattedHeader(t *testing.T) {
 	}
 
 	// Verify header file was created
-	headerPartName := "word/header1.xml"
+	headerPartName := testHeaderPartName
 	if _, ok := doc.parts[headerPartName]; !ok {
 		t.Errorf("header file %s was not created", headerPartName)
 	}
@@ -1295,7 +1300,7 @@ func TestAddFormattedHeaderWithNilConfig(t *testing.T) {
 	}
 
 	// Verify header file was created
-	headerPartName := "word/header1.xml"
+	headerPartName := testHeaderPartName
 	if _, ok := doc.parts[headerPartName]; !ok {
 		t.Errorf("header file %s was not created", headerPartName)
 	}
@@ -1363,7 +1368,7 @@ func TestCreateFormattedParagraph(t *testing.T) {
 	format := &TextFormat{
 		Bold:       true,
 		FontSize:   14,
-		FontColor:  "0000FF",
+		FontColor:  testColorBlue,
 		FontFamily: "Arial",
 	}
 	para3 := createFormattedParagraph("格式化文本", format, AlignLeft)
@@ -1382,7 +1387,7 @@ func TestCreateFormattedParagraph(t *testing.T) {
 	if para3.Runs[0].Properties.Color == nil {
 		t.Error("color property should not be nil")
 	}
-	if para3.Runs[0].Properties.Color.Val != "0000FF" {
+	if para3.Runs[0].Properties.Color.Val != testColorBlue {
 		t.Errorf("expected color '0000FF', got '%s'", para3.Runs[0].Properties.Color.Val)
 	}
 	if para3.Runs[0].Properties.FontFamily == nil {
@@ -1599,7 +1604,7 @@ func TestParagraphSetColor(t *testing.T) {
 
 	// Test setting color (with # prefix, should be removed)
 	para.SetColor("#0000FF")
-	if para.Runs[0].Properties.Color.Val != "0000FF" {
+	if para.Runs[0].Properties.Color.Val != testColorBlue {
 		t.Errorf("expected color '0000FF' (# prefix should be removed), got '%s'", para.Runs[0].Properties.Color.Val)
 	}
 
@@ -1665,7 +1670,7 @@ func TestParagraphFormattingIntegration(t *testing.T) {
 	para.SetHighlight("yellow")
 	para.SetFontFamily("Times New Roman")
 	para.SetFontSize(16)
-	para.SetColor("0000FF")
+	para.SetColor(testColorBlue)
 
 	// Verify all formatting has been applied
 	props := para.Runs[0].Properties
@@ -1690,7 +1695,7 @@ func TestParagraphFormattingIntegration(t *testing.T) {
 	if props.FontSize == nil || props.FontSize.Val != "32" {
 		t.Errorf("font size property not set correctly, expected '32', got '%s'", props.FontSize.Val)
 	}
-	if props.Color == nil || props.Color.Val != "0000FF" {
+	if props.Color == nil || props.Color.Val != testColorBlue {
 		t.Error("color property not set correctly")
 	}
 

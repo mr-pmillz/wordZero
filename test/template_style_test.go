@@ -208,6 +208,7 @@ func TestTemplateStylePreservation(t *testing.T) {
 }
 
 // verifyDocumentStyles 验证文档样式是否正确保持
+//nolint:gocognit
 func verifyDocumentStyles(t *testing.T, doc *document.Document) {
 	fmt.Println("\n=== 验证样式保持情况 ===")
 
@@ -307,6 +308,7 @@ func verifyDocumentStyles(t *testing.T, doc *document.Document) {
 }
 
 // TestTemplateStyleIssues 专门测试样式问题的原因
+//nolint:gocognit
 func TestTemplateStyleIssues(t *testing.T) {
 	fmt.Println("\n=== 样式问题诊断测试 ===")
 

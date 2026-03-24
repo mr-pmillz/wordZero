@@ -9,6 +9,7 @@ import (
 )
 
 // TestCellIteratorIntegration 单元格迭代器功能集成测试
+//nolint:gocognit
 func TestCellIteratorIntegration(t *testing.T) {
 	// 创建测试文档
 	doc := document.New()

@@ -82,9 +82,7 @@ func (c *Converter) ConvertBytes(content []byte, opts *ConvertOptions) (*documen
 	doc := document.New()
 
 	// Apply page settings
-	if c.opts.PageSettings != nil {
-		// Can be extended later using the existing page settings API
-	}
+	// TODO: Can be extended later using the existing page settings API
 
 	// Parse Markdown
 	reader := text.NewReader(content)
