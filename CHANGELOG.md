@@ -2,6 +2,55 @@
 
 All notable changes to this project will be documented [here](https://github.com/mr-pmillz/wordZero/blob/main/CHANGELOG.md?ref_type=heads)
 
+## [1.7.3](https://github.com/mr-pmillz/wordZero/compare/v1.7.2...v1.7.3) - 2026-03-24
+
+### ✨ New features
+
+- Feat: add section breaks, cell images, placeholders, page numbers, paragraph helpers, styled headers - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - AddHeadingParagraphWithBookmarkFormatted with TextFormat support - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+
+### 🐛 Bug fixes
+
+- Fix: avoid footnote ID collision with template system notes - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+
+### ⚙️ Miscellaneous
+
+- When opening a template document that has pre-existing system footnotes - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- (separator id=-1, continuationSeparator id=0, continuationNotice id=1), - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- WordZero's FootnoteManager started counting at id=1 — colliding with - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- The template's continuationNotice. This caused Word to report - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- "Footnotes 1" repair error. - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- Fixes: - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- - Scan existing footnotes/endnotes XML on document open to find the - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+-   highest used ID and start new IDs above it - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- - Preserve all system notes (those with w:type attribute) from the - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+-   template and re-emit them when updating the footnotes/endnotes file - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- - Add syncFootnoteManagerWithExisting() called in openFromZipReader() - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- - Add parseExistingNotes() to extract system notes and highest IDs - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([e8c7e12](https://github.com/mr-pmillz/wordZero/commit/e8c7e125019dbd05e97a32dac52bfdc3699459f5))
+- New features reimplemented from chimojiacai fork with clean English code: - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- Section breaks (section.go): - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - AddSectionBreak, AddSectionBreakWithStartPage, AddSectionBreakWithPageNumber, - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+-   AddSectionBreakContinuous on Paragraph - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - getCurrentSectionProperties helper for document section management - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- Table cell images (table.go): - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - SetCellImage replaces cell content with inline image - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - AddCellImage appends image preserving existing content - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - Automatic EMU sizing with aspect ratio preservation - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- Table cell placeholders (table.go): - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - SetCellPlaceholder, GetCellPlaceholder, RemoveCellPlaceholder, HasCellPlaceholder - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - Range operations: SetCellPlaceholderRange, RemoveCellPlaceholderRange - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- Page number control (page.go): - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - SetStartPageNumber, ResetPageNumber, RestartPageNumber - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - PageNumType.Start field for section-level page number resets - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- Paragraph helpers (document.go): - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - AddLineBreak with optional text, AddRun with TextFormat/RunProperties - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- Styled headers (header_footer.go): - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - AddStyleHeader with formatted text, red secondary text, horizontal rule - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- - ClearHeaderFooterReferences, AddCurrentHeaderReference, AddCurrentFooterReference - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([d76323e](https://github.com/mr-pmillz/wordZero/commit/d76323e2c8e49c0861fc2c6fb25ac759d20f5f40))
+- Chore: update changelog for v1.7.2 - ([bbf2a0e](https://github.com/mr-pmillz/wordZero/commit/bbf2a0e7439267e4f89d1325722a1d9eef5fa81a))
+
 ## [1.7.2](https://github.com/mr-pmillz/wordZero/compare/v1.7.1...v1.7.2) - 2026-03-24
 
 ### 🐛 Bug fixes
