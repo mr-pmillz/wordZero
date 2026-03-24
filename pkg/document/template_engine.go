@@ -6,18 +6,18 @@ import (
 	"strings"
 )
 
-// TemplateRenderer 专门负责模板渲染的引擎
+// TemplateRenderer is a dedicated engine for template rendering.
 type TemplateRenderer struct {
 	engine *TemplateEngine
 	logger *TemplateLogger
 }
 
-// TemplateLogger 模板日志记录器
+// TemplateLogger is a logger for template operations.
 type TemplateLogger struct {
 	enabled bool
 }
 
-// NewTemplateRenderer 创建新的模板渲染器
+// NewTemplateRenderer creates a new template renderer.
 func NewTemplateRenderer() *TemplateRenderer {
 	return &TemplateRenderer{
 		engine: NewTemplateEngine(),
@@ -25,90 +25,90 @@ func NewTemplateRenderer() *TemplateRenderer {
 	}
 }
 
-// SetLogging 设置是否启用日志记录
+// SetLogging enables or disables logging.
 func (tr *TemplateRenderer) SetLogging(enabled bool) {
 	tr.logger.enabled = enabled
 }
 
-// logInfo 记录信息日志
+// logInfo logs an informational message.
 func (tr *TemplateRenderer) logInfo(format string, args ...interface{}) {
 	if tr.logger.enabled {
-		Infof("[模板引擎] "+format, args...)
+		Infof("[TemplateEngine] "+format, args...)
 	}
 }
 
-// logError 记录错误日志
+// logError logs an error message.
 func (tr *TemplateRenderer) logError(format string, args ...interface{}) {
 	if tr.logger.enabled {
-		Errorf("[模板引擎] "+format, args...)
+		Errorf("[TemplateEngine] "+format, args...)
 	}
 }
 
-// LoadTemplateFromFile 从文件加载模板
+// LoadTemplateFromFile loads a template from a file.
 func (tr *TemplateRenderer) LoadTemplateFromFile(name, filePath string) (*Template, error) {
 	doc, err := Open(filePath)
 	if err != nil {
-		tr.logError("无法打开模板文件 %s: %v", filePath, err)
+		tr.logError("failed to open template file %s: %v", filePath, err)
 		return nil, err
 	}
 
 	template, err := tr.engine.LoadTemplateFromDocument(name, doc)
 	if err != nil {
-		tr.logError("无法从文档加载模板 %s: %v", name, err)
+		tr.logError("failed to load template from document %s: %v", name, err)
 		return nil, err
 	}
 
-	tr.logInfo("成功加载模板: %s (来源: %s)", name, filePath)
+	tr.logInfo("successfully loaded template: %s (source: %s)", name, filePath)
 	return template, nil
 }
 
-// RenderTemplate 渲染模板到新文档
+// RenderTemplate renders a template to a new document.
 func (tr *TemplateRenderer) RenderTemplate(templateName string, data *TemplateData) (*Document, error) {
-	tr.logInfo("开始渲染模板: %s", templateName)
+	tr.logInfo("starting template rendering: %s", templateName)
 
-	// 首先检查数据完整性
+	// Check data integrity first
 	if err := tr.validateTemplateData(data); err != nil {
-		tr.logError("模板数据验证失败: %v", err)
+		tr.logError("template data validation failed: %v", err)
 		return nil, err
 	}
 
-	// 渲染模板
+	// Render template
 	doc, err := tr.engine.RenderTemplateToDocument(templateName, data)
 	if err != nil {
-		tr.logError("模板渲染失败: %v", err)
+		tr.logError("template rendering failed: %v", err)
 		return nil, err
 	}
 
-	tr.logInfo("模板渲染完成: %s", templateName)
+	tr.logInfo("template rendering completed: %s", templateName)
 	return doc, nil
 }
 
-// validateTemplateData 验证模板数据
+// validateTemplateData validates the template data.
 func (tr *TemplateRenderer) validateTemplateData(data *TemplateData) error {
 	if data == nil {
-		return fmt.Errorf("模板数据不能为空")
+		return fmt.Errorf("template data must not be nil")
 	}
 
-	// 记录数据统计
-	tr.logInfo("模板数据统计: 变量=%d, 列表=%d, 条件=%d",
+	// Log data statistics
+	tr.logInfo("template data stats: variables=%d, lists=%d, conditions=%d",
 		len(data.Variables), len(data.Lists), len(data.Conditions))
 
-	// 检查列表数据格式
+	// Check list data format
 	for listName, listData := range data.Lists {
 		if len(listData) == 0 {
-			tr.logInfo("警告: 列表 '%s' 为空", listName)
+			tr.logInfo("warning: list '%s' is empty", listName)
 			continue
 		}
 
-		// 检查列表项的格式一致性
+		// Check list item format consistency
 		for i, item := range listData {
 			if itemMap, ok := item.(map[string]interface{}); ok {
 				if i == 0 {
-					tr.logInfo("列表 '%s' 包含 %d 项，第一项字段: %v",
+					tr.logInfo("list '%s' contains %d items, first item fields: %v",
 						listName, len(listData), tr.getMapKeys(itemMap))
 				}
 			} else {
-				tr.logInfo("列表 '%s' 第 %d 项不是 map 类型: %T", listName, i, item)
+				tr.logInfo("list '%s' item %d is not a map type: %T", listName, i, item)
 			}
 		}
 	}
@@ -116,7 +116,7 @@ func (tr *TemplateRenderer) validateTemplateData(data *TemplateData) error {
 	return nil
 }
 
-// getMapKeys 获取map的键列表
+// getMapKeys returns the keys of a map.
 func (tr *TemplateRenderer) getMapKeys(m map[string]interface{}) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -125,7 +125,7 @@ func (tr *TemplateRenderer) getMapKeys(m map[string]interface{}) []string {
 	return keys
 }
 
-// AnalyzeTemplate 分析模板结构
+// AnalyzeTemplate analyzes the structure of a template.
 func (tr *TemplateRenderer) AnalyzeTemplate(templateName string) (*TemplateAnalysis, error) {
 	template, err := tr.engine.GetTemplate(templateName)
 	if err != nil {
@@ -140,21 +140,21 @@ func (tr *TemplateRenderer) AnalyzeTemplate(templateName string) (*TemplateAnaly
 		Tables:       make([]*TableAnalysis, 0),
 	}
 
-	// 分析基础文档
+	// Analyze base document
 	if template.BaseDoc != nil {
 		tr.analyzeDocument(template.BaseDoc, analysis)
 	}
 
-	tr.logInfo("模板分析完成: %s", templateName)
-	tr.logInfo("- 变量: %d", len(analysis.Variables))
-	tr.logInfo("- 列表: %d", len(analysis.Lists))
-	tr.logInfo("- 条件: %d", len(analysis.Conditions))
-	tr.logInfo("- 表格: %d", len(analysis.Tables))
+	tr.logInfo("template analysis completed: %s", templateName)
+	tr.logInfo("- variables: %d", len(analysis.Variables))
+	tr.logInfo("- lists: %d", len(analysis.Lists))
+	tr.logInfo("- conditions: %d", len(analysis.Conditions))
+	tr.logInfo("- tables: %d", len(analysis.Tables))
 
 	return analysis, nil
 }
 
-// analyzeDocument 分析文档结构
+// analyzeDocument analyzes the document structure.
 func (tr *TemplateRenderer) analyzeDocument(doc *Document, analysis *TemplateAnalysis) {
 	for i, element := range doc.Body.Elements {
 		switch elem := element.(type) {
@@ -166,28 +166,28 @@ func (tr *TemplateRenderer) analyzeDocument(doc *Document, analysis *TemplateAna
 		}
 	}
 
-	// 分析页眉页脚中的模板变量
+	// Analyze template variables in headers and footers
 	tr.analyzeHeadersFooters(doc, analysis)
 }
 
-// analyzeHeadersFooters 分析页眉页脚中的模板变量
+// analyzeHeadersFooters analyzes template variables in headers and footers.
 func (tr *TemplateRenderer) analyzeHeadersFooters(doc *Document, analysis *TemplateAnalysis) {
 	if doc == nil || doc.parts == nil {
 		return
 	}
 
-	// 遍历所有部件，查找页眉页脚文件
+	// Iterate over all parts to find header and footer files
 	for partName, partData := range doc.parts {
 		if strings.HasPrefix(partName, "word/header") || strings.HasPrefix(partName, "word/footer") {
-			// 解析页眉/页脚XML并提取模板变量
+			// Parse header/footer XML and extract template variables
 			tr.analyzeHeaderFooterXML(partData, analysis)
 		}
 	}
 }
 
-// analyzeHeaderFooterXML 分析页眉/页脚XML中的模板变量
+// analyzeHeaderFooterXML analyzes template variables in header/footer XML.
 func (tr *TemplateRenderer) analyzeHeaderFooterXML(xmlData []byte, analysis *TemplateAnalysis) {
-	// 使用正则表达式提取<w:t>标签中的文本内容
+	// Use regex to extract text content from <w:t> tags
 	textPattern := regexp.MustCompile(`<w:t[^>]*>([^<]*)</w:t>`)
 	matches := textPattern.FindAllSubmatch(xmlData, -1)
 
@@ -198,11 +198,11 @@ func (tr *TemplateRenderer) analyzeHeaderFooterXML(xmlData []byte, analysis *Tem
 		}
 	}
 
-	// 提取模板变量
+	// Extract template variables
 	tr.extractTemplateVariables(fullText.String(), analysis)
 }
 
-// analyzeParagraph 分析段落
+// analyzeParagraph analyzes a paragraph.
 func (tr *TemplateRenderer) analyzeParagraph(para *Paragraph, analysis *TemplateAnalysis) {
 	fullText := ""
 	for _, run := range para.Runs {
@@ -212,7 +212,7 @@ func (tr *TemplateRenderer) analyzeParagraph(para *Paragraph, analysis *Template
 	tr.extractTemplateVariables(fullText, analysis)
 }
 
-// analyzeTable 分析表格
+// analyzeTable analyzes a table.
 func (tr *TemplateRenderer) analyzeTable(table *Table, index int) *TableAnalysis {
 	tableAnalysis := &TableAnalysis{
 		Index:         index,
@@ -226,7 +226,7 @@ func (tr *TemplateRenderer) analyzeTable(table *Table, index int) *TableAnalysis
 		tableAnalysis.ColCount = len(table.Rows[0].Cells)
 	}
 
-	// 检查是否是模板表格
+	// Check if this is a template table
 	for rowIndex, row := range table.Rows {
 		rowHasLoop := false
 		for _, cell := range row.Cells {
@@ -236,7 +236,7 @@ func (tr *TemplateRenderer) analyzeTable(table *Table, index int) *TableAnalysis
 					fullText += run.Text.Content
 				}
 
-				// 检查循环语法
+				// Check loop syntax
 				eachPattern := regexp.MustCompile(`\{\{#each\s+(\w+)\}\}`)
 				if matches := eachPattern.FindStringSubmatch(fullText); len(matches) > 1 {
 					tableAnalysis.HasTemplate = true
@@ -245,7 +245,7 @@ func (tr *TemplateRenderer) analyzeTable(table *Table, index int) *TableAnalysis
 					rowHasLoop = true
 				}
 
-				// 提取变量
+				// Extract variables
 				varPattern := regexp.MustCompile(`\{\{(\w+)\}\}`)
 				varMatches := varPattern.FindAllStringSubmatch(fullText, -1)
 				for _, match := range varMatches {
@@ -264,9 +264,9 @@ func (tr *TemplateRenderer) analyzeTable(table *Table, index int) *TableAnalysis
 	return tableAnalysis
 }
 
-// extractTemplateVariables 提取模板变量
+// extractTemplateVariables extracts template variables from text.
 func (tr *TemplateRenderer) extractTemplateVariables(text string, analysis *TemplateAnalysis) {
-	// 变量: {{变量名}}
+	// Variables: {{variableName}}
 	varPattern := regexp.MustCompile(`\{\{(\w+)\}\}`)
 	varMatches := varPattern.FindAllStringSubmatch(text, -1)
 	for _, match := range varMatches {
@@ -275,7 +275,7 @@ func (tr *TemplateRenderer) extractTemplateVariables(text string, analysis *Temp
 		}
 	}
 
-	// 条件: {{#if 条件}}
+	// Conditions: {{#if condition}}
 	ifPattern := regexp.MustCompile(`\{\{#if\s+(\w+)\}\}`)
 	ifMatches := ifPattern.FindAllStringSubmatch(text, -1)
 	for _, match := range ifMatches {
@@ -284,7 +284,7 @@ func (tr *TemplateRenderer) extractTemplateVariables(text string, analysis *Temp
 		}
 	}
 
-	// 循环: {{#each 列表}}
+	// Loops: {{#each list}}
 	eachPattern := regexp.MustCompile(`\{\{#each\s+(\w+)\}\}`)
 	eachMatches := eachPattern.FindAllStringSubmatch(text, -1)
 	for _, match := range eachMatches {
@@ -294,50 +294,50 @@ func (tr *TemplateRenderer) extractTemplateVariables(text string, analysis *Temp
 	}
 }
 
-// TemplateAnalysis 模板分析结果
+// TemplateAnalysis holds the results of analyzing a template.
 type TemplateAnalysis struct {
-	TemplateName string           // 模板名称
-	Variables    map[string]bool  // 变量列表
-	Lists        map[string]bool  // 列表变量
-	Conditions   map[string]bool  // 条件变量
-	Tables       []*TableAnalysis // 表格分析
+	TemplateName string           // template name
+	Variables    map[string]bool  // variable list
+	Lists        map[string]bool  // list variables
+	Conditions   map[string]bool  // condition variables
+	Tables       []*TableAnalysis // table analysis results
 }
 
-// TableAnalysis 表格分析结果
+// TableAnalysis holds the results of analyzing a table.
 type TableAnalysis struct {
-	Index            int             // 表格索引
-	RowCount         int             // 行数
-	ColCount         int             // 列数
-	HasTemplate      bool            // 是否包含模板语法
-	TemplateRowIndex int             // 模板行索引
-	TemplateVars     map[string]bool // 模板变量
-	LoopVariables    []string        // 循环变量
+	Index            int             // table index
+	RowCount         int             // row count
+	ColCount         int             // column count
+	HasTemplate      bool            // whether it contains template syntax
+	TemplateRowIndex int             // template row index
+	TemplateVars     map[string]bool // template variables
+	LoopVariables    []string        // loop variables
 }
 
-// GetRequiredData 获取模板所需的数据结构
+// GetRequiredData returns a TemplateData structure with sample values for all required fields.
 func (analysis *TemplateAnalysis) GetRequiredData() *TemplateData {
 	data := NewTemplateData()
 
-	// 设置变量示例值
+	// Set sample variable values
 	for varName := range analysis.Variables {
-		data.SetVariable(varName, fmt.Sprintf("示例_%s", varName))
+		data.SetVariable(varName, fmt.Sprintf("sample_%s", varName))
 	}
 
-	// 设置条件示例值
+	// Set sample condition values
 	for condName := range analysis.Conditions {
 		data.SetCondition(condName, true)
 	}
 
-	// 设置列表示例值
+	// Set sample list values
 	for listName := range analysis.Lists {
 		sampleList := []interface{}{
 			map[string]interface{}{
-				"示例字段1": "示例值1",
-				"示例字段2": "示例值2",
+				"sample_field1": "sample_value1",
+				"sample_field2": "sample_value2",
 			},
 			map[string]interface{}{
-				"示例字段1": "示例值3",
-				"示例字段2": "示例值4",
+				"sample_field1": "sample_value3",
+				"sample_field2": "sample_value4",
 			},
 		}
 		data.SetList(listName, sampleList)

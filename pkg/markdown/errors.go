@@ -6,41 +6,41 @@ import (
 )
 
 var (
-	// ErrUnsupportedMarkdown 不支持的Markdown语法
+	// ErrUnsupportedMarkdown indicates unsupported Markdown syntax.
 	ErrUnsupportedMarkdown = errors.New("unsupported markdown syntax")
 
-	// ErrInvalidImagePath 无效的图片路径
+	// ErrInvalidImagePath indicates an invalid image path.
 	ErrInvalidImagePath = errors.New("invalid image path")
 
-	// ErrFileNotFound 文件未找到
+	// ErrFileNotFound indicates the file was not found.
 	ErrFileNotFound = errors.New("file not found")
 
-	// ErrInvalidMarkdown 无效的Markdown内容
+	// ErrInvalidMarkdown indicates invalid Markdown content.
 	ErrInvalidMarkdown = errors.New("invalid markdown content")
 
-	// ErrConversionFailed 转换失败
+	// ErrConversionFailed indicates conversion failure.
 	ErrConversionFailed = errors.New("conversion failed")
 
-	// ErrUnsupportedWordElement 不支持的Word元素
+	// ErrUnsupportedWordElement indicates an unsupported Word element.
 	ErrUnsupportedWordElement = errors.New("unsupported word element")
 
-	// ErrExportFailed 导出失败
+	// ErrExportFailed indicates export failure.
 	ErrExportFailed = errors.New("export failed")
 
-	// ErrInvalidDocument 无效的Word文档
+	// ErrInvalidDocument indicates an invalid Word document.
 	ErrInvalidDocument = errors.New("invalid word document")
 )
 
-// ConversionError 转换错误，包含详细信息
+// ConversionError represents a conversion error with detailed information.
 type ConversionError struct {
-	Type    string // 错误类型
-	Message string // 错误消息
-	Line    int    // 错误行号（如果适用）
-	Column  int    // 错误列号（如果适用）
-	Cause   error  // 原始错误
+	Type    string // error type
+	Message string // error message
+	Line    int    // error line number (if applicable)
+	Column  int    // error column number (if applicable)
+	Cause   error  // underlying error
 }
 
-// Error 实现error接口
+// Error implements the error interface.
 func (e *ConversionError) Error() string {
 	if e.Line > 0 {
 		return fmt.Sprintf("%s at line %d, column %d: %s", e.Type, e.Line, e.Column, e.Message)
@@ -48,12 +48,12 @@ func (e *ConversionError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Type, e.Message)
 }
 
-// Unwrap 返回原始错误，支持errors.Unwrap
+// Unwrap returns the underlying error, supporting errors.Unwrap.
 func (e *ConversionError) Unwrap() error {
 	return e.Cause
 }
 
-// NewConversionError 创建新的转换错误
+// NewConversionError creates a new conversion error.
 func NewConversionError(errorType, message string, line, column int, cause error) *ConversionError {
 	return &ConversionError{
 		Type:    errorType,
@@ -64,24 +64,24 @@ func NewConversionError(errorType, message string, line, column int, cause error
 	}
 }
 
-// ExportError 导出错误，包含详细信息
+// ExportError represents an export error with detailed information.
 type ExportError struct {
-	Type    string // 错误类型
-	Message string // 错误消息
-	Cause   error  // 原始错误
+	Type    string // error type
+	Message string // error message
+	Cause   error  // underlying error
 }
 
-// Error 实现error接口
+// Error implements the error interface.
 func (e *ExportError) Error() string {
 	return fmt.Sprintf("%s: %s", e.Type, e.Message)
 }
 
-// Unwrap 返回原始错误，支持errors.Unwrap
+// Unwrap returns the underlying error, supporting errors.Unwrap.
 func (e *ExportError) Unwrap() error {
 	return e.Cause
 }
 
-// NewExportError 创建新的导出错误
+// NewExportError creates a new export error.
 func NewExportError(errorType, message string, cause error) *ExportError {
 	return &ExportError{
 		Type:    errorType,

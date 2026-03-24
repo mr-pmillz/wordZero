@@ -2,6 +2,7 @@
 examples/output/
 */output/
 output/
+test_output/
 
 # 编译的示例二进制文件
 complex_table_demo
@@ -57,3 +58,4 @@ benchmark/results/python
 benchmark/python/venv
 benchmark/javascript/node_modules
 benchmark/javascript/package-lock.json
+paragraph_format_demo

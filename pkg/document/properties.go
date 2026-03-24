@@ -1,4 +1,4 @@
-// Package document 提供Word文档属性操作功能
+// Package document provides Word document property operations.
 package document
 
 import (
@@ -8,33 +8,33 @@ import (
 	"time"
 )
 
-// DocumentProperties 文档属性结构
+// DocumentProperties represents the document properties structure.
 type DocumentProperties struct {
-	// 核心属性
-	Title       string // 文档标题
-	Subject     string // 文档主题
-	Creator     string // 创建者
-	Keywords    string // 关键字
-	Description string // 描述
-	Language    string // 语言
-	Category    string // 类别
-	Version     string // 版本
-	Revision    string // 修订版本
+	// Core properties
+	Title       string // Document title
+	Subject     string // Document subject
+	Creator     string // Creator
+	Keywords    string // Keywords
+	Description string // Description
+	Language    string // Language
+	Category    string // Category
+	Version     string // Version
+	Revision    string // Revision
 
-	// 时间属性
-	Created      time.Time // 创建时间
-	LastModified time.Time // 最后修改时间
-	LastPrinted  time.Time // 最后打印时间
+	// Time properties
+	Created      time.Time // Creation time
+	LastModified time.Time // Last modified time
+	LastPrinted  time.Time // Last printed time
 
-	// 统计属性
-	Pages      int // 页数
-	Words      int // 字数
-	Characters int // 字符数
-	Paragraphs int // 段落数
-	Lines      int // 行数
+	// Statistical properties
+	Pages      int // Page count
+	Words      int // Word count
+	Characters int // Character count
+	Paragraphs int // Paragraph count
+	Lines      int // Line count
 }
 
-// CoreProperties 核心属性XML结构
+// CoreProperties is the core properties XML structure.
 type CoreProperties struct {
 	XMLName       xml.Name `xml:"cp:coreProperties"`
 	XmlnsCP       string   `xml:"xmlns:cp,attr"`
@@ -56,7 +56,7 @@ type CoreProperties struct {
 	LastPrinted   *DCDate  `xml:"cp:lastPrinted,omitempty"`
 }
 
-// AppProperties 应用程序属性XML结构
+// AppProperties is the application properties XML structure.
 type AppProperties struct {
 	XMLName       xml.Name `xml:"Properties"`
 	Xmlns         string   `xml:"xmlns,attr"`
@@ -72,46 +72,46 @@ type AppProperties struct {
 	Lines         int      `xml:"Lines,omitempty"`
 }
 
-// DCText DC命名空间文本元素
+// DCText is a DC namespace text element.
 type DCText struct {
 	Text string `xml:",chardata"`
 }
 
-// CPText CP命名空间文本元素
+// CPText is a CP namespace text element.
 type CPText struct {
 	Text string `xml:",chardata"`
 }
 
-// DCDate DC命名空间日期元素
+// DCDate is a DC namespace date element.
 type DCDate struct {
 	XSIType string    `xml:"xsi:type,attr"`
 	Date    time.Time `xml:",chardata"`
 }
 
-// SetDocumentProperties 设置文档属性
+// SetDocumentProperties sets the document properties.
 func (d *Document) SetDocumentProperties(properties *DocumentProperties) error {
 	if properties == nil {
-		return fmt.Errorf("文档属性不能为空")
+		return fmt.Errorf("document properties cannot be nil")
 	}
 
-	// 生成核心属性XML
+	// Generate core properties XML
 	if err := d.generateCoreProperties(properties); err != nil {
-		return fmt.Errorf("生成核心属性失败: %v", err)
+		return fmt.Errorf("failed to generate core properties: %v", err)
 	}
 
-	// 生成应用程序属性XML
+	// Generate application properties XML
 	if err := d.generateAppProperties(properties); err != nil {
-		return fmt.Errorf("生成应用程序属性失败: %v", err)
+		return fmt.Errorf("failed to generate application properties: %v", err)
 	}
 
-	// 添加内容类型和关系
+	// Add content types and relationships
 	d.addPropertiesContentTypes()
 	d.addPropertiesRelationships()
 
 	return nil
 }
 
-// GetDocumentProperties 获取文档属性
+// GetDocumentProperties retrieves the document properties.
 func (d *Document) GetDocumentProperties() (*DocumentProperties, error) {
 	properties := &DocumentProperties{
 		Created:      time.Now(),
@@ -119,23 +119,23 @@ func (d *Document) GetDocumentProperties() (*DocumentProperties, error) {
 		Language:     "zh-CN",
 	}
 
-	// 从已保存的属性中读取（如果存在）
+	// Read from saved properties if they exist
 	if coreData, exists := d.parts["docProps/core.xml"]; exists {
 		if err := d.parseCoreProperties(coreData, properties); err != nil {
-			return nil, fmt.Errorf("解析核心属性失败: %v", err)
+			return nil, fmt.Errorf("failed to parse core properties: %v", err)
 		}
 	}
 
 	if appData, exists := d.parts["docProps/app.xml"]; exists {
 		if err := d.parseAppProperties(appData, properties); err != nil {
-			return nil, fmt.Errorf("解析应用程序属性失败: %v", err)
+			return nil, fmt.Errorf("failed to parse application properties: %v", err)
 		}
 	}
 
 	return properties, nil
 }
 
-// SetTitle 设置文档标题
+// SetTitle sets the document title.
 func (d *Document) SetTitle(title string) error {
 	properties, err := d.GetDocumentProperties()
 	if err != nil {
@@ -145,7 +145,7 @@ func (d *Document) SetTitle(title string) error {
 	return d.SetDocumentProperties(properties)
 }
 
-// SetAuthor 设置文档作者
+// SetAuthor sets the document author.
 func (d *Document) SetAuthor(author string) error {
 	properties, err := d.GetDocumentProperties()
 	if err != nil {
@@ -155,7 +155,7 @@ func (d *Document) SetAuthor(author string) error {
 	return d.SetDocumentProperties(properties)
 }
 
-// SetSubject 设置文档主题
+// SetSubject sets the document subject.
 func (d *Document) SetSubject(subject string) error {
 	properties, err := d.GetDocumentProperties()
 	if err != nil {
@@ -165,7 +165,7 @@ func (d *Document) SetSubject(subject string) error {
 	return d.SetDocumentProperties(properties)
 }
 
-// SetKeywords 设置文档关键字
+// SetKeywords sets the document keywords.
 func (d *Document) SetKeywords(keywords string) error {
 	properties, err := d.GetDocumentProperties()
 	if err != nil {
@@ -175,7 +175,7 @@ func (d *Document) SetKeywords(keywords string) error {
 	return d.SetDocumentProperties(properties)
 }
 
-// SetDescription 设置文档描述
+// SetDescription sets the document description.
 func (d *Document) SetDescription(description string) error {
 	properties, err := d.GetDocumentProperties()
 	if err != nil {
@@ -185,7 +185,7 @@ func (d *Document) SetDescription(description string) error {
 	return d.SetDocumentProperties(properties)
 }
 
-// SetCategory 设置文档类别
+// SetCategory sets the document category.
 func (d *Document) SetCategory(category string) error {
 	properties, err := d.GetDocumentProperties()
 	if err != nil {
@@ -195,27 +195,27 @@ func (d *Document) SetCategory(category string) error {
 	return d.SetDocumentProperties(properties)
 }
 
-// UpdateStatistics 更新文档统计信息
+// UpdateStatistics updates the document statistics.
 func (d *Document) UpdateStatistics() error {
 	properties, err := d.GetDocumentProperties()
 	if err != nil {
 		properties = &DocumentProperties{}
 	}
 
-	// 计算统计信息
+	// Calculate statistics
 	properties.Paragraphs = len(d.Body.GetParagraphs())
 	properties.Words = d.countWords()
 	properties.Characters = d.countCharacters()
 	properties.Lines = d.countLines()
-	properties.Pages = 1 // 简化处理，实际需要复杂计算
+	properties.Pages = 1 // Simplified; actual implementation requires complex calculation
 
-	// 更新最后修改时间
+	// Update last modified time
 	properties.LastModified = time.Now()
 
 	return d.SetDocumentProperties(properties)
 }
 
-// generateCoreProperties 生成核心属性XML
+// generateCoreProperties generates the core properties XML.
 func (d *Document) generateCoreProperties(properties *DocumentProperties) error {
 	coreProps := &CoreProperties{
 		XmlnsCP:       "http://schemas.openxmlformats.org/package/2006/metadata/core-properties",
@@ -225,7 +225,7 @@ func (d *Document) generateCoreProperties(properties *DocumentProperties) error 
 		XmlnsXSI:      "http://www.w3.org/2001/XMLSchema-instance",
 	}
 
-	// 设置属性值
+	// Set property values
 	if properties.Title != "" {
 		coreProps.Title = &DCText{Text: properties.Title}
 	}
@@ -254,7 +254,7 @@ func (d *Document) generateCoreProperties(properties *DocumentProperties) error 
 		coreProps.Revision = &CPText{Text: properties.Revision}
 	}
 
-	// 设置时间属性
+	// Set time properties
 	if !properties.Created.IsZero() {
 		coreProps.Created = &DCDate{
 			XSIType: "dcterms:W3CDTF",
@@ -274,20 +274,20 @@ func (d *Document) generateCoreProperties(properties *DocumentProperties) error 
 		}
 	}
 
-	// 序列化XML
+	// Serialize to XML
 	coreXML, err := xml.MarshalIndent(coreProps, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["docProps/core.xml"] = append(xmlDeclaration, coreXML...)
 
 	return nil
 }
 
-// generateAppProperties 生成应用程序属性XML
+// generateAppProperties generates the application properties XML.
 func (d *Document) generateAppProperties(properties *DocumentProperties) error {
 	appProps := &AppProperties{
 		Xmlns:         "http://schemas.openxmlformats.org/officeDocument/2006/extended-properties",
@@ -303,20 +303,20 @@ func (d *Document) generateAppProperties(properties *DocumentProperties) error {
 		Lines:         properties.Lines,
 	}
 
-	// 序列化XML
+	// Serialize to XML
 	appXML, err := xml.MarshalIndent(appProps, "", "  ")
 	if err != nil {
 		return err
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["docProps/app.xml"] = append(xmlDeclaration, appXML...)
 
 	return nil
 }
 
-// parseCoreProperties 解析核心属性
+// parseCoreProperties parses the core properties.
 func (d *Document) parseCoreProperties(data []byte, properties *DocumentProperties) error {
 	var coreProps CoreProperties
 	if err := xml.Unmarshal(data, &coreProps); err != nil {
@@ -364,7 +364,7 @@ func (d *Document) parseCoreProperties(data []byte, properties *DocumentProperti
 	return nil
 }
 
-// parseAppProperties 解析应用程序属性
+// parseAppProperties parses the application properties.
 func (d *Document) parseAppProperties(data []byte, properties *DocumentProperties) error {
 	var appProps AppProperties
 	if err := xml.Unmarshal(data, &appProps); err != nil {
@@ -380,24 +380,24 @@ func (d *Document) parseAppProperties(data []byte, properties *DocumentPropertie
 	return nil
 }
 
-// addPropertiesContentTypes 添加属性相关的内容类型
+// addPropertiesContentTypes adds property-related content types.
 func (d *Document) addPropertiesContentTypes() {
 	d.addContentType("docProps/core.xml", "application/vnd.openxmlformats-package.core-properties+xml")
 	d.addContentType("docProps/app.xml", "application/vnd.openxmlformats-officedocument.extended-properties+xml")
 }
 
-// addPropertiesRelationships 添加属性相关的关系
+// addPropertiesRelationships adds property-related relationships.
 func (d *Document) addPropertiesRelationships() {
-	// 这些关系通常在包级别的 _rels/.rels 中定义
-	// 简化处理，实际实现时需要管理包级别的关系
+	// These relationships are typically defined in the package-level _rels/.rels.
+	// Simplified here; actual implementation needs to manage package-level relationships.
 }
 
-// countWords 统计字数
+// countWords counts the number of words.
 func (d *Document) countWords() int {
 	count := 0
 	for _, paragraph := range d.Body.GetParagraphs() {
 		for _, run := range paragraph.Runs {
-			// 简化统计，按空格分割
+			// Simplified counting by splitting on whitespace
 			words := len(strings.Fields(run.Text.Content))
 			count += words
 		}
@@ -405,7 +405,7 @@ func (d *Document) countWords() int {
 	return count
 }
 
-// countCharacters 统计字符数
+// countCharacters counts the number of characters.
 func (d *Document) countCharacters() int {
 	count := 0
 	for _, paragraph := range d.Body.GetParagraphs() {
@@ -416,12 +416,12 @@ func (d *Document) countCharacters() int {
 	return count
 }
 
-// countLines 统计行数
+// countLines counts the number of lines.
 func (d *Document) countLines() int {
 	count := 0
 	for _, paragraph := range d.Body.GetParagraphs() {
 		for _, run := range paragraph.Runs {
-			// 简化处理，按换行符统计
+			// Simplified counting by newline characters
 			lines := strings.Count(run.Text.Content, "\n") + 1
 			count += lines
 		}

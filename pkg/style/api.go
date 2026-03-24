@@ -1,9 +1,9 @@
-// Package style 样式应用API
+// Package style provides the style application API.
 package style
 
 import "fmt"
 
-// StyleApplicator 样式应用器接口
+// StyleApplicator defines the interface for applying styles.
 type StyleApplicator interface {
 	ApplyStyle(styleID string) error
 	ApplyHeadingStyle(level int) error
@@ -15,23 +15,23 @@ type StyleApplicator interface {
 	ApplyNormalStyle() error
 }
 
-// QuickStyleAPI 快速样式应用API
+// QuickStyleAPI provides a quick style application API.
 type QuickStyleAPI struct {
 	styleManager *StyleManager
 }
 
-// NewQuickStyleAPI 创建快速样式API
+// NewQuickStyleAPI creates a new quick style API.
 func NewQuickStyleAPI(styleManager *StyleManager) *QuickStyleAPI {
 	return &QuickStyleAPI{
 		styleManager: styleManager,
 	}
 }
 
-// GetStyleInfo 获取样式信息（用于UI显示）
+// GetStyleInfo returns style information for UI display.
 func (api *QuickStyleAPI) GetStyleInfo(styleID string) (*StyleInfo, error) {
 	style := api.styleManager.GetStyle(styleID)
 	if style == nil {
-		return nil, fmt.Errorf("样式 %s 不存在", styleID)
+		return nil, fmt.Errorf("style %s does not exist", styleID)
 	}
 
 	return &StyleInfo{
@@ -44,7 +44,7 @@ func (api *QuickStyleAPI) GetStyleInfo(styleID string) (*StyleInfo, error) {
 	}, nil
 }
 
-// StyleInfo 样式信息结构
+// StyleInfo holds style information.
 type StyleInfo struct {
 	ID          string    `json:"id"`
 	Name        string    `json:"name"`
@@ -54,7 +54,7 @@ type StyleInfo struct {
 	BasedOn     string    `json:"basedOn,omitempty"`
 }
 
-// GetAllStylesInfo 获取所有样式信息
+// GetAllStylesInfo returns information for all styles.
 func (api *QuickStyleAPI) GetAllStylesInfo() []*StyleInfo {
 	var stylesInfo []*StyleInfo
 	for _, style := range api.styleManager.GetAllStyles() {
@@ -71,7 +71,7 @@ func (api *QuickStyleAPI) GetAllStylesInfo() []*StyleInfo {
 	return stylesInfo
 }
 
-// GetHeadingStylesInfo 获取所有标题样式信息
+// GetHeadingStylesInfo returns information for all heading styles.
 func (api *QuickStyleAPI) GetHeadingStylesInfo() []*StyleInfo {
 	var headingStylesInfo []*StyleInfo
 	for i := 1; i <= 9; i++ {
@@ -83,7 +83,7 @@ func (api *QuickStyleAPI) GetHeadingStylesInfo() []*StyleInfo {
 	return headingStylesInfo
 }
 
-// GetParagraphStylesInfo 获取段落样式信息
+// GetParagraphStylesInfo returns information for paragraph styles.
 func (api *QuickStyleAPI) GetParagraphStylesInfo() []*StyleInfo {
 	var paragraphStylesInfo []*StyleInfo
 	for _, style := range api.styleManager.GetStylesByType(StyleTypeParagraph) {
@@ -100,7 +100,7 @@ func (api *QuickStyleAPI) GetParagraphStylesInfo() []*StyleInfo {
 	return paragraphStylesInfo
 }
 
-// GetCharacterStylesInfo 获取字符样式信息
+// GetCharacterStylesInfo returns information for character styles.
 func (api *QuickStyleAPI) GetCharacterStylesInfo() []*StyleInfo {
 	var characterStylesInfo []*StyleInfo
 	for _, style := range api.styleManager.GetStylesByType(StyleTypeCharacter) {
@@ -117,14 +117,14 @@ func (api *QuickStyleAPI) GetCharacterStylesInfo() []*StyleInfo {
 	return characterStylesInfo
 }
 
-// CreateQuickStyle 快速创建自定义样式
+// CreateQuickStyle creates a custom style from the given configuration.
 func (api *QuickStyleAPI) CreateQuickStyle(config QuickStyleConfig) (*Style, error) {
-	// 验证样式ID是否已存在
+	// Check if the style ID already exists
 	if api.styleManager.StyleExists(config.ID) {
-		return nil, fmt.Errorf("样式ID %s 已存在", config.ID)
+		return nil, fmt.Errorf("style ID %s already exists", config.ID)
 	}
 
-	// 创建基础样式
+	// Create the base style
 	style := api.styleManager.CreateCustomStyle(
 		config.ID,
 		config.Name,
@@ -132,12 +132,12 @@ func (api *QuickStyleAPI) CreateQuickStyle(config QuickStyleConfig) (*Style, err
 		config.BasedOn,
 	)
 
-	// 应用段落属性
+	// Apply paragraph properties
 	if config.ParagraphConfig != nil {
 		style.ParagraphPr = createParagraphProperties(config.ParagraphConfig)
 	}
 
-	// 应用字符属性
+	// Apply run properties
 	if config.RunConfig != nil {
 		style.RunPr = createRunProperties(config.RunConfig)
 	}
@@ -145,7 +145,7 @@ func (api *QuickStyleAPI) CreateQuickStyle(config QuickStyleConfig) (*Style, err
 	return style, nil
 }
 
-// QuickStyleConfig 快速样式配置
+// QuickStyleConfig holds the configuration for quick style creation.
 type QuickStyleConfig struct {
 	ID              string                `json:"id"`
 	Name            string                `json:"name"`
@@ -155,31 +155,31 @@ type QuickStyleConfig struct {
 	RunConfig       *QuickRunConfig       `json:"runConfig,omitempty"`
 }
 
-// QuickParagraphConfig 快速段落配置
+// QuickParagraphConfig holds the quick paragraph configuration.
 type QuickParagraphConfig struct {
 	Alignment       string  `json:"alignment,omitempty"`       // left, center, right, justify
-	LineSpacing     float64 `json:"lineSpacing,omitempty"`     // 行间距倍数：1.0=单倍行距，1.5=1.5倍行距，2.0=双倍行距（内部转换为OOXML单位：值×240）
-	SpaceBefore     int     `json:"spaceBefore,omitempty"`     // 段前间距（磅）
-	SpaceAfter      int     `json:"spaceAfter,omitempty"`      // 段后间距（磅）
-	FirstLineIndent int     `json:"firstLineIndent,omitempty"` // 首行缩进（磅）
-	LeftIndent      int     `json:"leftIndent,omitempty"`      // 左缩进（磅）
-	RightIndent     int     `json:"rightIndent,omitempty"`     // 右缩进（磅）
-	SnapToGrid      *bool   `json:"snapToGrid,omitempty"`      // 是否对齐网格（设置为false可禁用网格对齐，使行间距精确生效）
+	LineSpacing     float64 `json:"lineSpacing,omitempty"`     // Line spacing multiplier: 1.0=single, 1.5=1.5x, 2.0=double (internally converted to OOXML units: value*240)
+	SpaceBefore     int     `json:"spaceBefore,omitempty"`     // Space before paragraph (points)
+	SpaceAfter      int     `json:"spaceAfter,omitempty"`      // Space after paragraph (points)
+	FirstLineIndent int     `json:"firstLineIndent,omitempty"` // First line indent (points)
+	LeftIndent      int     `json:"leftIndent,omitempty"`      // Left indent (points)
+	RightIndent     int     `json:"rightIndent,omitempty"`     // Right indent (points)
+	SnapToGrid      *bool   `json:"snapToGrid,omitempty"`      // Whether to snap to grid (set to false to disable grid alignment, allowing line spacing to take effect precisely)
 }
 
-// QuickRunConfig 快速字符配置
+// QuickRunConfig holds the quick character/run configuration.
 type QuickRunConfig struct {
-	FontName  string `json:"fontName,omitempty"`  // 字体名称
-	FontSize  int    `json:"fontSize,omitempty"`  // 字体大小（磅）
-	FontColor string `json:"fontColor,omitempty"` // 字体颜色（十六进制）
-	Bold      bool   `json:"bold,omitempty"`      // 粗体
-	Italic    bool   `json:"italic,omitempty"`    // 斜体
-	Underline bool   `json:"underline,omitempty"` // 下划线
-	Strike    bool   `json:"strike,omitempty"`    // 删除线
-	Highlight string `json:"highlight,omitempty"` // 高亮颜色
+	FontName  string `json:"fontName,omitempty"`  // Font name
+	FontSize  int    `json:"fontSize,omitempty"`  // Font size (points)
+	FontColor string `json:"fontColor,omitempty"` // Font color (hex)
+	Bold      bool   `json:"bold,omitempty"`      // Bold
+	Italic    bool   `json:"italic,omitempty"`    // Italic
+	Underline bool   `json:"underline,omitempty"` // Underline
+	Strike    bool   `json:"strike,omitempty"`    // Strikethrough
+	Highlight string `json:"highlight,omitempty"` // Highlight color
 }
 
-// getStyleDisplayName 获取样式显示名称
+// getStyleDisplayName returns the display name of a style.
 func getStyleDisplayName(style *Style) string {
 	if style.Name != nil {
 		return style.Name.Val
@@ -187,7 +187,7 @@ func getStyleDisplayName(style *Style) string {
 	return style.StyleID
 }
 
-// getStyleDescription 获取样式描述
+// getStyleDescription returns the description of a style.
 func getStyleDescription(styleID string) string {
 	configs := GetPredefinedStyleConfigs()
 	for _, config := range configs {
@@ -198,7 +198,7 @@ func getStyleDescription(styleID string) string {
 	return ""
 }
 
-// getBasedOnStyleID 获取基础样式ID
+// getBasedOnStyleID returns the base style ID.
 func getBasedOnStyleID(style *Style) string {
 	if style.BasedOn != nil {
 		return style.BasedOn.Val
@@ -206,48 +206,48 @@ func getBasedOnStyleID(style *Style) string {
 	return ""
 }
 
-// createParagraphProperties 创建段落属性
+// createParagraphProperties creates paragraph properties from the config.
 func createParagraphProperties(config *QuickParagraphConfig) *ParagraphProperties {
 	props := &ParagraphProperties{}
 
-	// 对齐方式
+	// Alignment
 	if config.Alignment != "" {
 		props.Justification = &Justification{Val: config.Alignment}
 	}
 
-	// 网格对齐设置
-	// 当设置为false时，禁用网格对齐，使自定义行间距能够精确生效
+	// Snap-to-grid setting
+	// When set to false, disables grid alignment so custom line spacing takes effect precisely
 	if config.SnapToGrid != nil && !*config.SnapToGrid {
 		props.SnapToGrid = &SnapToGrid{Val: "0"}
 	}
 
-	// 间距设置
+	// Spacing settings
 	if config.LineSpacing > 0 || config.SpaceBefore > 0 || config.SpaceAfter > 0 {
 		spacing := &Spacing{}
 		if config.SpaceBefore > 0 {
-			spacing.Before = fmt.Sprintf("%d", config.SpaceBefore*20) // 转换为twips
+			spacing.Before = fmt.Sprintf("%d", config.SpaceBefore*20) // Convert to twips
 		}
 		if config.SpaceAfter > 0 {
-			spacing.After = fmt.Sprintf("%d", config.SpaceAfter*20) // 转换为twips
+			spacing.After = fmt.Sprintf("%d", config.SpaceAfter*20) // Convert to twips
 		}
 		if config.LineSpacing > 0 {
-			spacing.Line = fmt.Sprintf("%.0f", config.LineSpacing*240) // 转换为行间距单位
+			spacing.Line = fmt.Sprintf("%.0f", config.LineSpacing*240) // Convert to line spacing units
 			spacing.LineRule = "auto"
 		}
 		props.Spacing = spacing
 	}
 
-	// 缩进设置
+	// Indentation settings
 	if config.FirstLineIndent > 0 || config.LeftIndent > 0 || config.RightIndent > 0 {
 		indentation := &Indentation{}
 		if config.FirstLineIndent > 0 {
-			indentation.FirstLine = fmt.Sprintf("%d", config.FirstLineIndent*20) // 转换为twips
+			indentation.FirstLine = fmt.Sprintf("%d", config.FirstLineIndent*20) // Convert to twips
 		}
 		if config.LeftIndent > 0 {
-			indentation.Left = fmt.Sprintf("%d", config.LeftIndent*20) // 转换为twips
+			indentation.Left = fmt.Sprintf("%d", config.LeftIndent*20) // Convert to twips
 		}
 		if config.RightIndent > 0 {
-			indentation.Right = fmt.Sprintf("%d", config.RightIndent*20) // 转换为twips
+			indentation.Right = fmt.Sprintf("%d", config.RightIndent*20) // Convert to twips
 		}
 		props.Indentation = indentation
 	}
@@ -255,11 +255,11 @@ func createParagraphProperties(config *QuickParagraphConfig) *ParagraphPropertie
 	return props
 }
 
-// createRunProperties 创建字符属性
+// createRunProperties creates run (character) properties from the config.
 func createRunProperties(config *QuickRunConfig) *RunProperties {
 	props := &RunProperties{}
 
-	// 字体设置
+	// Font settings
 	if config.FontName != "" {
 		props.FontFamily = &FontFamily{
 			ASCII:    config.FontName,
@@ -270,14 +270,14 @@ func createRunProperties(config *QuickRunConfig) *RunProperties {
 	}
 
 	if config.FontSize > 0 {
-		props.FontSize = &FontSize{Val: fmt.Sprintf("%d", config.FontSize*2)} // Word使用半磅单位
+		props.FontSize = &FontSize{Val: fmt.Sprintf("%d", config.FontSize*2)} // Word uses half-point units
 	}
 
 	if config.FontColor != "" {
 		props.Color = &Color{Val: config.FontColor}
 	}
 
-	// 格式设置
+	// Formatting settings
 	if config.Bold {
 		props.Bold = &Bold{}
 	}

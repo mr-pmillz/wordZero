@@ -1,28 +1,28 @@
-// Package document 提供Word文档的核心操作功能
+// Package document provides core Word document operations.
 package document
 
 import (
 	"encoding/xml"
 )
 
-// OfficeMath 表示Office数学公式元素
-// 对应OMML中的 m:oMath 元素
+// OfficeMath represents an Office math formula element,
+// corresponding to the m:oMath element in OMML.
 type OfficeMath struct {
 	XMLName xml.Name `xml:"m:oMath"`
 	Xmlns   string   `xml:"xmlns:m,attr,omitempty"`
-	RawXML  string   `xml:",innerxml"` // 存储内部XML内容
+	RawXML  string   `xml:",innerxml"` // Stores the inner XML content
 }
 
-// OfficeMathPara 表示Office数学公式段落（用于块级公式）
-// 对应OMML中的 m:oMathPara 元素
+// OfficeMathPara represents an Office math formula paragraph (for block-level formulas),
+// corresponding to the m:oMathPara element in OMML.
 type OfficeMathPara struct {
 	XMLName xml.Name    `xml:"m:oMathPara"`
 	Xmlns   string      `xml:"xmlns:m,attr,omitempty"`
 	Math    *OfficeMath `xml:"m:oMath"`
 }
 
-// MathParagraph 表示包含数学公式的段落
-// 用于在文档中嵌入数学公式
+// MathParagraph represents a paragraph containing a math formula,
+// used to embed math formulas in a document.
 type MathParagraph struct {
 	XMLName    xml.Name             `xml:"w:p"`
 	Properties *ParagraphProperties `xml:"w:pPr,omitempty"`
@@ -31,69 +31,69 @@ type MathParagraph struct {
 	Runs       []Run                `xml:"w:r"`
 }
 
-// MarshalXML 自定义序列化
+// MarshalXML provides custom XML serialization for MathParagraph.
 func (mp *MathParagraph) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	// 开始段落元素
+	// Start the paragraph element
 	if err := e.EncodeToken(start); err != nil {
 		return err
 	}
 
-	// 序列化段落属性
+	// Serialize paragraph properties
 	if mp.Properties != nil {
 		if err := e.Encode(mp.Properties); err != nil {
 			return err
 		}
 	}
 
-	// 序列化Runs（在公式之前的文本）
+	// Serialize Runs (text before the formula)
 	for _, run := range mp.Runs {
 		if err := e.Encode(run); err != nil {
 			return err
 		}
 	}
 
-	// 序列化数学公式（块级）
+	// Serialize math formula (block-level)
 	if mp.MathPara != nil {
 		if err := e.Encode(mp.MathPara); err != nil {
 			return err
 		}
 	}
 
-	// 序列化数学公式（行内）
+	// Serialize math formula (inline)
 	if mp.Math != nil {
 		if err := e.Encode(mp.Math); err != nil {
 			return err
 		}
 	}
 
-	// 结束段落元素
+	// End the paragraph element
 	return e.EncodeToken(start.End())
 }
 
-// ElementType 返回数学段落元素类型
+// ElementType returns the element type for the math paragraph.
 func (mp *MathParagraph) ElementType() string {
 	return "math_paragraph"
 }
 
-// AddMathFormula 向文档添加数学公式
-// latex: LaTeX格式的数学公式
-// isBlock: 是否为块级公式（true为块级，false为行内）
+// AddMathFormula adds a math formula to the document.
+// latex: the math formula in LaTeX format.
+// isBlock: whether it is a block-level formula (true for block, false for inline).
 func (d *Document) AddMathFormula(latex string, isBlock bool) *MathParagraph {
-	Debugf("添加数学公式: %s (块级: %v)", latex, isBlock)
+	DebugMsgf(MsgAddingMathFormula, latex, isBlock)
 
 	mp := &MathParagraph{
 		Runs: []Run{},
 	}
 
-	// 创建公式内容
-	// 注意：这里使用RawXML来存储公式内容，因为OMML结构复杂
-	// 实际的LaTeX到OMML转换由markdown包的LaTeXToOMML函数完成
+	// Create the formula content.
+	// Note: RawXML is used to store the formula content because the OMML structure is complex.
+	// The actual LaTeX-to-OMML conversion is done by the LaTeXToOMML function in the markdown package.
 	if isBlock {
 		mp.MathPara = &OfficeMathPara{
 			Xmlns: "http://schemas.openxmlformats.org/officeDocument/2006/math",
 			Math: &OfficeMath{
 				Xmlns:  "http://schemas.openxmlformats.org/officeDocument/2006/math",
-				RawXML: latex, // 这里存储的是预处理过的OMML内容
+				RawXML: latex, // This stores pre-processed OMML content
 			},
 		}
 	} else {
@@ -107,10 +107,10 @@ func (d *Document) AddMathFormula(latex string, isBlock bool) *MathParagraph {
 	return mp
 }
 
-// AddInlineMathFormula 向段落中添加行内数学公式
-// 这将在当前段落的末尾添加一个数学公式
+// AddInlineMath adds an inline math formula to the paragraph.
+// This appends a math formula at the end of the current paragraph.
 func (p *Paragraph) AddInlineMath(ommlContent string) {
-	Debugf("向段落添加行内数学公式")
+	DebugMsg(MsgAddingInlineMathFormula)
 
 	// Create a special Run to contain formula reference
 	// Note: In Word, inline formulas are implemented through special oMath elements

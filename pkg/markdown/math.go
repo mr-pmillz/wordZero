@@ -1,4 +1,4 @@
-// Package markdown 提供Markdown到Word文档的转换功能
+// Package markdown provides Markdown-to-Word document conversion functionality.
 package markdown
 
 import (
@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-// OfficeMath 表示Office数学公式的根元素
-// 对应OMML中的 m:oMath 元素
+// OfficeMath represents the root element of an Office math formula.
+// Corresponds to the m:oMath element in OMML.
 type OfficeMath struct {
 	XMLName xml.Name      `xml:"m:oMath"`
-	Content []interface{} `xml:"-"` // 使用自定义序列化
+	Content []interface{} `xml:"-"` // uses custom serialization
 }
 
-// MarshalXML 自定义XML序列化
+// MarshalXML implements custom XML serialization.
 func (o *OfficeMath) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "m:oMath"}
 	if err := e.EncodeToken(start); err != nil {
@@ -28,39 +28,39 @@ func (o *OfficeMath) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeToken(start.End())
 }
 
-// OfficeMathPara 表示Office数学公式段落
-// 对应OMML中的 m:oMathPara 元素（用于块级公式）
+// OfficeMathPara represents an Office math formula paragraph.
+// Corresponds to the m:oMathPara element in OMML (used for block-level formulas).
 type OfficeMathPara struct {
 	XMLName xml.Name    `xml:"m:oMathPara"`
 	Math    *OfficeMath `xml:"m:oMath"`
 }
 
-// MathRun 表示数学运行元素
+// MathRun represents a math run element.
 type MathRun struct {
 	XMLName xml.Name     `xml:"m:r"`
 	Text    *MathText    `xml:"m:t,omitempty"`
 	RunPr   *MathRunProp `xml:"m:rPr,omitempty"`
 }
 
-// MathText 表示数学文本
+// MathText represents math text content.
 type MathText struct {
 	XMLName xml.Name `xml:"m:t"`
 	Content string   `xml:",chardata"`
 }
 
-// MathRunProp 表示数学运行属性
+// MathRunProp represents math run properties.
 type MathRunProp struct {
 	XMLName xml.Name `xml:"m:rPr"`
 	Sty     *MathSty `xml:"m:sty,omitempty"`
 }
 
-// MathSty 表示数学样式
+// MathSty represents a math style.
 type MathSty struct {
 	XMLName xml.Name `xml:"m:sty"`
 	Val     string   `xml:"m:val,attr"`
 }
 
-// MathFrac 表示分数
+// MathFrac represents a fraction.
 type MathFrac struct {
 	XMLName xml.Name  `xml:"m:f"`
 	FracPr  *MathFracPr `xml:"m:fPr,omitempty"`
@@ -68,25 +68,25 @@ type MathFrac struct {
 	Den     *MathDen  `xml:"m:den"`
 }
 
-// MathFracPr 表示分数属性
+// MathFracPr represents fraction properties.
 type MathFracPr struct {
 	XMLName xml.Name `xml:"m:fPr"`
 	Type    *MathFracType `xml:"m:type,omitempty"`
 }
 
-// MathFracType 表示分数类型
+// MathFracType represents a fraction type.
 type MathFracType struct {
 	XMLName xml.Name `xml:"m:type"`
 	Val     string   `xml:"m:val,attr"`
 }
 
-// MathNum 表示分子
+// MathNum represents the numerator.
 type MathNum struct {
 	XMLName xml.Name      `xml:"m:num"`
 	Content []interface{} `xml:"-"`
 }
 
-// MarshalXML 自定义XML序列化
+// MarshalXML implements custom XML serialization.
 func (n *MathNum) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "m:num"}
 	if err := e.EncodeToken(start); err != nil {
@@ -100,13 +100,13 @@ func (n *MathNum) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeToken(start.End())
 }
 
-// MathDen 表示分母
+// MathDen represents the denominator.
 type MathDen struct {
 	XMLName xml.Name      `xml:"m:den"`
 	Content []interface{} `xml:"-"`
 }
 
-// MarshalXML 自定义XML序列化
+// MarshalXML implements custom XML serialization.
 func (d *MathDen) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "m:den"}
 	if err := e.EncodeToken(start); err != nil {
@@ -120,20 +120,20 @@ func (d *MathDen) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeToken(start.End())
 }
 
-// MathSup 表示上标
+// MathSup represents a superscript.
 type MathSup struct {
 	XMLName xml.Name `xml:"m:sSup"`
 	E       *MathE   `xml:"m:e"`
 	Sup     *MathSupElement `xml:"m:sup"`
 }
 
-// MathE 表示基础元素
+// MathE represents the base element.
 type MathE struct {
 	XMLName xml.Name      `xml:"m:e"`
 	Content []interface{} `xml:"-"`
 }
 
-// MarshalXML 自定义XML序列化
+// MarshalXML implements custom XML serialization.
 func (m *MathE) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "m:e"}
 	if err := e.EncodeToken(start); err != nil {
@@ -147,13 +147,13 @@ func (m *MathE) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeToken(start.End())
 }
 
-// MathSupElement 表示上标元素
+// MathSupElement represents a superscript element.
 type MathSupElement struct {
 	XMLName xml.Name      `xml:"m:sup"`
 	Content []interface{} `xml:"-"`
 }
 
-// MarshalXML 自定义XML序列化
+// MarshalXML implements custom XML serialization.
 func (s *MathSupElement) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "m:sup"}
 	if err := e.EncodeToken(start); err != nil {
@@ -167,20 +167,20 @@ func (s *MathSupElement) MarshalXML(e *xml.Encoder, start xml.StartElement) erro
 	return e.EncodeToken(start.End())
 }
 
-// MathSub 表示下标
+// MathSub represents a subscript.
 type MathSub struct {
 	XMLName xml.Name `xml:"m:sSub"`
 	E       *MathE   `xml:"m:e"`
 	Sub     *MathSubElement `xml:"m:sub"`
 }
 
-// MathSubElement 表示下标元素
+// MathSubElement represents a subscript element.
 type MathSubElement struct {
 	XMLName xml.Name      `xml:"m:sub"`
 	Content []interface{} `xml:"-"`
 }
 
-// MarshalXML 自定义XML序列化
+// MarshalXML implements custom XML serialization.
 func (s *MathSubElement) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "m:sub"}
 	if err := e.EncodeToken(start); err != nil {
@@ -194,7 +194,7 @@ func (s *MathSubElement) MarshalXML(e *xml.Encoder, start xml.StartElement) erro
 	return e.EncodeToken(start.End())
 }
 
-// MathRad 表示根号
+// MathRad represents a radical (root).
 type MathRad struct {
 	XMLName xml.Name   `xml:"m:rad"`
 	RadPr   *MathRadPr `xml:"m:radPr,omitempty"`
@@ -202,25 +202,25 @@ type MathRad struct {
 	E       *MathE     `xml:"m:e"`
 }
 
-// MathRadPr 表示根号属性
+// MathRadPr represents radical properties.
 type MathRadPr struct {
 	XMLName xml.Name     `xml:"m:radPr"`
 	DegHide *MathDegHide `xml:"m:degHide,omitempty"`
 }
 
-// MathDegHide 表示是否隐藏根指数
+// MathDegHide indicates whether to hide the degree of the radical.
 type MathDegHide struct {
 	XMLName xml.Name `xml:"m:degHide"`
 	Val     string   `xml:"m:val,attr"`
 }
 
-// MathDeg 表示根指数
+// MathDeg represents the degree of a radical.
 type MathDeg struct {
 	XMLName xml.Name      `xml:"m:deg"`
 	Content []interface{} `xml:"-"`
 }
 
-// MarshalXML 自定义XML序列化
+// MarshalXML implements custom XML serialization.
 func (d *MathDeg) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "m:deg"}
 	if err := e.EncodeToken(start); err != nil {
@@ -234,7 +234,7 @@ func (d *MathDeg) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	return e.EncodeToken(start.End())
 }
 
-// MathSubSup 表示上下标
+// MathSubSup represents a subscript-superscript pair.
 type MathSubSup struct {
 	XMLName xml.Name        `xml:"m:sSubSup"`
 	E       *MathE          `xml:"m:e"`
@@ -242,52 +242,52 @@ type MathSubSup struct {
 	Sup     *MathSupElement `xml:"m:sup"`
 }
 
-// MathDelim 表示分隔符（括号等）
+// MathDelim represents a delimiter (parentheses, brackets, etc.).
 type MathDelim struct {
 	XMLName xml.Name     `xml:"m:d"`
 	DPr     *MathDelimPr `xml:"m:dPr,omitempty"`
 	E       *MathE       `xml:"m:e"`
 }
 
-// MathDelimPr 表示分隔符属性
+// MathDelimPr represents delimiter properties.
 type MathDelimPr struct {
 	XMLName xml.Name       `xml:"m:dPr"`
 	BegChr  *MathDelimChar `xml:"m:begChr,omitempty"`
 	EndChr  *MathDelimChar `xml:"m:endChr,omitempty"`
 }
 
-// MathDelimChar 表示分隔符字符
+// MathDelimChar represents a delimiter character.
 type MathDelimChar struct {
 	XMLName xml.Name `xml:"m:begChr"`
 	Val     string   `xml:"m:val,attr"`
 }
 
-// LaTeXToOMML 将LaTeX公式转换为OMML格式
-// 这是一个简化版本的转换器，支持常用的LaTeX数学语法
+// LaTeXToOMML converts a LaTeX formula to OMML format.
+// This is a simplified converter that supports common LaTeX math syntax.
 func LaTeXToOMML(latex string) *OfficeMath {
 	latex = strings.TrimSpace(latex)
 	omath := &OfficeMath{
 		Content: []interface{}{},
 	}
 
-	// 解析LaTeX并转换为OMML
+	// Parse LaTeX and convert to OMML
 	content := parseLatex(latex)
 	omath.Content = content
 
 	return omath
 }
 
-// parseLatex 解析LaTeX字符串并返回OMML元素列表
+// parseLatex parses a LaTeX string and returns a list of OMML elements.
 func parseLatex(latex string) []interface{} {
 	var result []interface{}
 	latex = strings.TrimSpace(latex)
 
-	// 处理空字符串
+	// Handle empty string
 	if latex == "" {
 		return result
 	}
 
-	// 定义正则表达式模式
+	// Define regex patterns
 	fracPattern := regexp.MustCompile(`^\\frac\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}`)
 	sqrtPattern := regexp.MustCompile(`^\\sqrt(?:\[([^\]]*)\])?\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}`)
 	supPattern := regexp.MustCompile(`^([a-zA-Z0-9])\^(?:\{([^{}]*)\}|([a-zA-Z0-9]))`)
@@ -300,7 +300,7 @@ func parseLatex(latex string) []interface{} {
 	for i < len(latex) {
 		remaining := latex[i:]
 
-		// 检查上下标组合
+		// Check for subscript-superscript combination
 		if match := subSupPattern.FindStringSubmatch(remaining); match != nil {
 			base := match[1]
 			sub := match[2]
@@ -321,7 +321,7 @@ func parseLatex(latex string) []interface{} {
 			continue
 		}
 
-		// 检查分数
+		// Check for fraction
 		if match := fracPattern.FindStringSubmatch(remaining); match != nil {
 			num := match[1]
 			den := match[2]
@@ -333,20 +333,20 @@ func parseLatex(latex string) []interface{} {
 			continue
 		}
 
-		// 检查根号
+		// Check for radical (square root)
 		if match := sqrtPattern.FindStringSubmatch(remaining); match != nil {
-			deg := match[1]  // 可能为空（平方根）
+			deg := match[1]  // may be empty (square root)
 			content := match[2]
 			rad := &MathRad{
 				E: &MathE{Content: parseLatex(content)},
 			}
 			if deg == "" {
-				// 平方根，隐藏根指数
+				// Square root, hide the degree
 				rad.RadPr = &MathRadPr{
 					DegHide: &MathDegHide{Val: "1"},
 				}
 			} else {
-				// n次方根
+				// nth root
 				rad.Deg = &MathDeg{Content: parseLatex(deg)}
 			}
 			result = append(result, rad)
@@ -354,7 +354,7 @@ func parseLatex(latex string) []interface{} {
 			continue
 		}
 
-		// 检查上标
+		// Check for superscript
 		if match := supPattern.FindStringSubmatch(remaining); match != nil {
 			base := match[1]
 			sup := match[2]
@@ -369,7 +369,7 @@ func parseLatex(latex string) []interface{} {
 			continue
 		}
 
-		// 检查下标
+		// Check for subscript
 		if match := subPattern.FindStringSubmatch(remaining); match != nil {
 			base := match[1]
 			sub := match[2]
@@ -384,7 +384,7 @@ func parseLatex(latex string) []interface{} {
 			continue
 		}
 
-		// 检查LaTeX命令
+		// Check for LaTeX command
 		if match := cmdPattern.FindStringSubmatch(remaining); match != nil {
 			cmd := match[1]
 			cmdText := convertLaTeXCommand(cmd)
@@ -393,7 +393,7 @@ func parseLatex(latex string) []interface{} {
 			continue
 		}
 
-		// 检查花括号分组
+		// Check for curly brace grouping
 		if remaining[0] == '{' {
 			depth := 1
 			j := 1
@@ -414,14 +414,14 @@ func parseLatex(latex string) []interface{} {
 			}
 		}
 
-		// 检查普通文本
+		// Check for plain text
 		if match := textPattern.FindString(remaining); match != "" {
 			result = append(result, createMathRun(match))
 			i += len(match)
 			continue
 		}
 
-		// 处理单个字符
+		// Handle single character
 		if i < len(latex) {
 			result = append(result, createMathRun(string(latex[i])))
 			i++
@@ -431,18 +431,18 @@ func parseLatex(latex string) []interface{} {
 	return result
 }
 
-// createMathRun 创建数学运行元素
+// createMathRun creates a math run element.
 func createMathRun(text string) *MathRun {
 	return &MathRun{
 		Text: &MathText{Content: text},
 	}
 }
 
-// convertLaTeXCommand 将LaTeX命令转换为对应的Unicode字符
+// convertLaTeXCommand converts a LaTeX command to its corresponding Unicode character.
 func convertLaTeXCommand(cmd string) string {
-	// 常见LaTeX命令到Unicode的映射
+	// Common LaTeX command to Unicode mapping
 	commands := map[string]string{
-		// 希腊字母（小写）
+		// Greek letters (lowercase)
 		"alpha":   "α",
 		"beta":    "β",
 		"gamma":   "γ",
@@ -467,7 +467,7 @@ func convertLaTeXCommand(cmd string) string {
 		"psi":     "ψ",
 		"omega":   "ω",
 
-		// 希腊字母（大写）
+		// Greek letters (uppercase)
 		"Alpha":   "Α",
 		"Beta":    "Β",
 		"Gamma":   "Γ",
@@ -492,7 +492,7 @@ func convertLaTeXCommand(cmd string) string {
 		"Psi":     "Ψ",
 		"Omega":   "Ω",
 
-		// 运算符
+		// Operators
 		"times":   "×",
 		"div":     "÷",
 		"pm":      "±",
@@ -508,7 +508,7 @@ func convertLaTeXCommand(cmd string) string {
 		"oslash":  "⊘",
 		"odot":    "⊙",
 
-		// 关系符号
+		// Relational symbols
 		"leq":     "≤",
 		"geq":     "≥",
 		"neq":     "≠",
@@ -528,7 +528,7 @@ func convertLaTeXCommand(cmd string) string {
 		"notin":    "∉",
 		"ni":       "∋",
 
-		// 箭头
+		// Arrows
 		"rightarrow":     "→",
 		"leftarrow":      "←",
 		"leftrightarrow": "↔",
@@ -541,7 +541,7 @@ func convertLaTeXCommand(cmd string) string {
 		"gets":           "←",
 		"mapsto":         "↦",
 
-		// 杂项符号
+		// Miscellaneous symbols
 		"infty":    "∞",
 		"partial":  "∂",
 		"nabla":    "∇",
@@ -593,7 +593,7 @@ func convertLaTeXCommand(cmd string) string {
 		"arg":      "arg",
 		"gcd":      "gcd",
 
-		// 括号
+		// Brackets
 		"lbrace":   "{",
 		"rbrace":   "}",
 		"langle":   "⟨",
@@ -605,7 +605,7 @@ func convertLaTeXCommand(cmd string) string {
 		"left":     "",
 		"right":    "",
 
-		// 其他
+		// Other
 		"ldots":    "…",
 		"cdots":    "⋯",
 		"vdots":    "⋮",
@@ -618,10 +618,10 @@ func convertLaTeXCommand(cmd string) string {
 	if result, ok := commands[cmd]; ok {
 		return result
 	}
-	return "\\" + cmd // 未知命令保持原样
+	return "\\" + cmd // unknown commands are kept as-is
 }
 
-// LaTeXToOMMLString 将LaTeX公式转换为OMML XML字符串
+// LaTeXToOMMLString converts a LaTeX formula to an OMML XML string.
 func LaTeXToOMMLString(latex string, isBlock bool) (string, error) {
 	omath := LaTeXToOMML(latex)
 

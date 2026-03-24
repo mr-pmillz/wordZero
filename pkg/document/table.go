@@ -1,4 +1,4 @@
-// Package document 提供Word文档的表格操作功能
+// Package document provides table operations for Word documents.
 package document
 
 import (
@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// Table 表示一个表格
+// Table represents a table.
 type Table struct {
 	XMLName    xml.Name         `xml:"w:tbl"`
 	Properties *TableProperties `xml:"w:tblPr,omitempty"`
@@ -15,34 +15,34 @@ type Table struct {
 	Rows       []TableRow       `xml:"w:tr"`
 }
 
-// TableProperties 表格属性
+// TableProperties represents table properties.
 type TableProperties struct {
 	XMLName      xml.Name          `xml:"w:tblPr"`
 	TableW       *TableWidth       `xml:"w:tblW,omitempty"`
 	TableJc      *TableJc          `xml:"w:jc,omitempty"`
 	TableLook    *TableLook        `xml:"w:tblLook,omitempty"`
-	TableStyle   *TableStyle       `xml:"w:tblStyle,omitempty"`   // 表格样式
-	TableBorders *TableBorders     `xml:"w:tblBorders,omitempty"` // 表格边框
-	Shd          *TableShading     `xml:"w:shd,omitempty"`        // 表格底纹/背景
-	TableCellMar *TableCellMargins `xml:"w:tblCellMar,omitempty"` // 表格单元格边距
-	TableLayout  *TableLayoutType  `xml:"w:tblLayout,omitempty"`  // 表格布局类型
-	TableInd     *TableIndentation `xml:"w:tblInd,omitempty"`     // 表格缩进
+	TableStyle   *TableStyle       `xml:"w:tblStyle,omitempty"`   // table style
+	TableBorders *TableBorders     `xml:"w:tblBorders,omitempty"` // table borders
+	Shd          *TableShading     `xml:"w:shd,omitempty"`        // table shading/background
+	TableCellMar *TableCellMargins `xml:"w:tblCellMar,omitempty"` // table cell margins
+	TableLayout  *TableLayoutType  `xml:"w:tblLayout,omitempty"`  // table layout type
+	TableInd     *TableIndentation `xml:"w:tblInd,omitempty"`     // table indentation
 }
 
-// TableWidth 表格宽度
+// TableWidth represents the table width.
 type TableWidth struct {
 	XMLName xml.Name `xml:"w:tblW"`
 	W       string   `xml:"w:w,attr"`
 	Type    string   `xml:"w:type,attr"`
 }
 
-// TableJc 表格对齐
+// TableJc represents the table alignment.
 type TableJc struct {
 	XMLName xml.Name `xml:"w:jc"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// TableLook 表格外观
+// TableLook represents the table appearance.
 type TableLook struct {
 	XMLName  xml.Name `xml:"w:tblLook"`
 	Val      string   `xml:"w:val,attr"`
@@ -54,83 +54,83 @@ type TableLook struct {
 	NoVBand  string   `xml:"w:noVBand,attr,omitempty"`
 }
 
-// TableGrid 表格网格
+// TableGrid represents the table grid.
 type TableGrid struct {
 	XMLName xml.Name       `xml:"w:tblGrid"`
 	Cols    []TableGridCol `xml:"w:gridCol"`
 }
 
-// TableGridCol 表格网格列
+// TableGridCol represents a table grid column.
 type TableGridCol struct {
 	XMLName xml.Name `xml:"w:gridCol"`
 	W       string   `xml:"w:w,attr,omitempty"`
 }
 
-// TableRow 表格行
+// TableRow represents a table row.
 type TableRow struct {
 	XMLName    xml.Name            `xml:"w:tr"`
 	Properties *TableRowProperties `xml:"w:trPr,omitempty"`
 	Cells      []TableCell         `xml:"w:tc"`
 }
 
-// TableRowProperties 表格行属性
+// TableRowProperties represents table row properties.
 type TableRowProperties struct {
 	XMLName   xml.Name   `xml:"w:trPr"`
 	TableRowH *TableRowH `xml:"w:trHeight,omitempty"`
-	CantSplit *CantSplit `xml:"w:cantSplit,omitempty"` // 禁止跨页分割
-	TblHeader *TblHeader `xml:"w:tblHeader,omitempty"` // 标题行重复
+	CantSplit *CantSplit `xml:"w:cantSplit,omitempty"` // prevent page break within row
+	TblHeader *TblHeader `xml:"w:tblHeader,omitempty"` // repeat as header row
 }
 
-// TableRowH 表格行高
+// TableRowH represents the table row height.
 type TableRowH struct {
 	XMLName xml.Name `xml:"w:trHeight"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 	HRule   string   `xml:"w:hRule,attr,omitempty"`
 }
 
-// TableCell 表格单元格
+// TableCell represents a table cell.
 type TableCell struct {
 	XMLName    xml.Name             `xml:"w:tc"`
 	Properties *TableCellProperties `xml:"w:tcPr,omitempty"`
 	Paragraphs []Paragraph          `xml:"w:p"`
-	Tables     []Table              `xml:"w:tbl"` // 支持嵌套表格
+	Tables     []Table              `xml:"w:tbl"` // nested tables
 }
 
-// MarshalXML 自定义XML序列化，确保嵌套表格正确序列化
-// OOXML要求: 单元格内容应按照原始文档顺序输出段落和表格
+// MarshalXML implements custom XML serialization to ensure nested tables are serialized correctly.
+// OOXML requires cell content to output paragraphs and tables in original document order.
 func (tc *TableCell) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	// 开始元素 <w:tc>
+	// start element <w:tc>
 	start.Name = xml.Name{Local: "w:tc"}
 	if err := e.EncodeToken(start); err != nil {
 		return err
 	}
 
-	// 序列化属性 <w:tcPr>
+	// serialize properties <w:tcPr>
 	if tc.Properties != nil {
 		if err := e.Encode(tc.Properties); err != nil {
 			return err
 		}
 	}
 
-	// 序列化段落 <w:p>
+	// serialize paragraphs <w:p>
 	for i := range tc.Paragraphs {
 		if err := e.Encode(&tc.Paragraphs[i]); err != nil {
 			return err
 		}
 	}
 
-	// 序列化嵌套表格 <w:tbl>
+	// serialize nested tables <w:tbl>
 	for i := range tc.Tables {
 		if err := e.Encode(&tc.Tables[i]); err != nil {
 			return err
 		}
 	}
 
-	// 结束元素 </w:tc>
+	// end element </w:tc>
 	return e.EncodeToken(start.End())
 }
 
-// TableCellProperties 表格单元格属性
+// TableCellProperties represents table cell properties.
 type TableCellProperties struct {
 	XMLName       xml.Name              `xml:"w:tcPr"`
 	TableCellW    *TableCellW           `xml:"w:tcW,omitempty"`
@@ -138,14 +138,14 @@ type TableCellProperties struct {
 	GridSpan      *GridSpan             `xml:"w:gridSpan,omitempty"`
 	VMerge        *VMerge               `xml:"w:vMerge,omitempty"`
 	TextDirection *TextDirection        `xml:"w:textDirection,omitempty"`
-	Shd           *TableCellShading     `xml:"w:shd,omitempty"`       // 单元格背景
-	TcBorders     *TableCellBorders     `xml:"w:tcBorders,omitempty"` // 单元格边框
-	TcMar         *TableCellMarginsCell `xml:"w:tcMar,omitempty"`     // 单元格边距
-	NoWrap        *NoWrap               `xml:"w:noWrap,omitempty"`    // 禁止换行
-	HideMark      *HideMark             `xml:"w:hideMark,omitempty"`  // 隐藏标记
+	Shd           *TableCellShading     `xml:"w:shd,omitempty"`       // cell background
+	TcBorders     *TableCellBorders     `xml:"w:tcBorders,omitempty"` // cell borders
+	TcMar         *TableCellMarginsCell `xml:"w:tcMar,omitempty"`     // cell margins
+	NoWrap        *NoWrap               `xml:"w:noWrap,omitempty"`    // no wrap
+	HideMark      *HideMark             `xml:"w:hideMark,omitempty"`  // hide mark
 }
 
-// TableCellMarginsCell 单元格边距（与表格边距不同的XML结构）
+// TableCellMarginsCell represents cell margins (different XML structure from table margins).
 type TableCellMarginsCell struct {
 	XMLName xml.Name            `xml:"w:tcMar"`
 	Top     *TableCellSpaceCell `xml:"w:top,omitempty"`
@@ -154,68 +154,68 @@ type TableCellMarginsCell struct {
 	Right   *TableCellSpaceCell `xml:"w:right,omitempty"`
 }
 
-// TableCellSpaceCell 单元格空间设置
+// TableCellSpaceCell represents cell spacing settings.
 type TableCellSpaceCell struct {
 	W    string `xml:"w:w,attr"`
 	Type string `xml:"w:type,attr"`
 }
 
-// TableCellW 单元格宽度
+// TableCellW represents the cell width.
 type TableCellW struct {
 	XMLName xml.Name `xml:"w:tcW"`
 	W       string   `xml:"w:w,attr"`
 	Type    string   `xml:"w:type,attr"`
 }
 
-// VAlign 垂直对齐
+// VAlign represents vertical alignment.
 type VAlign struct {
 	XMLName xml.Name `xml:"w:vAlign"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// GridSpan 网格跨度（列合并）
+// GridSpan represents the grid span (column merge).
 type GridSpan struct {
 	XMLName xml.Name `xml:"w:gridSpan"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// VMerge 垂直合并（行合并）
+// VMerge represents a vertical merge (row merge).
 type VMerge struct {
 	XMLName xml.Name `xml:"w:vMerge"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// TableConfig 表格配置
+// TableConfig represents the table configuration.
 type TableConfig struct {
-	Rows      int        // 行数
-	Cols      int        // 列数
-	Width     int        // 表格总宽度（磅）
-	ColWidths []int      // 各列宽度（磅），如果为空则平均分配
-	Data      [][]string // 初始数据
-	Emphases  [][]int    //单元格的样式 1斜体 2粗体
+	Rows      int        // number of rows
+	Cols      int        // number of columns
+	Width     int        // total table width (in twips)
+	ColWidths []int      // column widths (in twips); evenly distributed if empty
+	Data      [][]string // initial data
+	Emphases  [][]int    // cell styles: 1=italic, 2=bold
 }
 
-// CreateTable 创建一个新表格
-// 参数:
-//   - config: 表格配置
+// CreateTable creates a new table.
+// Parameters:
+//   - config: table configuration
 //
-// 返回:
-//   - *Table: 创建的表格对象
-//   - error: 如果配置无效则返回错误
+// Returns:
+//   - *Table: the created table object
+//   - error: an error if the configuration is invalid
 func (d *Document) CreateTable(config *TableConfig) (*Table, error) {
 	if config.Rows <= 0 || config.Cols <= 0 {
-		Error("表格行数和列数必须大于0")
-		return nil, NewValidationError("TableConfig", "", "表格行数和列数必须大于0")
+		Error("table rows and columns must be greater than 0")
+		return nil, NewValidationError("TableConfig", "", "table rows and columns must be greater than 0")
 	}
 
 	table := &Table{
 		Properties: &TableProperties{
 			TableW: &TableWidth{
 				W:    fmt.Sprintf("%d", config.Width),
-				Type: "dxa", // 磅为单位
+				Type: "dxa", // unit in twips
 			},
 			TableJc: &TableJc{
-				Val: "center", // 默认居中对齐
+				Val: "center", // default center alignment
 			},
 			TableLook: &TableLook{
 				Val:      "04A0",
@@ -226,13 +226,13 @@ func (d *Document) CreateTable(config *TableConfig) (*Table, error) {
 				NoHBand:  "0",
 				NoVBand:  "1",
 			},
-			// 添加默认表格边框，使用与tmp_test参考表格相同的单线边框样式
+			// add default table borders using single-line border style matching the tmp_test reference table
 			TableBorders: &TableBorders{
 				Top: &TableBorder{
-					Val:   "single", // 单线边框样式
-					Sz:    "4",      // 边框粗细（1/8磅）
-					Space: "0",      // 边框间距
-					Color: "auto",   // 自动颜色
+					Val:   "single", // single line border style
+					Sz:    "4",      // border thickness (1/8 point)
+					Space: "0",      // border spacing
+					Color: "auto",   // automatic color
 				},
 				Left: &TableBorder{
 					Val:   "single",
@@ -265,17 +265,17 @@ func (d *Document) CreateTable(config *TableConfig) (*Table, error) {
 					Color: "auto",
 				},
 			},
-			// 添加表格布局和单元格边距设置，与参考表格保持一致
+			// add table layout and cell margin settings consistent with the reference table
 			TableLayout: &TableLayoutType{
-				Type: "autofit", // 自动调整布局
+				Type: "autofit", // auto-fit layout
 			},
 			TableCellMar: &TableCellMargins{
 				Left: &TableCellSpace{
-					W:    "108", // 左边距（与参考表格一致）
+					W:    "108", // left margin (matching reference table)
 					Type: "dxa",
 				},
 				Right: &TableCellSpace{
-					W:    "108", // 右边距（与参考表格一致）
+					W:    "108", // right margin (matching reference table)
 					Type: "dxa",
 				},
 			},
@@ -284,28 +284,28 @@ func (d *Document) CreateTable(config *TableConfig) (*Table, error) {
 		Rows: make([]TableRow, 0, config.Rows),
 	}
 
-	// 设置列宽
+	// set column widths
 	colWidths := config.ColWidths
 	if len(colWidths) == 0 {
-		// 平均分配宽度
+		// distribute width evenly
 		avgWidth := config.Width / config.Cols
 		colWidths = make([]int, config.Cols)
 		for i := range colWidths {
 			colWidths[i] = avgWidth
 		}
 	} else if len(colWidths) != config.Cols {
-		Error("列宽数量与列数不匹配")
-		return nil, NewValidationError("TableConfig.ColWidths", "", "列宽数量与列数不匹配")
+		Error("column width count does not match column count")
+		return nil, NewValidationError("TableConfig.ColWidths", "", "column width count does not match column count")
 	}
 
-	// 创建表格网格
+	// create table grid
 	for _, width := range colWidths {
 		table.Grid.Cols = append(table.Grid.Cols, TableGridCol{
 			W: fmt.Sprintf("%d", width),
 		})
 	}
 
-	// 创建表格行和单元格
+	// create table rows and cells
 	for i := 0; i < config.Rows; i++ {
 		row := TableRow{
 			Cells: make([]TableCell, 0, config.Cols),
@@ -335,7 +335,7 @@ func (d *Document) CreateTable(config *TableConfig) (*Table, error) {
 				},
 			}
 
-			// 如果有初始数据，设置单元格内容
+			// set cell content if initial data is provided
 			if config.Data != nil && i < len(config.Data) && j < len(config.Data[i]) {
 				cell.Paragraphs[0].Runs[0].Text.Content = config.Data[i][j]
 			}
@@ -355,72 +355,72 @@ func (d *Document) CreateTable(config *TableConfig) (*Table, error) {
 		table.Rows = append(table.Rows, row)
 	}
 
-	Info(fmt.Sprintf("创建表格成功：%d行 x %d列", config.Rows, config.Cols))
+	InfoMsgf(MsgTableCreated, config.Rows, config.Cols)
 	return table, nil
 }
 
-// AddTable 将表格添加到文档中
-// 参数:
-//   - config: 表格配置
+// AddTable adds a table to the document.
+// Parameters:
+//   - config: table configuration
 //
-// 返回:
-//   - *Table: 添加的表格对象
-//   - error: 如果配置无效则返回错误
+// Returns:
+//   - *Table: the added table object
+//   - error: an error if the configuration is invalid
 func (d *Document) AddTable(config *TableConfig) (*Table, error) {
 	table, err := d.CreateTable(config)
 	if err != nil {
 		return nil, err
 	}
 
-	// 将表格添加到文档主体中
+	// add the table to the document body
 	d.Body.Elements = append(d.Body.Elements, table)
 
-	Info(fmt.Sprintf("表格已添加到文档，当前文档包含%d个表格", len(d.Body.GetTables())))
+	InfoMsgf(MsgTableAddedToDocument, len(d.Body.GetTables()))
 	return table, nil
 }
 
-// InsertRow 在指定位置插入行
+// InsertRow inserts a row at the specified position.
 func (t *Table) InsertRow(position int, data []string) error {
 	if position < 0 || position > len(t.Rows) {
-		return fmt.Errorf("插入位置无效：%d，表格共有%d行", position, len(t.Rows))
+		return fmt.Errorf("invalid insert position: %d, table has %d rows", position, len(t.Rows))
 	}
 
 	if len(t.Rows) == 0 {
-		return fmt.Errorf("表格没有列定义，无法插入行")
+		return fmt.Errorf("table has no column definitions, cannot insert row")
 	}
 
 	colCount := len(t.Rows[0].Cells)
 	if len(data) > colCount {
-		return fmt.Errorf("数据列数(%d)超过表格列数(%d)", len(data), colCount)
+		return fmt.Errorf("data column count (%d) exceeds table column count (%d)", len(data), colCount)
 	}
 
-	// 创建新行
+	// create new row
 	newRow := TableRow{
 		Cells: make([]TableCell, colCount),
 	}
 
-	// 复制第一行的单元格属性作为模板
+	// copy first row cell properties as template
 	templateRow := t.Rows[0]
 	for i := 0; i < colCount; i++ {
-		// 深拷贝单元格属性
+		// deep copy cell properties
 		var cellProps *TableCellProperties
 		if templateRow.Cells[i].Properties != nil {
 			cellProps = &TableCellProperties{}
-			// 复制宽度
+			// copy width
 			if templateRow.Cells[i].Properties.TableCellW != nil {
 				cellProps.TableCellW = &TableCellW{
 					W:    templateRow.Cells[i].Properties.TableCellW.W,
 					Type: templateRow.Cells[i].Properties.TableCellW.Type,
 				}
 			}
-			// 复制垂直对齐
+			// copy vertical alignment
 			if templateRow.Cells[i].Properties.VAlign != nil {
 				cellProps.VAlign = &VAlign{
 					Val: templateRow.Cells[i].Properties.VAlign.Val,
 				}
 			}
-			// 复制其他必要的属性
-			// 注意：不要复制GridSpan和VMerge，因为这些是合并相关的属性
+			// copy other necessary properties
+			// note: do not copy GridSpan and VMerge as these are merge-related properties
 		}
 
 		newRow.Cells[i] = TableCell{
@@ -438,82 +438,82 @@ func (t *Table) InsertRow(position int, data []string) error {
 			},
 		}
 
-		// 设置数据
+		// set data
 		if i < len(data) {
 			newRow.Cells[i].Paragraphs[0].Runs[0].Text.Content = data[i]
 		}
 	}
 
-	// 插入行
+	// insert row
 	if position == len(t.Rows) {
-		// 在末尾添加
+		// append at end
 		t.Rows = append(t.Rows, newRow)
 	} else {
-		// 在中间插入
+		// insert in the middle
 		t.Rows = append(t.Rows[:position+1], t.Rows[position:]...)
 		t.Rows[position] = newRow
 	}
 
-	Info(fmt.Sprintf("在位置%d插入行成功", position))
+	InfoMsgf(MsgRowInserted, position)
 	return nil
 }
 
-// AppendRow 在表格末尾添加行
+// AppendRow appends a row at the end of the table.
 func (t *Table) AppendRow(data []string) error {
 	return t.InsertRow(len(t.Rows), data)
 }
 
-// DeleteRow 删除指定行
+// DeleteRow deletes the specified row.
 func (t *Table) DeleteRow(rowIndex int) error {
 	if rowIndex < 0 || rowIndex >= len(t.Rows) {
-		return fmt.Errorf("行索引无效：%d，表格共有%d行", rowIndex, len(t.Rows))
+		return fmt.Errorf("invalid row index: %d, table has %d rows", rowIndex, len(t.Rows))
 	}
 
 	if len(t.Rows) <= 1 {
-		return fmt.Errorf("表格至少需要保留一行")
+		return fmt.Errorf("table must have at least one row")
 	}
 
-	// 删除行
+	// delete row
 	t.Rows = append(t.Rows[:rowIndex], t.Rows[rowIndex+1:]...)
 
-	Info(fmt.Sprintf("删除第%d行成功", rowIndex))
+	InfoMsgf(MsgRowDeleted, rowIndex)
 	return nil
 }
 
-// DeleteRows 删除指定范围的行
+// DeleteRows deletes the specified range of rows.
 func (t *Table) DeleteRows(startIndex, endIndex int) error {
 	if startIndex < 0 || endIndex >= len(t.Rows) || startIndex > endIndex {
-		return fmt.Errorf("行索引范围无效：[%d, %d]，表格共有%d行", startIndex, endIndex, len(t.Rows))
+		return fmt.Errorf("invalid row index range: [%d, %d], table has %d rows", startIndex, endIndex, len(t.Rows))
 	}
 
 	deleteCount := endIndex - startIndex + 1
 	if len(t.Rows)-deleteCount < 1 {
-		return fmt.Errorf("删除后表格至少需要保留一行")
+		return fmt.Errorf("table must have at least one row after deletion")
 	}
 
-	// 删除行范围
+	// delete row range
 	t.Rows = append(t.Rows[:startIndex], t.Rows[endIndex+1:]...)
 
-	Info(fmt.Sprintf("删除第%d到%d行成功", startIndex, endIndex))
+	InfoMsgf(MsgRowsDeleted, startIndex, endIndex)
 	return nil
 }
 
-// InsertColumn 在指定位置插入列
+// InsertColumn inserts a column at the specified position.
 func (t *Table) InsertColumn(position int, data []string, width int) error {
 	if len(t.Rows) == 0 {
-		return fmt.Errorf("表格没有行，无法插入列")
+		return fmt.Errorf("table has no rows, cannot insert column")
 	}
 
 	colCount := len(t.Rows[0].Cells)
 	if position < 0 || position > colCount {
-		return fmt.Errorf("插入位置无效：%d，表格共有%d列", position, colCount)
+		return fmt.Errorf("invalid insert position: %d, table has %d columns", position, colCount)
 	}
 
 	if len(data) > len(t.Rows) {
-		return fmt.Errorf("数据行数(%d)超过表格行数(%d)", len(data), len(t.Rows))
+		return fmt.Errorf("data row count (%d) exceeds table row count (%d)", len(data), len(t.Rows))
 	}
 
-	// 更新表格网格
+	// update table grid
 	newGridCol := TableGridCol{
 		W: fmt.Sprintf("%d", width),
 	}
@@ -524,7 +524,7 @@ func (t *Table) InsertColumn(position int, data []string, width int) error {
 		t.Grid.Cols[position] = newGridCol
 	}
 
-	// 为每一行插入新单元格
+	// insert new cell for each row
 	for i := range t.Rows {
 		newCell := TableCell{
 			Properties: &TableCellProperties{
@@ -549,12 +549,12 @@ func (t *Table) InsertColumn(position int, data []string, width int) error {
 			},
 		}
 
-		// 设置数据
+		// set data
 		if i < len(data) {
 			newCell.Paragraphs[0].Runs[0].Text.Content = data[i]
 		}
 
-		// 插入单元格
+		// insert cell
 		if position == len(t.Rows[i].Cells) {
 			t.Rows[i].Cells = append(t.Rows[i].Cells, newCell)
 		} else {
@@ -563,11 +563,11 @@ func (t *Table) InsertColumn(position int, data []string, width int) error {
 		}
 	}
 
-	Info(fmt.Sprintf("在位置%d插入列成功", position))
+	InfoMsgf(MsgColumnInserted, position)
 	return nil
 }
 
-// AppendColumn 在表格末尾添加列
+// AppendColumn appends a column at the end of the table.
 func (t *Table) AppendColumn(data []string, width int) error {
 	colCount := 0
 	if len(t.Rows) > 0 {
@@ -576,82 +576,82 @@ func (t *Table) AppendColumn(data []string, width int) error {
 	return t.InsertColumn(colCount, data, width)
 }
 
-// DeleteColumn 删除指定列
+// DeleteColumn deletes the specified column.
 func (t *Table) DeleteColumn(colIndex int) error {
 	if len(t.Rows) == 0 {
-		return fmt.Errorf("表格没有行")
+		return fmt.Errorf("table has no rows")
 	}
 
 	colCount := len(t.Rows[0].Cells)
 	if colIndex < 0 || colIndex >= colCount {
-		return fmt.Errorf("列索引无效：%d，表格共有%d列", colIndex, colCount)
+		return fmt.Errorf("invalid column index: %d, table has %d columns", colIndex, colCount)
 	}
 
 	if colCount <= 1 {
-		return fmt.Errorf("表格至少需要保留一列")
+		return fmt.Errorf("table must have at least one column")
 	}
 
-	// 删除网格列
+	// delete grid column
 	t.Grid.Cols = append(t.Grid.Cols[:colIndex], t.Grid.Cols[colIndex+1:]...)
 
-	// 删除每行的对应单元格
+	// delete corresponding cell from each row
 	for i := range t.Rows {
 		t.Rows[i].Cells = append(t.Rows[i].Cells[:colIndex], t.Rows[i].Cells[colIndex+1:]...)
 	}
 
-	Info(fmt.Sprintf("删除第%d列成功", colIndex))
+	InfoMsgf(MsgColumnDeleted, colIndex)
 	return nil
 }
 
-// DeleteColumns 删除指定范围的列
+// DeleteColumns deletes the specified range of columns.
 func (t *Table) DeleteColumns(startIndex, endIndex int) error {
 	if len(t.Rows) == 0 {
-		return fmt.Errorf("表格没有行")
+		return fmt.Errorf("table has no rows")
 	}
 
 	colCount := len(t.Rows[0].Cells)
 	if startIndex < 0 || endIndex >= colCount || startIndex > endIndex {
-		return fmt.Errorf("列索引范围无效：[%d, %d]，表格共有%d列", startIndex, endIndex, colCount)
+		return fmt.Errorf("invalid column index range: [%d, %d], table has %d columns", startIndex, endIndex, colCount)
 	}
 
 	deleteCount := endIndex - startIndex + 1
 	if colCount-deleteCount < 1 {
-		return fmt.Errorf("删除后表格至少需要保留一列")
+		return fmt.Errorf("table must have at least one column after deletion")
 	}
 
-	// 删除网格列范围
+	// delete grid column range
 	t.Grid.Cols = append(t.Grid.Cols[:startIndex], t.Grid.Cols[endIndex+1:]...)
 
-	// 删除每行的对应单元格范围
+	// delete corresponding cell range from each row
 	for i := range t.Rows {
 		t.Rows[i].Cells = append(t.Rows[i].Cells[:startIndex], t.Rows[i].Cells[endIndex+1:]...)
 	}
 
-	Info(fmt.Sprintf("删除第%d到%d列成功", startIndex, endIndex))
+	InfoMsgf(MsgColumnsDeleted, startIndex, endIndex)
 	return nil
 }
 
-// GetCell 获取指定位置的单元格
+// GetCell returns the cell at the specified position.
 func (t *Table) GetCell(row, col int) (*TableCell, error) {
 	if row < 0 || row >= len(t.Rows) {
-		return nil, fmt.Errorf("行索引无效：%d，表格共有%d行", row, len(t.Rows))
+		return nil, fmt.Errorf("invalid row index: %d, table has %d rows", row, len(t.Rows))
 	}
 
 	if col < 0 || col >= len(t.Rows[row].Cells) {
-		return nil, fmt.Errorf("列索引无效：%d，第%d行共有%d列", col, row, len(t.Rows[row].Cells))
+		return nil, fmt.Errorf("invalid column index: %d, row %d has %d columns", col, row, len(t.Rows[row].Cells))
 	}
 
 	return &t.Rows[row].Cells[col], nil
 }
 
-// SetCellText 设置单元格文本
+// SetCellText sets the cell text content.
 func (t *Table) SetCellText(row, col int, text string) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 确保单元格有段落和运行
+	// ensure cell has paragraphs and runs
 	if len(cell.Paragraphs) == 0 {
 		cell.Paragraphs = []Paragraph{
 			{
@@ -677,7 +677,7 @@ func (t *Table) SetCellText(row, col int, text string) error {
 	return nil
 }
 
-// GetCellText 获取单元格文本
+// GetCellText returns the cell text content.
 func (t *Table) GetCellText(row, col int) (string, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -693,7 +693,7 @@ func (t *Table) GetCellText(row, col int) (string, error) {
 		for _, run := range para.Runs {
 			result += run.Text.Content
 		}
-		// 段落之间添加软换行符（除最后一个段落）
+		// add soft line break between paragraphs (except the last)
 		if idx < len(cell.Paragraphs)-1 {
 			result += "\n"
 		}
@@ -701,12 +701,12 @@ func (t *Table) GetCellText(row, col int) (string, error) {
 	return result, nil
 }
 
-// GetRowCount 获取表格行数
+// GetRowCount returns the number of rows in the table.
 func (t *Table) GetRowCount() int {
 	return len(t.Rows)
 }
 
-// GetColumnCount 获取表格列数
+// GetColumnCount returns the number of columns in the table.
 func (t *Table) GetColumnCount() int {
 	if len(t.Rows) == 0 {
 		return 0
@@ -714,7 +714,7 @@ func (t *Table) GetColumnCount() int {
 	return len(t.Rows[0].Cells)
 }
 
-// ClearTable 清空表格内容（保留结构）
+// ClearTable clears the table content while preserving structure.
 func (t *Table) ClearTable() {
 	for i := range t.Rows {
 		for j := range t.Rows[i].Cells {
@@ -729,19 +729,19 @@ func (t *Table) ClearTable() {
 			}
 		}
 	}
-	Info("表格内容已清空")
+	InfoMsg(MsgTableContentCleared)
 }
 
-// CopyTable 复制表格
+// CopyTable creates a copy of the table.
 func (t *Table) CopyTable() *Table {
-	// 深拷贝表格结构
+	// deep copy table structure
 	newTable := &Table{
 		Properties: t.Properties,
 		Grid:       t.Grid,
 		Rows:       make([]TableRow, len(t.Rows)),
 	}
 
-	// 复制所有行和单元格
+	// copy all rows and cells
 	for i, row := range t.Rows {
 		newTable.Rows[i] = TableRow{
 			Properties: row.Properties,
@@ -754,7 +754,7 @@ func (t *Table) CopyTable() *Table {
 				Paragraphs: make([]Paragraph, len(cell.Paragraphs)),
 			}
 
-			// 复制段落内容
+			// copy paragraph content
 			for k, para := range cell.Paragraphs {
 				newTable.Rows[i].Cells[j].Paragraphs[k] = Paragraph{
 					Properties: para.Properties,
@@ -771,97 +771,97 @@ func (t *Table) CopyTable() *Table {
 		}
 	}
 
-	Info("表格复制成功")
+	InfoMsg(MsgTableCopied)
 	return newTable
 }
 
-// CellAlignment 单元格对齐方式
+// CellAlignment represents the cell alignment type.
 type CellAlignment string
 
 const (
-	// CellAlignLeft 左对齐
+	// CellAlignLeft represents left alignment.
 	CellAlignLeft CellAlignment = "left"
-	// CellAlignCenter 居中对齐
+	// CellAlignCenter represents center alignment.
 	CellAlignCenter CellAlignment = "center"
-	// CellAlignRight 右对齐
+	// CellAlignRight represents right alignment.
 	CellAlignRight CellAlignment = "right"
-	// CellAlignJustify 两端对齐
+	// CellAlignJustify represents justified alignment.
 	CellAlignJustify CellAlignment = "both"
 )
 
-// CellVerticalAlignment 单元格垂直对齐方式
+// CellVerticalAlignment represents the cell vertical alignment type.
 type CellVerticalAlignment string
 
 const (
-	// CellVAlignTop 顶部对齐
+	// CellVAlignTop represents top alignment.
 	CellVAlignTop CellVerticalAlignment = "top"
-	// CellVAlignCenter 居中对齐
+	// CellVAlignCenter represents center alignment.
 	CellVAlignCenter CellVerticalAlignment = "center"
-	// CellVAlignBottom 底部对齐
+	// CellVAlignBottom represents bottom alignment.
 	CellVAlignBottom CellVerticalAlignment = "bottom"
 )
 
-// CellTextDirection 单元格文字方向
+// CellTextDirection represents the cell text direction.
 type CellTextDirection string
 
 const (
-	// TextDirectionLR 从左到右（默认）
+	// TextDirectionLR represents left-to-right direction (default).
 	TextDirectionLR CellTextDirection = "lrTb"
-	// TextDirectionTB 从上到下
+	// TextDirectionTB represents top-to-bottom direction.
 	TextDirectionTB CellTextDirection = "tbRl"
-	// TextDirectionBT 从下到上
+	// TextDirectionBT represents bottom-to-top direction.
 	TextDirectionBT CellTextDirection = "btLr"
-	// TextDirectionRL 从右到左
+	// TextDirectionRL represents right-to-left direction.
 	TextDirectionRL CellTextDirection = "rlTb"
-	// TextDirectionTBV 从上到下，垂直显示
+	// TextDirectionTBV represents top-to-bottom vertical display.
 	TextDirectionTBV CellTextDirection = "tbLrV"
-	// TextDirectionBTV 从下到上，垂直显示
+	// TextDirectionBTV represents bottom-to-top vertical display.
 	TextDirectionBTV CellTextDirection = "btLrV"
 )
 
-// CellFormat 单元格格式配置
+// CellFormat represents the cell format configuration.
 type CellFormat struct {
-	TextFormat      *TextFormat           // 文字格式
-	HorizontalAlign CellAlignment         // 水平对齐
-	VerticalAlign   CellVerticalAlignment // 垂直对齐
-	TextDirection   CellTextDirection     // 文字方向
-	BackgroundColor string                // 背景颜色
-	BorderStyle     string                // 边框样式
-	Padding         int                   // 内边距（磅）
+	TextFormat      *TextFormat           // text format
+	HorizontalAlign CellAlignment         // horizontal alignment
+	VerticalAlign   CellVerticalAlignment // vertical alignment
+	TextDirection   CellTextDirection     // text direction
+	BackgroundColor string                // background color
+	BorderStyle     string                // border style
+	Padding         int                   // padding (in twips)
 }
 
-// SetCellFormat 设置单元格格式
+// SetCellFormat sets the cell format.
 func (t *Table) SetCellFormat(row, col int, format *CellFormat) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 确保单元格有属性
+	// ensure cell has properties
 	if cell.Properties == nil {
 		cell.Properties = &TableCellProperties{}
 	}
 
-	// 设置垂直对齐
+	// set vertical alignment
 	if format.VerticalAlign != "" {
 		cell.Properties.VAlign = &VAlign{
 			Val: string(format.VerticalAlign),
 		}
 	}
 
-	// 设置文字方向
+	// set text direction
 	if format.TextDirection != "" {
 		cell.Properties.TextDirection = &TextDirection{
 			Val: string(format.TextDirection),
 		}
 	}
 
-	// 确保单元格有段落
+	// ensure cell has paragraphs
 	if len(cell.Paragraphs) == 0 {
 		cell.Paragraphs = []Paragraph{{}}
 	}
 
-	// 设置水平对齐
+	// set horizontal alignment
 	if format.HorizontalAlign != "" {
 		if cell.Paragraphs[0].Properties == nil {
 			cell.Paragraphs[0].Properties = &ParagraphProperties{}
@@ -871,9 +871,9 @@ func (t *Table) SetCellFormat(row, col int, format *CellFormat) error {
 		}
 	}
 
-	// 设置文字格式
+	// set text format
 	if format.TextFormat != nil {
-		// 确保有运行
+		// ensure runs exist
 		if len(cell.Paragraphs[0].Runs) == 0 {
 			cell.Paragraphs[0].Runs = []Run{{}}
 		}
@@ -883,31 +883,31 @@ func (t *Table) SetCellFormat(row, col int, format *CellFormat) error {
 			run.Properties = &RunProperties{}
 		}
 
-		// 设置粗体
+		// set bold
 		if format.TextFormat.Bold {
 			run.Properties.Bold = &Bold{}
 		}
 
-		// 设置斜体
+		// set italic
 		if format.TextFormat.Italic {
 			run.Properties.Italic = &Italic{}
 		}
 
-		// 设置字体大小
+		// set font size
 		if format.TextFormat.FontSize > 0 {
 			run.Properties.FontSize = &FontSize{
-				Val: fmt.Sprintf("%d", format.TextFormat.FontSize*2), // Word使用半磅为单位
+				Val: fmt.Sprintf("%d", format.TextFormat.FontSize*2), // Word uses half-points
 			}
 		}
 
-		// 设置字体颜色
+		// set font color
 		if format.TextFormat.FontColor != "" {
 			run.Properties.Color = &Color{
 				Val: format.TextFormat.FontColor,
 			}
 		}
 
-		// 设置字体名称
+		// set font family
 		if format.TextFormat.FontFamily != "" {
 			run.Properties.FontFamily = &FontFamily{
 				ASCII: format.TextFormat.FontFamily,
@@ -915,18 +915,18 @@ func (t *Table) SetCellFormat(row, col int, format *CellFormat) error {
 		}
 	}
 
-	Info(fmt.Sprintf("设置单元格(%d,%d)格式成功", row, col))
+	InfoMsgf(MsgCellFormatSet, row, col)
 	return nil
 }
 
-// SetCellFormattedText 设置单元格富文本内容
+// SetCellFormattedText sets the cell rich text content.
 func (t *Table) SetCellFormattedText(row, col int, text string, format *TextFormat) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 创建格式化的运行
+	// create formatted run
 	run := Run{
 		Text: Text{Content: text},
 	}
@@ -961,30 +961,30 @@ func (t *Table) SetCellFormattedText(row, col int, text string, format *TextForm
 		}
 	}
 
-	// 设置单元格内容
+	// set cell content
 	cell.Paragraphs = []Paragraph{
 		{
 			Runs: []Run{run},
 		},
 	}
 
-	Info(fmt.Sprintf("设置单元格(%d,%d)富文本内容成功", row, col))
+	InfoMsgf(MsgCellRichTextSet, row, col)
 	return nil
 }
 
-// AddCellFormattedText 添加格式化文本到单元格（追加模式）
+// AddCellFormattedText appends formatted text to a cell.
 func (t *Table) AddCellFormattedText(row, col int, text string, format *TextFormat) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 确保单元格有段落
+	// ensure cell has paragraphs
 	if len(cell.Paragraphs) == 0 {
 		cell.Paragraphs = []Paragraph{{}}
 	}
 
-	// 创建格式化的运行
+	// create formatted run
 	run := Run{
 		Text: Text{Content: text},
 	}
@@ -1019,28 +1019,28 @@ func (t *Table) AddCellFormattedText(row, col int, text string, format *TextForm
 		}
 	}
 
-	// 添加运行到第一个段落
+	// append run to first paragraph
 	cell.Paragraphs[0].Runs = append(cell.Paragraphs[0].Runs, run)
 
-	Info(fmt.Sprintf("添加格式化文本到单元格(%d,%d)成功", row, col))
+	InfoMsgf(MsgFormattedTextAddedToCell, row, col)
 	return nil
 }
 
-// MergeCellsHorizontal 水平合并单元格（合并列）
+// MergeCellsHorizontal merges cells horizontally (column merge).
 func (t *Table) MergeCellsHorizontal(row, startCol, endCol int) error {
 	if row < 0 || row >= len(t.Rows) {
-		return fmt.Errorf("行索引无效：%d", row)
+		return fmt.Errorf("invalid row index: %d", row)
 	}
 
 	if startCol < 0 || endCol >= len(t.Rows[row].Cells) || startCol > endCol {
-		return fmt.Errorf("列索引范围无效：[%d, %d]", startCol, endCol)
+		return fmt.Errorf("invalid column index range: [%d, %d]", startCol, endCol)
 	}
 
 	if startCol == endCol {
-		return fmt.Errorf("起始列和结束列不能相同")
+		return fmt.Errorf("start column and end column cannot be the same")
 	}
 
-	// 设置起始单元格的网格跨度
+	// set grid span on the starting cell
 	startCell := &t.Rows[row].Cells[startCol]
 	if startCell.Properties == nil {
 		startCell.Properties = &TableCellProperties{}
@@ -1051,7 +1051,7 @@ func (t *Table) MergeCellsHorizontal(row, startCol, endCol int) error {
 		Val: fmt.Sprintf("%d", spanCount),
 	}
 
-	// 删除被合并的单元格
+	// remove merged cells
 	newCells := make([]TableCell, 0, len(t.Rows[row].Cells)-(endCol-startCol))
 	newCells = append(newCells, t.Rows[row].Cells[:startCol+1]...)
 	if endCol+1 < len(t.Rows[row].Cells) {
@@ -1059,32 +1059,32 @@ func (t *Table) MergeCellsHorizontal(row, startCol, endCol int) error {
 	}
 	t.Rows[row].Cells = newCells
 
-	Info(fmt.Sprintf("水平合并单元格：行%d，列%d到%d", row, startCol, endCol))
+	InfoMsgf(MsgHorizontalMerge, row, startCol, endCol)
 	return nil
 }
 
-// MergeCellsVertical 垂直合并单元格（合并行）
+// MergeCellsVertical merges cells vertically (row merge).
 func (t *Table) MergeCellsVertical(startRow, endRow, col int) error {
 	if startRow < 0 || endRow >= len(t.Rows) || startRow > endRow {
-		return fmt.Errorf("行索引范围无效：[%d, %d]", startRow, endRow)
+		return fmt.Errorf("invalid row index range: [%d, %d]", startRow, endRow)
 	}
 
 	if col < 0 {
-		return fmt.Errorf("列索引无效：%d", col)
+		return fmt.Errorf("invalid column index: %d", col)
 	}
 
 	if startRow == endRow {
-		return fmt.Errorf("起始行和结束行不能相同")
+		return fmt.Errorf("start row and end row cannot be the same")
 	}
 
-	// 检查所有行的列数
+	// check column count for all rows
 	for i := startRow; i <= endRow; i++ {
 		if col >= len(t.Rows[i].Cells) {
-			return fmt.Errorf("第%d行没有第%d列", i, col)
+			return fmt.Errorf("row %d does not have column %d", i, col)
 		}
 	}
 
-	// 设置起始单元格为合并起始
+	// set starting cell as merge start
 	startCell := &t.Rows[startRow].Cells[col]
 	if startCell.Properties == nil {
 		startCell.Properties = &TableCellProperties{}
@@ -1093,7 +1093,7 @@ func (t *Table) MergeCellsVertical(startRow, endRow, col int) error {
 		Val: "restart",
 	}
 
-	// 设置后续单元格为合并继续
+	// set subsequent cells as merge continue
 	for i := startRow + 1; i <= endRow; i++ {
 		cell := &t.Rows[i].Cells[col]
 		if cell.Properties == nil {
@@ -1102,48 +1102,48 @@ func (t *Table) MergeCellsVertical(startRow, endRow, col int) error {
 		cell.Properties.VMerge = &VMerge{
 			Val: "continue",
 		}
-		// 清空被合并单元格的内容
+		// clear content of merged cells
 		cell.Paragraphs = []Paragraph{{}}
 	}
 
-	Info(fmt.Sprintf("垂直合并单元格：行%d到%d，列%d", startRow, endRow, col))
+	InfoMsgf(MsgVerticalMerge, startRow, endRow, col)
 	return nil
 }
 
-// MergeCellsRange 合并单元格区域（多行多列）
+// MergeCellsRange merges a range of cells (multiple rows and columns).
 func (t *Table) MergeCellsRange(startRow, endRow, startCol, endCol int) error {
-	// 验证范围
+	// validate range
 	if startRow < 0 || endRow >= len(t.Rows) || startRow > endRow {
-		return fmt.Errorf("行索引范围无效：[%d, %d]", startRow, endRow)
+		return fmt.Errorf("invalid row index range: [%d, %d]", startRow, endRow)
 	}
 
-	// 先水平合并每一行
+	// first merge each row horizontally
 	for i := startRow; i <= endRow; i++ {
 		if startCol >= len(t.Rows[i].Cells) || endCol >= len(t.Rows[i].Cells) {
-			return fmt.Errorf("第%d行列索引范围无效：[%d, %d]", i, startCol, endCol)
+			return fmt.Errorf("invalid column index range for row %d: [%d, %d]", i, startCol, endCol)
 		}
 
 		if startCol != endCol {
 			err := t.MergeCellsHorizontal(i, startCol, endCol)
 			if err != nil {
-				return fmt.Errorf("水平合并第%d行失败：%v", i, err)
+				return fmt.Errorf("failed to merge row %d horizontally: %v", i, err)
 			}
 		}
 	}
 
-	// 然后垂直合并第一列
+	// then merge the first column vertically
 	if startRow != endRow {
 		err := t.MergeCellsVertical(startRow, endRow, startCol)
 		if err != nil {
-			return fmt.Errorf("垂直合并失败：%v", err)
+			return fmt.Errorf("vertical merge failed: %v", err)
 		}
 	}
 
-	Info(fmt.Sprintf("合并单元格区域：行%d到%d，列%d到%d", startRow, endRow, startCol, endCol))
+	InfoMsgf(MsgRangeMerge, startRow, endRow, startCol, endCol)
 	return nil
 }
 
-// UnmergeCells 取消单元格合并
+// UnmergeCells cancels cell merge.
 func (t *Table) UnmergeCells(row, col int) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -1151,18 +1151,18 @@ func (t *Table) UnmergeCells(row, col int) error {
 	}
 
 	if cell.Properties == nil {
-		return fmt.Errorf("单元格没有合并")
+		return fmt.Errorf("cell is not merged")
 	}
 
-	// 检查是否有水平合并
+	// check for horizontal merge
 	if cell.Properties.GridSpan != nil {
-		// 获取合并的列数
+		// get the number of merged columns
 		spanCount := 1
 		if cell.Properties.GridSpan.Val != "" {
 			fmt.Sscanf(cell.Properties.GridSpan.Val, "%d", &spanCount)
 		}
 
-		// 插入被合并的单元格
+		// insert the previously merged cells
 		for i := 1; i < spanCount; i++ {
 			newCell := TableCell{
 				Properties: &TableCellProperties{
@@ -1172,29 +1172,29 @@ func (t *Table) UnmergeCells(row, col int) error {
 				Paragraphs: []Paragraph{{}},
 			}
 
-			// 在指定位置插入新单元格
+			// insert new cell at specified position
 			insertPos := col + i
 			if insertPos <= len(t.Rows[row].Cells) {
 				t.Rows[row].Cells = append(t.Rows[row].Cells[:insertPos], append([]TableCell{newCell}, t.Rows[row].Cells[insertPos:]...)...)
 			}
 		}
 
-		// 移除水平合并属性
+		// remove horizontal merge attribute
 		cell.Properties.GridSpan = nil
 	}
 
-	// 检查是否有垂直合并
+	// check for vertical merge
 	if cell.Properties.VMerge != nil {
-		// 移除垂直合并属性
+		// remove vertical merge attribute
 		cell.Properties.VMerge = nil
 
-		// 查找并恢复被合并的单元格
+		// find and restore merged cells
 		for i := row + 1; i < len(t.Rows); i++ {
 			if col < len(t.Rows[i].Cells) {
 				otherCell := &t.Rows[i].Cells[col]
 				if otherCell.Properties != nil && otherCell.Properties.VMerge != nil {
 					if otherCell.Properties.VMerge.Val == "continue" {
-						// 恢复单元格内容
+						// restore cell content
 						otherCell.Properties.VMerge = nil
 						if len(otherCell.Paragraphs) == 0 {
 							otherCell.Paragraphs = []Paragraph{{}}
@@ -1209,11 +1209,11 @@ func (t *Table) UnmergeCells(row, col int) error {
 		}
 	}
 
-	Info(fmt.Sprintf("取消单元格(%d,%d)合并成功", row, col))
+	InfoMsgf(MsgCellMergeCancelled, row, col)
 	return nil
 }
 
-// IsCellMerged 检查单元格是否被合并
+// IsCellMerged checks whether a cell is merged.
 func (t *Table) IsCellMerged(row, col int) (bool, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -1224,12 +1224,12 @@ func (t *Table) IsCellMerged(row, col int) (bool, error) {
 		return false, nil
 	}
 
-	// 检查水平合并
+	// check for horizontal merge
 	if cell.Properties.GridSpan != nil && cell.Properties.GridSpan.Val != "" && cell.Properties.GridSpan.Val != "1" {
 		return true, nil
 	}
 
-	// 检查垂直合并
+	// check for vertical merge
 	if cell.Properties.VMerge != nil {
 		return true, nil
 	}
@@ -1237,7 +1237,7 @@ func (t *Table) IsCellMerged(row, col int) (bool, error) {
 	return false, nil
 }
 
-// GetMergedCellInfo 获取合并单元格信息
+// GetMergedCellInfo returns information about merged cells.
 func (t *Table) GetMergedCellInfo(row, col int) (map[string]interface{}, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -1251,7 +1251,7 @@ func (t *Table) GetMergedCellInfo(row, col int) (map[string]interface{}, error) 
 		return info, nil
 	}
 
-	// 检查水平合并
+	// check for horizontal merge
 	if cell.Properties.GridSpan != nil && cell.Properties.GridSpan.Val != "" {
 		spanCount := 1
 		fmt.Sscanf(cell.Properties.GridSpan.Val, "%d", &spanCount)
@@ -1262,7 +1262,7 @@ func (t *Table) GetMergedCellInfo(row, col int) (map[string]interface{}, error) 
 		}
 	}
 
-	// 检查垂直合并
+	// check for vertical merge
 	if cell.Properties.VMerge != nil {
 		info["is_merged"] = true
 		if cell.Properties.VMerge.Val == "restart" {
@@ -1277,34 +1277,34 @@ func (t *Table) GetMergedCellInfo(row, col int) (map[string]interface{}, error) 
 	return info, nil
 }
 
-// ClearCellContent 清空单元格内容但保留格式
+// ClearCellContent clears cell content while preserving format.
 func (t *Table) ClearCellContent(row, col int) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 保留格式，只清空文本内容
+	// preserve format, only clear text content
 	for i := range cell.Paragraphs {
 		for j := range cell.Paragraphs[i].Runs {
 			cell.Paragraphs[i].Runs[j].Text.Content = ""
 		}
 	}
 
-	Info(fmt.Sprintf("清空单元格(%d,%d)内容成功", row, col))
+	InfoMsgf(MsgCellContentCleared, row, col)
 	return nil
 }
 
-// ClearCellFormat 清空单元格格式但保留内容
+// ClearCellFormat clears cell format while preserving content.
 func (t *Table) ClearCellFormat(row, col int) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 清除单元格属性中的格式
+	// clear format from cell properties
 	if cell.Properties != nil {
-		// 保留合并信息和基本宽度，清除其他格式
+		// preserve merge info and base width, clear other format
 		oldGridSpan := cell.Properties.GridSpan
 		oldVMerge := cell.Properties.VMerge
 		oldWidth := cell.Properties.TableCellW
@@ -1316,7 +1316,7 @@ func (t *Table) ClearCellFormat(row, col int) error {
 		}
 	}
 
-	// 清除段落和运行的格式
+	// clear paragraph and run format
 	for i := range cell.Paragraphs {
 		cell.Paragraphs[i].Properties = nil
 		for j := range cell.Paragraphs[i].Runs {
@@ -1324,45 +1324,45 @@ func (t *Table) ClearCellFormat(row, col int) error {
 		}
 	}
 
-	Info(fmt.Sprintf("清空单元格(%d,%d)格式成功", row, col))
+	InfoMsgf(MsgCellFormatCleared, row, col)
 	return nil
 }
 
-// SetCellPadding 设置单元格内边距
+// SetCellPadding sets the cell padding.
 func (t *Table) SetCellPadding(row, col int, padding int) error {
 	_, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 单元格内边距通过表格属性设置，这里先预留接口
-	// 实际实现需要在表格级别设置默认内边距
-	Info(fmt.Sprintf("设置单元格(%d,%d)内边距为%d磅", row, col, padding))
+	// cell padding is set via table properties; this is a placeholder interface
+	// actual implementation requires setting default padding at the table level
+	InfoMsgf(MsgCellPaddingSet, row, col, padding)
 	return nil
 }
 
-// SetCellTextDirection 设置单元格文字方向
+// SetCellTextDirection sets the cell text direction.
 func (t *Table) SetCellTextDirection(row, col int, direction CellTextDirection) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 确保单元格有属性
+	// ensure cell has properties
 	if cell.Properties == nil {
 		cell.Properties = &TableCellProperties{}
 	}
 
-	// 设置文字方向
+	// set text direction
 	cell.Properties.TextDirection = &TextDirection{
 		Val: string(direction),
 	}
 
-	Info(fmt.Sprintf("设置单元格(%d,%d)文字方向为%s", row, col, direction))
+	InfoMsgf(MsgCellTextDirectionSet, row, col, direction)
 	return nil
 }
 
-// GetCellTextDirection 获取单元格文字方向
+// GetCellTextDirection returns the cell text direction.
 func (t *Table) GetCellTextDirection(row, col int) (CellTextDirection, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -1373,11 +1373,11 @@ func (t *Table) GetCellTextDirection(row, col int) (CellTextDirection, error) {
 		return CellTextDirection(cell.Properties.TextDirection.Val), nil
 	}
 
-	// 默认返回从左到右
+	// default to left-to-right
 	return TextDirectionLR, nil
 }
 
-// GetCellFormat 获取单元格格式信息
+// GetCellFormat returns the cell format information.
 func (t *Table) GetCellFormat(row, col int) (*CellFormat, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -1386,22 +1386,22 @@ func (t *Table) GetCellFormat(row, col int) (*CellFormat, error) {
 
 	format := &CellFormat{}
 
-	// 获取垂直对齐
+	// get vertical alignment
 	if cell.Properties != nil && cell.Properties.VAlign != nil {
 		format.VerticalAlign = CellVerticalAlignment(cell.Properties.VAlign.Val)
 	}
 
-	// 获取文字方向
+	// get text direction
 	if cell.Properties != nil && cell.Properties.TextDirection != nil {
 		format.TextDirection = CellTextDirection(cell.Properties.TextDirection.Val)
 	}
 
-	// 获取水平对齐
+	// get horizontal alignment
 	if len(cell.Paragraphs) > 0 && cell.Paragraphs[0].Properties != nil && cell.Paragraphs[0].Properties.Justification != nil {
 		format.HorizontalAlign = CellAlignment(cell.Paragraphs[0].Properties.Justification.Val)
 	}
 
-	// 获取文字格式
+	// get text format
 	if len(cell.Paragraphs) > 0 && len(cell.Paragraphs[0].Runs) > 0 {
 		run := &cell.Paragraphs[0].Runs[0]
 		if run.Properties != nil {
@@ -1417,7 +1417,7 @@ func (t *Table) GetCellFormat(row, col int) (*CellFormat, error) {
 
 			if run.Properties.FontSize != nil {
 				fmt.Sscanf(run.Properties.FontSize.Val, "%d", &format.TextFormat.FontSize)
-				format.TextFormat.FontSize /= 2 // 转换为磅
+				format.TextFormat.FontSize /= 2 // convert to points
 			}
 
 			if run.Properties.Color != nil {
@@ -1433,34 +1433,34 @@ func (t *Table) GetCellFormat(row, col int) (*CellFormat, error) {
 	return format, nil
 }
 
-// TextDirection 文字方向
+// TextDirection represents the text direction.
 type TextDirection struct {
 	XMLName xml.Name `xml:"w:textDirection"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// RowHeightRule 行高规则
+// RowHeightRule represents the row height rule.
 type RowHeightRule string
 
 const (
-	// RowHeightAuto 自动调整行高
+	// RowHeightAuto represents automatic row height.
 	RowHeightAuto RowHeightRule = "auto"
-	// RowHeightMinimum 最小行高
+	// RowHeightMinimum represents minimum row height.
 	RowHeightMinimum RowHeightRule = "atLeast"
-	// RowHeightExact 固定行高
+	// RowHeightExact represents exact row height.
 	RowHeightExact RowHeightRule = "exact"
 )
 
-// RowHeightConfig 行高配置
+// RowHeightConfig represents the row height configuration.
 type RowHeightConfig struct {
-	Height int           // 行高值（磅，1磅=20twips）
-	Rule   RowHeightRule // 行高规则
+	Height int           // row height value (in points, 1 point = 20 twips)
+	Rule   RowHeightRule // row height rule
 }
 
-// SetRowHeight 设置行高
+// SetRowHeight sets the row height.
 func (t *Table) SetRowHeight(rowIndex int, config *RowHeightConfig) error {
 	if rowIndex < 0 || rowIndex >= len(t.Rows) {
-		return fmt.Errorf("行索引无效：%d，表格共有%d行", rowIndex, len(t.Rows))
+		return fmt.Errorf("invalid row index: %d, table has %d rows", rowIndex, len(t.Rows))
 	}
 
 	row := &t.Rows[rowIndex]
@@ -1468,25 +1468,25 @@ func (t *Table) SetRowHeight(rowIndex int, config *RowHeightConfig) error {
 		row.Properties = &TableRowProperties{}
 	}
 
-	// 设置行高属性
+	// set row height properties
 	row.Properties.TableRowH = &TableRowH{
-		Val:   fmt.Sprintf("%d", config.Height*20), // 转换为twips (1磅=20twips)
+		Val:   fmt.Sprintf("%d", config.Height*20), // convert to twips (1 point = 20 twips)
 		HRule: string(config.Rule),
 	}
 
-	Info(fmt.Sprintf("设置第%d行高度为%d磅，规则为%s", rowIndex, config.Height, config.Rule))
+	InfoMsgf(MsgRowHeightSet, rowIndex, config.Height, config.Rule)
 	return nil
 }
 
-// GetRowHeight 获取行高配置
+// GetRowHeight returns the row height configuration.
 func (t *Table) GetRowHeight(rowIndex int) (*RowHeightConfig, error) {
 	if rowIndex < 0 || rowIndex >= len(t.Rows) {
-		return nil, fmt.Errorf("行索引无效：%d，表格共有%d行", rowIndex, len(t.Rows))
+		return nil, fmt.Errorf("invalid row index: %d, table has %d rows", rowIndex, len(t.Rows))
 	}
 
 	row := &t.Rows[rowIndex]
 	if row.Properties == nil || row.Properties.TableRowH == nil {
-		// 返回默认自动高度
+		// return default auto height
 		return &RowHeightConfig{
 			Height: 0,
 			Rule:   RowHeightAuto,
@@ -1496,7 +1496,7 @@ func (t *Table) GetRowHeight(rowIndex int) (*RowHeightConfig, error) {
 	height := 0
 	if row.Properties.TableRowH.Val != "" {
 		fmt.Sscanf(row.Properties.TableRowH.Val, "%d", &height)
-		height /= 20 // 转换为磅
+		height /= 20 // convert to points
 	}
 
 	rule := RowHeightAuto
@@ -1510,112 +1510,111 @@ func (t *Table) GetRowHeight(rowIndex int) (*RowHeightConfig, error) {
 	}, nil
 }
 
-// SetRowHeightRange 批量设置行高
+// SetRowHeightRange sets the row height for a range of rows.
 func (t *Table) SetRowHeightRange(startRow, endRow int, config *RowHeightConfig) error {
 	if startRow < 0 || endRow >= len(t.Rows) || startRow > endRow {
-		return fmt.Errorf("行索引范围无效：[%d, %d]，表格共有%d行", startRow, endRow, len(t.Rows))
+		return fmt.Errorf("invalid row index range: [%d, %d], table has %d rows", startRow, endRow, len(t.Rows))
 	}
 
 	for i := startRow; i <= endRow; i++ {
 		err := t.SetRowHeight(i, config)
 		if err != nil {
-			return fmt.Errorf("设置第%d行高度失败：%v", i, err)
+			return fmt.Errorf("failed to set height for row %d: %v", i, err)
 		}
 	}
 
-	Info(fmt.Sprintf("批量设置第%d到%d行高度成功", startRow, endRow))
+	InfoMsgf(MsgRowsHeightSet, startRow, endRow)
 	return nil
 }
 
-// TableTextWrap 表格文字环绕类型
+// TableTextWrap represents the table text wrap type.
 type TableTextWrap string
 
 const (
-	// TextWrapNone 无环绕（默认）
+	// TextWrapNone represents no text wrap (default).
 	TextWrapNone TableTextWrap = "none"
-	// TextWrapAround 环绕表格
+	// TextWrapAround represents text wrapping around the table.
 	TextWrapAround TableTextWrap = "around"
 )
 
-// TablePosition 表格定位类型
+// TablePosition represents the table position type.
 type TablePosition string
 
 const (
-	// PositionInline 行内定位（默认）
+	// PositionInline represents inline positioning (default).
 	PositionInline TablePosition = "inline"
-	// PositionFloating 浮动定位
+	// PositionFloating represents floating positioning.
 	PositionFloating TablePosition = "floating"
 )
 
-// TableAlignment 表格对齐类型
+// TableAlignment represents the table alignment type.
 type TableAlignment string
 
 const (
-	// TableAlignLeft 左对齐
+	// TableAlignLeft represents left alignment.
 	TableAlignLeft TableAlignment = "left"
-	// TableAlignCenter 居中对齐
+	// TableAlignCenter represents center alignment.
 	TableAlignCenter TableAlignment = "center"
-	// TableAlignRight 右对齐
+	// TableAlignRight represents right alignment.
 	TableAlignRight TableAlignment = "right"
-	// TableAlignInside 内侧对齐
+	// TableAlignInside represents inside alignment.
 	TableAlignInside TableAlignment = "inside"
-	// TableAlignOutside 外侧对齐
+	// TableAlignOutside represents outside alignment.
 	TableAlignOutside TableAlignment = "outside"
 )
 
-// TablePositioning 表格定位配置
+// TablePositioning represents the table positioning configuration.
 type TablePositioning struct {
 	XMLName        xml.Name `xml:"w:tblpPr"`
-	LeftFromText   string   `xml:"w:leftFromText,attr,omitempty"`   // 距离左侧文字的距离
-	RightFromText  string   `xml:"w:rightFromText,attr,omitempty"`  // 距离右侧文字的距离
-	TopFromText    string   `xml:"w:topFromText,attr,omitempty"`    // 距离上方文字的距离
-	BottomFromText string   `xml:"w:bottomFromText,attr,omitempty"` // 距离下方文字的距离
-	VertAnchor     string   `xml:"w:vertAnchor,attr,omitempty"`     // 垂直锚点
-	HorzAnchor     string   `xml:"w:horzAnchor,attr,omitempty"`     // 水平锚点
-	TblpXSpec      string   `xml:"w:tblpXSpec,attr,omitempty"`      // 水平对齐规格
-	TblpYSpec      string   `xml:"w:tblpYSpec,attr,omitempty"`      // 垂直对齐规格
-	TblpX          string   `xml:"w:tblpX,attr,omitempty"`          // X坐标
-	TblpY          string   `xml:"w:tblpY,attr,omitempty"`          // Y坐标
+	LeftFromText   string   `xml:"w:leftFromText,attr,omitempty"`   // distance from left text
+	RightFromText  string   `xml:"w:rightFromText,attr,omitempty"`  // distance from right text
+	TopFromText    string   `xml:"w:topFromText,attr,omitempty"`    // distance from top text
+	BottomFromText string   `xml:"w:bottomFromText,attr,omitempty"` // distance from bottom text
+	VertAnchor     string   `xml:"w:vertAnchor,attr,omitempty"`     // vertical anchor
+	HorzAnchor     string   `xml:"w:horzAnchor,attr,omitempty"`     // horizontal anchor
+	TblpXSpec      string   `xml:"w:tblpXSpec,attr,omitempty"`      // horizontal alignment specification
+	TblpYSpec      string   `xml:"w:tblpYSpec,attr,omitempty"`      // vertical alignment specification
+	TblpX          string   `xml:"w:tblpX,attr,omitempty"`          // X coordinate
+	TblpY          string   `xml:"w:tblpY,attr,omitempty"`          // Y coordinate
 }
 
-// TableLayoutConfig 表格布局配置
+// TableLayoutConfig represents the table layout configuration.
 type TableLayoutConfig struct {
-	Alignment   TableAlignment    // 表格对齐方式
-	TextWrap    TableTextWrap     // 文字环绕类型
-	Position    TablePosition     // 定位类型
-	Positioning *TablePositioning // 定位详细配置（仅在Position为Floating时有效）
+	Alignment   TableAlignment    // table alignment
+	TextWrap    TableTextWrap     // text wrap type
+	Position    TablePosition     // positioning type
+	Positioning *TablePositioning // positioning details (only effective when Position is Floating)
 }
 
-// SetTableLayout 设置表格布局和定位
+// SetTableLayout sets the table layout and positioning.
 func (t *Table) SetTableLayout(config *TableLayoutConfig) error {
 	if t.Properties == nil {
 		t.Properties = &TableProperties{}
 	}
 
-	// 设置表格对齐
+	// set table alignment
 	if config.Alignment != "" {
 		t.Properties.TableJc = &TableJc{
 			Val: string(config.Alignment),
 		}
 	}
 
-	// 设置定位属性（仅在浮动定位时生效）
+	// set positioning attributes (only effective for floating positioning)
 	if config.Position == PositionFloating && config.Positioning != nil {
-		// 在OOXML中，浮动表格定位需要特殊的TablePositioning属性
-		// 这里将配置信息存储到表格属性中
-		Info("设置表格为浮动定位模式")
-		// 注意：完整的浮动定位实现需要更复杂的XML结构支持
+		// in OOXML, floating table positioning requires special TablePositioning attributes
+		// store configuration in table properties
+		InfoMsg(MsgTableFloatingMode)
+		// note: full floating positioning requires more complex XML structure support
 	}
 
-	Info(fmt.Sprintf("设置表格布局：对齐=%s，环绕=%s，定位=%s",
-		config.Alignment, config.TextWrap, config.Position))
+	InfoMsgf(MsgTableLayoutSet, config.Alignment, config.TextWrap, config.Position)
 	return nil
 }
 
-// GetTableLayout 获取表格布局配置
+// GetTableLayout returns the table layout configuration.
 func (t *Table) GetTableLayout() *TableLayoutConfig {
 	config := &TableLayoutConfig{
-		Alignment: TableAlignLeft, // 默认值
+		Alignment: TableAlignLeft, // default
 		TextWrap:  TextWrapNone,
 		Position:  PositionInline,
 	}
@@ -1627,7 +1626,7 @@ func (t *Table) GetTableLayout() *TableLayoutConfig {
 	return config
 }
 
-// SetTableAlignment 设置表格对齐方式（快捷方法）
+// SetTableAlignment sets the table alignment (shortcut method).
 func (t *Table) SetTableAlignment(alignment TableAlignment) error {
 	return t.SetTableLayout(&TableLayoutConfig{
 		Alignment: alignment,
@@ -1636,42 +1635,42 @@ func (t *Table) SetTableAlignment(alignment TableAlignment) error {
 	})
 }
 
-// TableBreakRule 表格分页规则
+// TableBreakRule represents the table page break rule.
 type TableBreakRule string
 
 const (
-	// BreakAuto 自动分页（默认）
+	// BreakAuto represents automatic page break (default).
 	BreakAuto TableBreakRule = "auto"
-	// BreakPage 强制分页
+	// BreakPage represents a forced page break.
 	BreakPage TableBreakRule = "page"
-	// BreakColumn 强制分栏
+	// BreakColumn represents a forced column break.
 	BreakColumn TableBreakRule = "column"
 )
 
-// RowBreakConfig 行分页配置
+// RowBreakConfig represents the row page break configuration.
 type RowBreakConfig struct {
 	XMLName   xml.Name   `xml:"w:trPr"`
-	CantSplit *CantSplit `xml:"w:cantSplit,omitempty"` // 禁止跨页分割
-	TrHeight  *TableRowH `xml:"w:trHeight,omitempty"`  // 行高
-	TblHeader *TblHeader `xml:"w:tblHeader,omitempty"` // 标题行重复
+	CantSplit *CantSplit `xml:"w:cantSplit,omitempty"` // prevent page break within row
+	TrHeight  *TableRowH `xml:"w:trHeight,omitempty"`  // row height
+	TblHeader *TblHeader `xml:"w:tblHeader,omitempty"` // repeat as header row
 }
 
-// CantSplit 禁止分割
+// CantSplit prevents row splitting across pages.
 type CantSplit struct {
 	XMLName xml.Name `xml:"w:cantSplit"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// TblHeader 表格标题行
+// TblHeader represents a table header row.
 type TblHeader struct {
 	XMLName xml.Name `xml:"w:tblHeader"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// SetRowKeepTogether 设置行禁止跨页分割
+// SetRowKeepTogether sets whether a row should not split across pages.
 func (t *Table) SetRowKeepTogether(rowIndex int, keepTogether bool) error {
 	if rowIndex < 0 || rowIndex >= len(t.Rows) {
-		return fmt.Errorf("行索引无效：%d，表格共有%d行", rowIndex, len(t.Rows))
+		return fmt.Errorf("invalid row index: %d, table has %d rows", rowIndex, len(t.Rows))
 	}
 
 	row := &t.Rows[rowIndex]
@@ -1687,14 +1686,14 @@ func (t *Table) SetRowKeepTogether(rowIndex int, keepTogether bool) error {
 		row.Properties.CantSplit = nil
 	}
 
-	Info(fmt.Sprintf("设置第%d行跨页分割为：%t", rowIndex, !keepTogether))
+	InfoMsgf(MsgRowPageSplitSet, rowIndex, !keepTogether)
 	return nil
 }
 
-// SetRowAsHeader 设置行为重复的标题行
+// SetRowAsHeader sets a row as a repeating header row.
 func (t *Table) SetRowAsHeader(rowIndex int, isHeader bool) error {
 	if rowIndex < 0 || rowIndex >= len(t.Rows) {
-		return fmt.Errorf("行索引无效：%d，表格共有%d行", rowIndex, len(t.Rows))
+		return fmt.Errorf("invalid row index: %d, table has %d rows", rowIndex, len(t.Rows))
 	}
 
 	row := &t.Rows[rowIndex]
@@ -1710,39 +1709,39 @@ func (t *Table) SetRowAsHeader(rowIndex int, isHeader bool) error {
 		row.Properties.TblHeader = nil
 	}
 
-	Info(fmt.Sprintf("设置第%d行为标题行：%t", rowIndex, isHeader))
+	InfoMsgf(MsgRowSetAsHeader, rowIndex, isHeader)
 	return nil
 }
 
-// SetHeaderRows 设置表格标题行范围
+// SetHeaderRows sets the table header row range.
 func (t *Table) SetHeaderRows(startRow, endRow int) error {
 	if startRow < 0 || endRow >= len(t.Rows) || startRow > endRow {
-		return fmt.Errorf("行索引范围无效：[%d, %d]，表格共有%d行", startRow, endRow, len(t.Rows))
+		return fmt.Errorf("invalid row index range: [%d, %d], table has %d rows", startRow, endRow, len(t.Rows))
 	}
 
-	// 清除所有现有的标题行设置
+	// clear all existing header row settings
 	for i := range t.Rows {
 		if t.Rows[i].Properties != nil {
 			t.Rows[i].Properties.TblHeader = nil
 		}
 	}
 
-	// 设置指定范围为标题行
+	// set specified range as header rows
 	for i := startRow; i <= endRow; i++ {
 		err := t.SetRowAsHeader(i, true)
 		if err != nil {
-			return fmt.Errorf("设置第%d行为标题行失败：%v", i, err)
+			return fmt.Errorf("failed to set row %d as header: %v", i, err)
 		}
 	}
 
-	Info(fmt.Sprintf("设置第%d到%d行为标题行", startRow, endRow))
+	InfoMsgf(MsgRowsSetAsHeaders, startRow, endRow)
 	return nil
 }
 
-// IsRowHeader 检查行是否为标题行
+// IsRowHeader checks whether a row is a header row.
 func (t *Table) IsRowHeader(rowIndex int) (bool, error) {
 	if rowIndex < 0 || rowIndex >= len(t.Rows) {
-		return false, fmt.Errorf("行索引无效：%d，表格共有%d行", rowIndex, len(t.Rows))
+		return false, fmt.Errorf("invalid row index: %d, table has %d rows", rowIndex, len(t.Rows))
 	}
 
 	row := &t.Rows[rowIndex]
@@ -1753,10 +1752,10 @@ func (t *Table) IsRowHeader(rowIndex int) (bool, error) {
 	return false, nil
 }
 
-// IsRowKeepTogether 检查行是否禁止跨页分割
+// IsRowKeepTogether checks whether a row prevents page break splitting.
 func (t *Table) IsRowKeepTogether(rowIndex int) (bool, error) {
 	if rowIndex < 0 || rowIndex >= len(t.Rows) {
-		return false, fmt.Errorf("行索引无效：%d，表格共有%d行", rowIndex, len(t.Rows))
+		return false, fmt.Errorf("invalid row index: %d, table has %d rows", rowIndex, len(t.Rows))
 	}
 
 	row := &t.Rows[rowIndex]
@@ -1767,36 +1766,35 @@ func (t *Table) IsRowKeepTogether(rowIndex int) (bool, error) {
 	return false, nil
 }
 
-// TablePageBreakConfig 表格分页配置
+// TablePageBreakConfig represents the table page break configuration.
 type TablePageBreakConfig struct {
-	KeepWithNext    bool // 与下一段落保持在一起
-	KeepLines       bool // 保持行在一起
-	PageBreakBefore bool // 段落前分页
-	WidowControl    bool // 孤行控制
+	KeepWithNext    bool // keep with next paragraph
+	KeepLines       bool // keep lines together
+	PageBreakBefore bool // page break before paragraph
+	WidowControl    bool // widow/orphan control
 }
 
-// SetTablePageBreak 设置表格分页控制
+// SetTablePageBreak sets the table page break control.
 func (t *Table) SetTablePageBreak(config *TablePageBreakConfig) error {
-	// 表格级别的分页控制通常在表格属性中设置
-	// 这里先记录配置，实际XML输出时需要相应的实现
-	Info(fmt.Sprintf("设置表格分页控制：保持与下一段落=%t，保持行=%t，段前分页=%t，孤行控制=%t",
-		config.KeepWithNext, config.KeepLines, config.PageBreakBefore, config.WidowControl))
+	// table-level page break control is typically set in table properties
+	// record configuration here; actual XML output requires corresponding implementation
+	InfoMsgf(MsgTablePagination, config.KeepWithNext, config.KeepLines, config.PageBreakBefore, config.WidowControl)
 	return nil
 }
 
-// SetRowKeepWithNext 设置行与下一行保持在同一页
+// SetRowKeepWithNext sets whether a row should stay on the same page as the next row.
 func (t *Table) SetRowKeepWithNext(rowIndex int, keepWithNext bool) error {
 	if rowIndex < 0 || rowIndex >= len(t.Rows) {
-		return fmt.Errorf("行索引无效：%d，表格共有%d行", rowIndex, len(t.Rows))
+		return fmt.Errorf("invalid row index: %d, table has %d rows", rowIndex, len(t.Rows))
 	}
 
-	// 这个功能需要在行属性中设置特定的分页属性
-	// 实际实现时需要扩展TableRowProperties结构
-	Info(fmt.Sprintf("设置第%d行与下一行保持在同一页：%t", rowIndex, keepWithNext))
+	// this feature requires setting specific page break properties in row properties
+	// actual implementation requires extending the TableRowProperties struct
+	InfoMsgf(MsgRowKeepWithNextSet, rowIndex, keepWithNext)
 	return nil
 }
 
-// GetTableBreakInfo 获取表格分页信息
+// GetTableBreakInfo returns table page break information.
 func (t *Table) GetTableBreakInfo() map[string]interface{} {
 	info := make(map[string]interface{})
 
@@ -1822,7 +1820,7 @@ func (t *Table) GetTableBreakInfo() map[string]interface{} {
 	return info
 }
 
-// 扩展TableRowProperties以支持分页控制
+// extend TableRowProperties to support page break control
 type TableRowPropertiesExtended struct {
 	XMLName   xml.Name   `xml:"w:trPr"`
 	TableRowH *TableRowH `xml:"w:trHeight,omitempty"`
@@ -1832,7 +1830,7 @@ type TableRowPropertiesExtended struct {
 	KeepLines *KeepLines `xml:"w:keepLines,omitempty"`
 }
 
-// 扩展现有的TableRowProperties结构
+// extend the existing TableRowProperties struct
 func (trp *TableRowProperties) SetCantSplit(cantSplit bool) {
 	if cantSplit {
 		trp.CantSplit = &CantSplit{Val: "1"}
@@ -1849,42 +1847,42 @@ func (trp *TableRowProperties) SetTblHeader(isHeader bool) {
 	}
 }
 
-// TableStyle 表格样式引用
+// TableStyle represents a table style reference.
 type TableStyle struct {
 	XMLName xml.Name `xml:"w:tblStyle"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// TableBorders 表格边框
+// TableBorders represents table borders.
 type TableBorders struct {
 	XMLName xml.Name     `xml:"w:tblBorders"`
-	Top     *TableBorder `xml:"w:top,omitempty"`     // 上边框
-	Left    *TableBorder `xml:"w:left,omitempty"`    // 左边框
-	Bottom  *TableBorder `xml:"w:bottom,omitempty"`  // 下边框
-	Right   *TableBorder `xml:"w:right,omitempty"`   // 右边框
-	InsideH *TableBorder `xml:"w:insideH,omitempty"` // 内部水平边框
-	InsideV *TableBorder `xml:"w:insideV,omitempty"` // 内部垂直边框
+	Top     *TableBorder `xml:"w:top,omitempty"`     // top border
+	Left    *TableBorder `xml:"w:left,omitempty"`    // left border
+	Bottom  *TableBorder `xml:"w:bottom,omitempty"`  // bottom border
+	Right   *TableBorder `xml:"w:right,omitempty"`   // right border
+	InsideH *TableBorder `xml:"w:insideH,omitempty"` // inside horizontal border
+	InsideV *TableBorder `xml:"w:insideV,omitempty"` // inside vertical border
 }
 
-// TableBorder 边框定义
+// TableBorder represents a border definition.
 type TableBorder struct {
-	Val        string `xml:"w:val,attr"`                  // 边框样式
-	Sz         string `xml:"w:sz,attr"`                   // 边框粗细（1/8磅）
-	Space      string `xml:"w:space,attr"`                // 边框间距
-	Color      string `xml:"w:color,attr"`                // 边框颜色
-	ThemeColor string `xml:"w:themeColor,attr,omitempty"` // 主题颜色
+	Val        string `xml:"w:val,attr"`                  // border style
+	Sz         string `xml:"w:sz,attr"`                   // border thickness (1/8 point)
+	Space      string `xml:"w:space,attr"`                // border spacing
+	Color      string `xml:"w:color,attr"`                // border color
+	ThemeColor string `xml:"w:themeColor,attr,omitempty"` // theme color
 }
 
-// TableShading 表格底纹/背景
+// TableShading represents table shading/background.
 type TableShading struct {
 	XMLName   xml.Name `xml:"w:shd"`
-	Val       string   `xml:"w:val,attr"`                 // 底纹样式
-	Color     string   `xml:"w:color,attr,omitempty"`     // 前景色
-	Fill      string   `xml:"w:fill,attr,omitempty"`      // 背景色
-	ThemeFill string   `xml:"w:themeFill,attr,omitempty"` // 主题填充色
+	Val       string   `xml:"w:val,attr"`                 // shading pattern
+	Color     string   `xml:"w:color,attr,omitempty"`     // foreground color
+	Fill      string   `xml:"w:fill,attr,omitempty"`      // background color
+	ThemeFill string   `xml:"w:themeFill,attr,omitempty"` // theme fill color
 }
 
-// TableCellMargins 表格单元格边距
+// TableCellMargins represents table cell margins.
 type TableCellMargins struct {
 	XMLName xml.Name        `xml:"w:tblCellMar"`
 	Top     *TableCellSpace `xml:"w:top,omitempty"`
@@ -1893,108 +1891,108 @@ type TableCellMargins struct {
 	Right   *TableCellSpace `xml:"w:right,omitempty"`
 }
 
-// TableCellSpace 表格单元格空间
+// TableCellSpace represents table cell spacing.
 type TableCellSpace struct {
 	W    string `xml:"w:w,attr"`
 	Type string `xml:"w:type,attr"`
 }
 
-// TableLayoutType 表格布局类型
+// TableLayoutType represents the table layout type.
 type TableLayoutType struct {
 	XMLName xml.Name `xml:"w:tblLayout"`
 	Type    string   `xml:"w:type,attr"` // fixed, autofit
 }
 
-// TableIndentation 表格缩进
+// TableIndentation represents table indentation.
 type TableIndentation struct {
 	XMLName xml.Name `xml:"w:tblInd"`
 	W       string   `xml:"w:w,attr"`
 	Type    string   `xml:"w:type,attr"`
 }
 
-// TableCellShading 单元格背景
+// TableCellShading represents cell background shading.
 type TableCellShading struct {
 	XMLName   xml.Name `xml:"w:shd"`
-	Val       string   `xml:"w:val,attr"`                 // 底纹样式
-	Color     string   `xml:"w:color,attr,omitempty"`     // 前景色
-	Fill      string   `xml:"w:fill,attr,omitempty"`      // 背景色
-	ThemeFill string   `xml:"w:themeFill,attr,omitempty"` // 主题填充色
+	Val       string   `xml:"w:val,attr"`                 // shading pattern
+	Color     string   `xml:"w:color,attr,omitempty"`     // foreground color
+	Fill      string   `xml:"w:fill,attr,omitempty"`      // background color
+	ThemeFill string   `xml:"w:themeFill,attr,omitempty"` // theme fill color
 }
 
-// TableCellBorders 单元格边框
+// TableCellBorders represents cell borders.
 type TableCellBorders struct {
 	XMLName xml.Name         `xml:"w:tcBorders"`
-	Top     *TableCellBorder `xml:"w:top,omitempty"`     // 上边框
-	Left    *TableCellBorder `xml:"w:left,omitempty"`    // 左边框
-	Bottom  *TableCellBorder `xml:"w:bottom,omitempty"`  // 下边框
-	Right   *TableCellBorder `xml:"w:right,omitempty"`   // 右边框
-	InsideH *TableCellBorder `xml:"w:insideH,omitempty"` // 内部水平边框
-	InsideV *TableCellBorder `xml:"w:insideV,omitempty"` // 内部垂直边框
-	TL2BR   *TableCellBorder `xml:"w:tl2br,omitempty"`   // 左上到右下对角线
-	TR2BL   *TableCellBorder `xml:"w:tr2bl,omitempty"`   // 右上到左下对角线
+	Top     *TableCellBorder `xml:"w:top,omitempty"`     // top border
+	Left    *TableCellBorder `xml:"w:left,omitempty"`    // left border
+	Bottom  *TableCellBorder `xml:"w:bottom,omitempty"`  // bottom border
+	Right   *TableCellBorder `xml:"w:right,omitempty"`   // right border
+	InsideH *TableCellBorder `xml:"w:insideH,omitempty"` // inside horizontal border
+	InsideV *TableCellBorder `xml:"w:insideV,omitempty"` // inside vertical border
+	TL2BR   *TableCellBorder `xml:"w:tl2br,omitempty"`   // top-left to bottom-right diagonal
+	TR2BL   *TableCellBorder `xml:"w:tr2bl,omitempty"`   // top-right to bottom-left diagonal
 }
 
-// TableCellBorder 单元格边框定义
+// TableCellBorder represents a cell border definition.
 type TableCellBorder struct {
-	Val        string `xml:"w:val,attr"`                  // 边框样式
-	Sz         string `xml:"w:sz,attr"`                   // 边框粗细（1/8磅）
-	Space      string `xml:"w:space,attr"`                // 边框间距
-	Color      string `xml:"w:color,attr"`                // 边框颜色
-	ThemeColor string `xml:"w:themeColor,attr,omitempty"` // 主题颜色
+	Val        string `xml:"w:val,attr"`                  // border style
+	Sz         string `xml:"w:sz,attr"`                   // border thickness (1/8 point)
+	Space      string `xml:"w:space,attr"`                // border spacing
+	Color      string `xml:"w:color,attr"`                // border color
+	ThemeColor string `xml:"w:themeColor,attr,omitempty"` // theme color
 }
 
-// NoWrap 禁止换行
+// NoWrap prevents text wrapping.
 type NoWrap struct {
 	XMLName xml.Name `xml:"w:noWrap"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// HideMark 隐藏标记
+// HideMark hides the end-of-cell marker.
 type HideMark struct {
 	XMLName xml.Name `xml:"w:hideMark"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// ============== 表格样式和外观功能 ==============
+// ============== Table Style and Appearance Features ==============
 
-// BorderStyle 边框样式常量
+// BorderStyle represents a border style constant.
 type BorderStyle string
 
 const (
-	BorderStyleNone                   BorderStyle = "none"                   // 无边框
-	BorderStyleSingle                 BorderStyle = "single"                 // 单线
-	BorderStyleThick                  BorderStyle = "thick"                  // 粗线
-	BorderStyleDouble                 BorderStyle = "double"                 // 双线
-	BorderStyleDotted                 BorderStyle = "dotted"                 // 点线
-	BorderStyleDashed                 BorderStyle = "dashed"                 // 虚线
-	BorderStyleDotDash                BorderStyle = "dotDash"                // 点划线
-	BorderStyleDotDotDash             BorderStyle = "dotDotDash"             // 双点划线
-	BorderStyleTriple                 BorderStyle = "triple"                 // 三线
-	BorderStyleThinThickSmallGap      BorderStyle = "thinThickSmallGap"      // 细粗细线（小间距）
-	BorderStyleThickThinSmallGap      BorderStyle = "thickThinSmallGap"      // 粗细粗线（小间距）
-	BorderStyleThinThickThinSmallGap  BorderStyle = "thinThickThinSmallGap"  // 细粗细线（小间距）
-	BorderStyleThinThickMediumGap     BorderStyle = "thinThickMediumGap"     // 细粗细线（中间距）
-	BorderStyleThickThinMediumGap     BorderStyle = "thickThinMediumGap"     // 粗细粗线（中间距）
-	BorderStyleThinThickThinMediumGap BorderStyle = "thinThickThinMediumGap" // 细粗细线（中间距）
-	BorderStyleThinThickLargeGap      BorderStyle = "thinThickLargeGap"      // 细粗细线（大间距）
-	BorderStyleThickThinLargeGap      BorderStyle = "thickThinLargeGap"      // 粗细粗线（大间距）
-	BorderStyleThinThickThinLargeGap  BorderStyle = "thinThickThinLargeGap"  // 细粗细线（大间距）
-	BorderStyleWave                   BorderStyle = "wave"                   // 波浪线
-	BorderStyleDoubleWave             BorderStyle = "doubleWave"             // 双波浪线
-	BorderStyleDashSmallGap           BorderStyle = "dashSmallGap"           // 虚线（小间距）
-	BorderStyleDashDotStroked         BorderStyle = "dashDotStroked"         // 划点线
-	BorderStyleThreeDEmboss           BorderStyle = "threeDEmboss"           // 3D浮雕
-	BorderStyleThreeDEngrave          BorderStyle = "threeDEngrave"          // 3D雕刻
-	BorderStyleOutset                 BorderStyle = "outset"                 // 外凸
-	BorderStyleInset                  BorderStyle = "inset"                  // 内凹
+	BorderStyleNone                   BorderStyle = "none"                   // no border
+	BorderStyleSingle                 BorderStyle = "single"                 // single line
+	BorderStyleThick                  BorderStyle = "thick"                  // thick line
+	BorderStyleDouble                 BorderStyle = "double"                 // double line
+	BorderStyleDotted                 BorderStyle = "dotted"                 // dotted line
+	BorderStyleDashed                 BorderStyle = "dashed"                 // dashed line
+	BorderStyleDotDash                BorderStyle = "dotDash"                // dot-dash line
+	BorderStyleDotDotDash             BorderStyle = "dotDotDash"             // dot-dot-dash line
+	BorderStyleTriple                 BorderStyle = "triple"                 // triple line
+	BorderStyleThinThickSmallGap      BorderStyle = "thinThickSmallGap"      // thin-thick-thin (small gap)
+	BorderStyleThickThinSmallGap      BorderStyle = "thickThinSmallGap"      // thick-thin-thick (small gap)
+	BorderStyleThinThickThinSmallGap  BorderStyle = "thinThickThinSmallGap"  // thin-thick-thin (small gap)
+	BorderStyleThinThickMediumGap     BorderStyle = "thinThickMediumGap"     // thin-thick-thin (medium gap)
+	BorderStyleThickThinMediumGap     BorderStyle = "thickThinMediumGap"     // thick-thin-thick (medium gap)
+	BorderStyleThinThickThinMediumGap BorderStyle = "thinThickThinMediumGap" // thin-thick-thin (medium gap)
+	BorderStyleThinThickLargeGap      BorderStyle = "thinThickLargeGap"      // thin-thick-thin (large gap)
+	BorderStyleThickThinLargeGap      BorderStyle = "thickThinLargeGap"      // thick-thin-thick (large gap)
+	BorderStyleThinThickThinLargeGap  BorderStyle = "thinThickThinLargeGap"  // thin-thick-thin (large gap)
+	BorderStyleWave                   BorderStyle = "wave"                   // wave line
+	BorderStyleDoubleWave             BorderStyle = "doubleWave"             // double wave line
+	BorderStyleDashSmallGap           BorderStyle = "dashSmallGap"           // dashed (small gap)
+	BorderStyleDashDotStroked         BorderStyle = "dashDotStroked"         // dash-dot stroked
+	BorderStyleThreeDEmboss           BorderStyle = "threeDEmboss"           // 3D emboss
+	BorderStyleThreeDEngrave          BorderStyle = "threeDEngrave"          // 3D engrave
+	BorderStyleOutset                 BorderStyle = "outset"                 // outset
+	BorderStyleInset                  BorderStyle = "inset"                  // inset
 )
 
-// ShadingPattern 底纹图案类型
+// ShadingPattern represents the shading pattern type.
 type ShadingPattern string
 
 const (
-	ShadingPatternClear             ShadingPattern = "clear"             // 透明/实色
-	ShadingPatternSolid             ShadingPattern = "clear"             // 实色（使用clear实现）
+	ShadingPatternClear             ShadingPattern = "clear"             // clear/solid
+	ShadingPatternSolid             ShadingPattern = "clear"             // solid (implemented using clear)
 	ShadingPatternPct5              ShadingPattern = "pct5"              // 5%
 	ShadingPatternPct10             ShadingPattern = "pct10"             // 10%
 	ShadingPatternPct20             ShadingPattern = "pct20"             // 20%
@@ -2007,89 +2005,89 @@ const (
 	ShadingPatternPct75             ShadingPattern = "pct75"             // 75%
 	ShadingPatternPct80             ShadingPattern = "pct80"             // 80%
 	ShadingPatternPct90             ShadingPattern = "pct90"             // 90%
-	ShadingPatternHorzStripe        ShadingPattern = "horzStripe"        // 水平条纹
-	ShadingPatternVertStripe        ShadingPattern = "vertStripe"        // 垂直条纹
-	ShadingPatternReverseDiagStripe ShadingPattern = "reverseDiagStripe" // 反对角条纹
-	ShadingPatternDiagStripe        ShadingPattern = "diagStripe"        // 对角条纹
-	ShadingPatternHorzCross         ShadingPattern = "horzCross"         // 水平十字
-	ShadingPatternDiagCross         ShadingPattern = "diagCross"         // 对角十字
+	ShadingPatternHorzStripe        ShadingPattern = "horzStripe"        // horizontal stripe
+	ShadingPatternVertStripe        ShadingPattern = "vertStripe"        // vertical stripe
+	ShadingPatternReverseDiagStripe ShadingPattern = "reverseDiagStripe" // reverse diagonal stripe
+	ShadingPatternDiagStripe        ShadingPattern = "diagStripe"        // diagonal stripe
+	ShadingPatternHorzCross         ShadingPattern = "horzCross"         // horizontal cross
+	ShadingPatternDiagCross         ShadingPattern = "diagCross"         // diagonal cross
 )
 
-// TableStyleTemplate 表格样式模板
+// TableStyleTemplate represents a table style template.
 type TableStyleTemplate string
 
 const (
-	TableStyleTemplateNormal    TableStyleTemplate = "TableNormal"    // 普通表格
-	TableStyleTemplateGrid      TableStyleTemplate = "TableGrid"      // 网格表格
-	TableStyleTemplateList      TableStyleTemplate = "TableList"      // 列表表格
-	TableStyleTemplateColorful1 TableStyleTemplate = "TableColorful1" // 彩色表格1
-	TableStyleTemplateColorful2 TableStyleTemplate = "TableColorful2" // 彩色表格2
-	TableStyleTemplateColorful3 TableStyleTemplate = "TableColorful3" // 彩色表格3
-	TableStyleTemplateColumns1  TableStyleTemplate = "TableColumns1"  // 列样式1
-	TableStyleTemplateColumns2  TableStyleTemplate = "TableColumns2"  // 列样式2
-	TableStyleTemplateColumns3  TableStyleTemplate = "TableColumns3"  // 列样式3
-	TableStyleTemplateRows1     TableStyleTemplate = "TableRows1"     // 行样式1
-	TableStyleTemplateRows2     TableStyleTemplate = "TableRows2"     // 行样式2
-	TableStyleTemplateRows3     TableStyleTemplate = "TableRows3"     // 行样式3
-	TableStyleTemplatePlain1    TableStyleTemplate = "TablePlain1"    // 简洁表格1
-	TableStyleTemplatePlain2    TableStyleTemplate = "TablePlain2"    // 简洁表格2
-	TableStyleTemplatePlain3    TableStyleTemplate = "TablePlain3"    // 简洁表格3
+	TableStyleTemplateNormal    TableStyleTemplate = "TableNormal"    // normal table
+	TableStyleTemplateGrid      TableStyleTemplate = "TableGrid"      // grid table
+	TableStyleTemplateList      TableStyleTemplate = "TableList"      // list table
+	TableStyleTemplateColorful1 TableStyleTemplate = "TableColorful1" // colorful table 1
+	TableStyleTemplateColorful2 TableStyleTemplate = "TableColorful2" // colorful table 2
+	TableStyleTemplateColorful3 TableStyleTemplate = "TableColorful3" // colorful table 3
+	TableStyleTemplateColumns1  TableStyleTemplate = "TableColumns1"  // column style 1
+	TableStyleTemplateColumns2  TableStyleTemplate = "TableColumns2"  // column style 2
+	TableStyleTemplateColumns3  TableStyleTemplate = "TableColumns3"  // column style 3
+	TableStyleTemplateRows1     TableStyleTemplate = "TableRows1"     // row style 1
+	TableStyleTemplateRows2     TableStyleTemplate = "TableRows2"     // row style 2
+	TableStyleTemplateRows3     TableStyleTemplate = "TableRows3"     // row style 3
+	TableStyleTemplatePlain1    TableStyleTemplate = "TablePlain1"    // plain table 1
+	TableStyleTemplatePlain2    TableStyleTemplate = "TablePlain2"    // plain table 2
+	TableStyleTemplatePlain3    TableStyleTemplate = "TablePlain3"    // plain table 3
 )
 
-// TableStyleConfig 表格样式配置
+// TableStyleConfig represents the table style configuration.
 type TableStyleConfig struct {
-	Template          TableStyleTemplate // 样式模板
-	StyleID           string             // 自定义样式ID
-	FirstRowHeader    bool               // 首行作为标题
-	LastRowTotal      bool               // 最后一行作为总计
-	FirstColumnHeader bool               // 首列作为标题
-	LastColumnTotal   bool               // 最后一列作为总计
-	BandedRows        bool               // 交替行颜色
-	BandedColumns     bool               // 交替列颜色
+	Template          TableStyleTemplate // style template
+	StyleID           string             // custom style ID
+	FirstRowHeader    bool               // first row as header
+	LastRowTotal      bool               // last row as total
+	FirstColumnHeader bool               // first column as header
+	LastColumnTotal   bool               // last column as total
+	BandedRows        bool               // alternating row colors
+	BandedColumns     bool               // alternating column colors
 }
 
-// BorderConfig 边框配置
+// BorderConfig represents border configuration.
 type BorderConfig struct {
-	Style BorderStyle // 边框样式
-	Width int         // 边框宽度（1/8磅）
-	Color string      // 边框颜色（十六进制，如 "FF0000"）
-	Space int         // 边框间距
+	Style BorderStyle // border style
+	Width int         // border width (1/8 point)
+	Color string      // border color (hex, e.g. "FF0000")
+	Space int         // border spacing
 }
 
-// ShadingConfig 底纹配置
+// ShadingConfig represents shading configuration.
 type ShadingConfig struct {
-	Pattern         ShadingPattern // 底纹图案
-	ForegroundColor string         // 前景色（十六进制）
-	BackgroundColor string         // 背景色（十六进制）
+	Pattern         ShadingPattern // shading pattern
+	ForegroundColor string         // foreground color (hex)
+	BackgroundColor string         // background color (hex)
 }
 
-// TableBorderConfig 表格边框配置
+// TableBorderConfig represents table border configuration.
 type TableBorderConfig struct {
-	Top     *BorderConfig // 上边框
-	Left    *BorderConfig // 左边框
-	Bottom  *BorderConfig // 下边框
-	Right   *BorderConfig // 右边框
-	InsideH *BorderConfig // 内部水平边框
-	InsideV *BorderConfig // 内部垂直边框
+	Top     *BorderConfig // top border
+	Left    *BorderConfig // left border
+	Bottom  *BorderConfig // bottom border
+	Right   *BorderConfig // right border
+	InsideH *BorderConfig // inside horizontal border
+	InsideV *BorderConfig // inside vertical border
 }
 
-// CellBorderConfig 单元格边框配置
+// CellBorderConfig represents cell border configuration.
 type CellBorderConfig struct {
-	Top      *BorderConfig // 上边框
-	Left     *BorderConfig // 左边框
-	Bottom   *BorderConfig // 下边框
-	Right    *BorderConfig // 右边框
-	DiagDown *BorderConfig // 左上到右下对角线
-	DiagUp   *BorderConfig // 右上到左下对角线
+	Top      *BorderConfig // top border
+	Left     *BorderConfig // left border
+	Bottom   *BorderConfig // bottom border
+	Right    *BorderConfig // right border
+	DiagDown *BorderConfig // top-left to bottom-right diagonal
+	DiagUp   *BorderConfig // top-right to bottom-left diagonal
 }
 
-// ApplyTableStyle 应用表格样式
+// ApplyTableStyle applies a table style.
 func (t *Table) ApplyTableStyle(config *TableStyleConfig) error {
 	if t.Properties == nil {
 		t.Properties = &TableProperties{}
 	}
 
-	// 设置样式模板
+	// set style template
 	if config.Template != "" {
 		t.Properties.TableStyle = &TableStyle{
 			Val: string(config.Template),
@@ -2100,12 +2098,12 @@ func (t *Table) ApplyTableStyle(config *TableStyleConfig) error {
 		}
 	}
 
-	// 设置表格外观选项
+	// set table appearance options
 	if t.Properties.TableLook == nil {
 		t.Properties.TableLook = &TableLook{}
 	}
 
-	// 构建TableLook值
+	// build TableLook value
 	lookVal := "0000"
 	if config.FirstRowHeader {
 		t.Properties.TableLook.FirstRow = "1"
@@ -2161,11 +2159,11 @@ func (t *Table) ApplyTableStyle(config *TableStyleConfig) error {
 
 	t.Properties.TableLook.Val = lookVal
 
-	Info(fmt.Sprintf("应用表格样式成功：%s", config.Template))
+	InfoMsgf(MsgTableStyleApplied, config.Template)
 	return nil
 }
 
-// SetTableBorders 设置表格边框
+// SetTableBorders sets the table borders.
 func (t *Table) SetTableBorders(config *TableBorderConfig) error {
 	if t.Properties == nil {
 		t.Properties = &TableProperties{}
@@ -2192,11 +2190,11 @@ func (t *Table) SetTableBorders(config *TableBorderConfig) error {
 		t.Properties.TableBorders.InsideV = createTableBorder(config.InsideV)
 	}
 
-	Info("设置表格边框成功")
+	InfoMsg(MsgTableBorderSet)
 	return nil
 }
 
-// SetTableShading 设置表格背景
+// SetTableShading sets the table background shading.
 func (t *Table) SetTableShading(config *ShadingConfig) error {
 	if t.Properties == nil {
 		t.Properties = &TableProperties{}
@@ -2208,11 +2206,11 @@ func (t *Table) SetTableShading(config *ShadingConfig) error {
 		Fill:  config.BackgroundColor,
 	}
 
-	Info("设置表格背景成功")
+	InfoMsg(MsgTableBackgroundSet)
 	return nil
 }
 
-// SetCellBorders 设置单元格边框
+// SetCellBorders sets the cell borders.
 func (t *Table) SetCellBorders(row, col int, config *CellBorderConfig) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -2244,11 +2242,11 @@ func (t *Table) SetCellBorders(row, col int, config *CellBorderConfig) error {
 		cell.Properties.TcBorders.TR2BL = createTableCellBorder(config.DiagUp)
 	}
 
-	Info(fmt.Sprintf("设置单元格(%d,%d)边框成功", row, col))
+	InfoMsgf(MsgCellBorderSet, row, col)
 	return nil
 }
 
-// SetCellShading 设置单元格背景
+// SetCellShading sets the cell background shading.
 func (t *Table) SetCellShading(row, col int, config *ShadingConfig) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -2265,11 +2263,11 @@ func (t *Table) SetCellShading(row, col int, config *ShadingConfig) error {
 		Fill:  config.BackgroundColor,
 	}
 
-	Info(fmt.Sprintf("设置单元格(%d,%d)背景成功", row, col))
+	InfoMsgf(MsgCellBackgroundSet, row, col)
 	return nil
 }
 
-// SetAlternatingRowColors 设置奇偶行颜色交替
+// SetAlternatingRowColors sets alternating row colors.
 func (t *Table) SetAlternatingRowColors(evenRowColor, oddRowColor string) error {
 	for i := range t.Rows {
 		var bgColor string
@@ -2279,29 +2277,29 @@ func (t *Table) SetAlternatingRowColors(evenRowColor, oddRowColor string) error 
 			bgColor = oddRowColor
 		}
 
-		// 为该行的所有单元格设置背景色
+		// set background color for all cells in the row
 		for j := range t.Rows[i].Cells {
 			err := t.SetCellShading(i, j, &ShadingConfig{
 				Pattern:         ShadingPatternSolid,
 				BackgroundColor: bgColor,
 			})
 			if err != nil {
-				return fmt.Errorf("设置第%d行第%d列背景色失败: %v", i, j, err)
+				return fmt.Errorf("failed to set background color for row %d, column %d: %v", i, j, err)
 			}
 		}
 	}
 
-	Info("设置奇偶行颜色交替成功")
+	InfoMsg(MsgAlternatingRowColorsSet)
 	return nil
 }
 
-// RemoveTableBorders 移除表格边框
+// RemoveTableBorders removes all table borders.
 func (t *Table) RemoveTableBorders() error {
 	if t.Properties == nil {
 		t.Properties = &TableProperties{}
 	}
 
-	// 设置所有边框为无
+	// set all borders to none
 	noBorderConfig := &BorderConfig{
 		Style: BorderStyleNone,
 		Width: 0,
@@ -2321,7 +2319,7 @@ func (t *Table) RemoveTableBorders() error {
 	return t.SetTableBorders(borderConfig)
 }
 
-// RemoveCellBorders 移除单元格边框
+// RemoveCellBorders removes all cell borders.
 func (t *Table) RemoveCellBorders(row, col int) error {
 	noBorderConfig := &BorderConfig{
 		Style: BorderStyleNone,
@@ -2340,13 +2338,13 @@ func (t *Table) RemoveCellBorders(row, col int) error {
 	return t.SetCellBorders(row, col, cellBorderConfig)
 }
 
-// CreateCustomTableStyle 创建自定义表格样式
+// CreateCustomTableStyle creates a custom table style.
 func (t *Table) CreateCustomTableStyle(styleID, styleName string,
 	borderConfig *TableBorderConfig,
 	shadingConfig *ShadingConfig,
 	firstRowBold bool) error {
 
-	// 应用样式到表格
+	// apply style to table
 	config := &TableStyleConfig{
 		StyleID:        styleID,
 		FirstRowHeader: firstRowBold,
@@ -2358,7 +2356,7 @@ func (t *Table) CreateCustomTableStyle(styleID, styleName string,
 		return err
 	}
 
-	// 设置边框
+	// set borders
 	if borderConfig != nil {
 		err = t.SetTableBorders(borderConfig)
 		if err != nil {
@@ -2366,7 +2364,7 @@ func (t *Table) CreateCustomTableStyle(styleID, styleName string,
 		}
 	}
 
-	// 设置背景
+	// set background
 	if shadingConfig != nil {
 		err = t.SetTableShading(shadingConfig)
 		if err != nil {
@@ -2374,11 +2372,11 @@ func (t *Table) CreateCustomTableStyle(styleID, styleName string,
 		}
 	}
 
-	Info(fmt.Sprintf("创建自定义表格样式成功：%s", styleID))
+	InfoMsgf(MsgCustomTableStyleCreated, styleID)
 	return nil
 }
 
-// 辅助函数：创建表格边框
+// helper function: create table border
 func createTableBorder(config *BorderConfig) *TableBorder {
 	return &TableBorder{
 		Val:   string(config.Style),
@@ -2388,7 +2386,7 @@ func createTableBorder(config *BorderConfig) *TableBorder {
 	}
 }
 
-// 辅助函数：创建单元格边框
+// helper function: create cell border
 func createTableCellBorder(config *BorderConfig) *TableCellBorder {
 	return &TableCellBorder{
 		Val:   string(config.Style),
@@ -2398,7 +2396,7 @@ func createTableCellBorder(config *BorderConfig) *TableCellBorder {
 	}
 }
 
-// CellIterator 单元格迭代器
+// CellIterator is a cell iterator.
 type CellIterator struct {
 	table      *Table
 	currentRow int
@@ -2407,16 +2405,16 @@ type CellIterator struct {
 	totalCols  int
 }
 
-// CellInfo 单元格信息
+// CellInfo represents cell information.
 type CellInfo struct {
-	Row    int        // 行索引
-	Col    int        // 列索引
-	Cell   *TableCell // 单元格引用
-	Text   string     // 单元格文本
-	IsLast bool       // 是否为最后一个单元格
+	Row    int        // row index
+	Col    int        // column index
+	Cell   *TableCell // cell reference
+	Text   string     // cell text
+	IsLast bool       // whether this is the last cell
 }
 
-// NewCellIterator 创建新的单元格迭代器
+// NewCellIterator creates a new cell iterator.
 func (t *Table) NewCellIterator() *CellIterator {
 	totalRows := t.GetRowCount()
 	totalCols := 0
@@ -2433,33 +2431,33 @@ func (t *Table) NewCellIterator() *CellIterator {
 	}
 }
 
-// HasNext 检查是否还有下一个单元格
+// HasNext checks whether there is a next cell.
 func (iter *CellIterator) HasNext() bool {
 	if iter.totalRows == 0 || iter.totalCols == 0 {
 		return false
 	}
 
-	// 检查当前位置是否超出范围
+	// check if current position is out of range
 	return iter.currentRow < iter.totalRows &&
 		(iter.currentRow < iter.totalRows-1 || iter.currentCol < iter.totalCols)
 }
 
-// Next 获取下一个单元格信息
+// Next returns the next cell information.
 func (iter *CellIterator) Next() (*CellInfo, error) {
 	if !iter.HasNext() {
-		return nil, fmt.Errorf("没有更多单元格")
+		return nil, fmt.Errorf("no more cells")
 	}
 
-	// 获取当前单元格
+	// get current cell
 	cell, err := iter.table.GetCell(iter.currentRow, iter.currentCol)
 	if err != nil {
-		return nil, fmt.Errorf("获取单元格失败: %v", err)
+		return nil, fmt.Errorf("failed to get cell: %v", err)
 	}
 
-	// 获取单元格文本
+	// get cell text
 	text, _ := iter.table.GetCellText(iter.currentRow, iter.currentCol)
 
-	// 创建单元格信息
+	// create cell info
 	cellInfo := &CellInfo{
 		Row:  iter.currentRow,
 		Col:  iter.currentCol,
@@ -2467,36 +2465,36 @@ func (iter *CellIterator) Next() (*CellInfo, error) {
 		Text: text,
 	}
 
-	// 更新位置并检查是否为最后一个
+	// update position and check if last
 	iter.currentCol++
 	if iter.currentCol >= iter.totalCols {
 		iter.currentCol = 0
 		iter.currentRow++
 	}
 
-	// 检查是否为最后一个单元格
+	// check if this is the last cell
 	cellInfo.IsLast = !iter.HasNext()
 
 	return cellInfo, nil
 }
 
-// Reset 重置迭代器到开始位置
+// Reset resets the iterator to the starting position.
 func (iter *CellIterator) Reset() {
 	iter.currentRow = 0
 	iter.currentCol = 0
 }
 
-// Current 获取当前位置信息（不移动迭代器）
+// Current returns the current position (without advancing the iterator).
 func (iter *CellIterator) Current() (int, int) {
 	return iter.currentRow, iter.currentCol
 }
 
-// Total 获取总单元格数量
+// Total returns the total number of cells.
 func (iter *CellIterator) Total() int {
 	return iter.totalRows * iter.totalCols
 }
 
-// Progress 获取迭代进度（0.0-1.0）
+// Progress returns the iteration progress (0.0-1.0).
 func (iter *CellIterator) Progress() float64 {
 	if iter.totalRows == 0 || iter.totalCols == 0 {
 		return 1.0
@@ -2508,79 +2506,79 @@ func (iter *CellIterator) Progress() float64 {
 	return float64(processed) / float64(total)
 }
 
-// ForEach 遍历所有单元格，对每个单元格执行指定函数
+// ForEach iterates over all cells and executes the specified function for each.
 func (t *Table) ForEach(fn func(row, col int, cell *TableCell, text string) error) error {
 	iterator := t.NewCellIterator()
 
 	for iterator.HasNext() {
 		cellInfo, err := iterator.Next()
 		if err != nil {
-			return fmt.Errorf("迭代失败: %v", err)
+			return fmt.Errorf("iteration failed: %v", err)
 		}
 
 		if err := fn(cellInfo.Row, cellInfo.Col, cellInfo.Cell, cellInfo.Text); err != nil {
-			return fmt.Errorf("回调函数执行失败 (行:%d, 列:%d): %v", cellInfo.Row, cellInfo.Col, err)
+			return fmt.Errorf("callback execution failed (row: %d, col: %d): %v", cellInfo.Row, cellInfo.Col, err)
 		}
 	}
 
 	return nil
 }
 
-// ForEachInRow 遍历指定行的所有单元格
+// ForEachInRow iterates over all cells in the specified row.
 func (t *Table) ForEachInRow(rowIndex int, fn func(col int, cell *TableCell, text string) error) error {
 	if rowIndex < 0 || rowIndex >= t.GetRowCount() {
-		return fmt.Errorf("行索引无效: %d", rowIndex)
+		return fmt.Errorf("invalid row index: %d", rowIndex)
 	}
 
 	colCount := t.GetColumnCount()
 	for col := 0; col < colCount; col++ {
 		cell, err := t.GetCell(rowIndex, col)
 		if err != nil {
-			return fmt.Errorf("获取单元格失败 (行:%d, 列:%d): %v", rowIndex, col, err)
+			return fmt.Errorf("failed to get cell (row: %d, col: %d): %v", rowIndex, col, err)
 		}
 
 		text, _ := t.GetCellText(rowIndex, col)
 
 		if err := fn(col, cell, text); err != nil {
-			return fmt.Errorf("回调函数执行失败 (行:%d, 列:%d): %v", rowIndex, col, err)
+			return fmt.Errorf("callback execution failed (row: %d, col: %d): %v", rowIndex, col, err)
 		}
 	}
 
 	return nil
 }
 
-// ForEachInColumn 遍历指定列的所有单元格
+// ForEachInColumn iterates over all cells in the specified column.
 func (t *Table) ForEachInColumn(colIndex int, fn func(row int, cell *TableCell, text string) error) error {
 	if colIndex < 0 || colIndex >= t.GetColumnCount() {
-		return fmt.Errorf("列索引无效: %d", colIndex)
+		return fmt.Errorf("invalid column index: %d", colIndex)
 	}
 
 	rowCount := t.GetRowCount()
 	for row := 0; row < rowCount; row++ {
 		cell, err := t.GetCell(row, colIndex)
 		if err != nil {
-			return fmt.Errorf("获取单元格失败 (行:%d, 列:%d): %v", row, colIndex, err)
+			return fmt.Errorf("failed to get cell (row: %d, col: %d): %v", row, colIndex, err)
 		}
 
 		text, _ := t.GetCellText(row, colIndex)
 
 		if err := fn(row, cell, text); err != nil {
-			return fmt.Errorf("回调函数执行失败 (行:%d, 列:%d): %v", row, colIndex, err)
+			return fmt.Errorf("callback execution failed (row: %d, col: %d): %v", row, colIndex, err)
 		}
 	}
 
 	return nil
 }
 
-// GetCellRange 获取指定范围内的所有单元格
+// GetCellRange returns all cells in the specified range.
 func (t *Table) GetCellRange(startRow, startCol, endRow, endCol int) ([]*CellInfo, error) {
-	// 参数验证
+	// parameter validation
 	if startRow < 0 || startCol < 0 || endRow >= t.GetRowCount() || endCol >= t.GetColumnCount() {
-		return nil, fmt.Errorf("范围索引无效: (%d,%d) 到 (%d,%d)", startRow, startCol, endRow, endCol)
+		return nil, fmt.Errorf("invalid range index: (%d,%d) to (%d,%d)", startRow, startCol, endRow, endCol)
 	}
 
 	if startRow > endRow || startCol > endCol {
-		return nil, fmt.Errorf("开始位置不能大于结束位置")
+		return nil, fmt.Errorf("start position cannot be greater than end position")
 	}
 
 	var cells []*CellInfo
@@ -2589,7 +2587,7 @@ func (t *Table) GetCellRange(startRow, startCol, endRow, endCol int) ([]*CellInf
 		for col := startCol; col <= endCol; col++ {
 			cell, err := t.GetCell(row, col)
 			if err != nil {
-				return nil, fmt.Errorf("获取单元格失败 (行:%d, 列:%d): %v", row, col, err)
+				return nil, fmt.Errorf("failed to get cell (row: %d, col: %d): %v", row, col, err)
 			}
 
 			text, _ := t.GetCellText(row, col)
@@ -2609,7 +2607,7 @@ func (t *Table) GetCellRange(startRow, startCol, endRow, endCol int) ([]*CellInf
 	return cells, nil
 }
 
-// FindCells 查找满足条件的单元格
+// FindCells finds cells matching the given predicate.
 func (t *Table) FindCells(predicate func(row, col int, cell *TableCell, text string) bool) ([]*CellInfo, error) {
 	var matchedCells []*CellInfo
 
@@ -2633,36 +2631,36 @@ func (t *Table) FindCells(predicate func(row, col int, cell *TableCell, text str
 	return matchedCells, nil
 }
 
-// FindCellsByText 根据文本内容查找单元格
+// FindCellsByText finds cells by text content.
 func (t *Table) FindCellsByText(searchText string, exactMatch bool) ([]*CellInfo, error) {
 	return t.FindCells(func(row, col int, cell *TableCell, text string) bool {
 		if exactMatch {
 			return text == searchText
 		}
-		// 使用strings.Contains进行模糊匹配
+		// use strings.Contains for fuzzy matching
 		return strings.Contains(text, searchText)
 	})
 }
 
-// ============== 单元格复杂内容功能 ==============
-// 以下方法支持向表格单元格中添加段落、图片、列表、嵌套表格等复杂内容
+// ============== Cell Complex Content Features ==============
+// The following methods support adding paragraphs, images, lists, nested tables, and other complex content to table cells.
 
-// AddCellParagraph 向单元格添加段落
-// 参数:
-//   - row: 行索引（从0开始）
-//   - col: 列索引（从0开始）
-//   - text: 段落文本内容
+// AddCellParagraph adds a paragraph to a cell.
+// Parameters:
+//   - row: row index (0-based)
+//   - col: column index (0-based)
+//   - text: paragraph text content
 //
-// 返回:
-//   - *Paragraph: 新添加的段落对象
-//   - error: 如果索引无效则返回错误
+// Returns:
+//   - *Paragraph: the newly added paragraph object
+//   - error: an error if the index is invalid
 func (t *Table) AddCellParagraph(row, col int, text string) (*Paragraph, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return nil, err
 	}
 
-	// 创建新段落
+	// create new paragraph
 	para := &Paragraph{
 		Runs: []Run{
 			{
@@ -2674,30 +2672,30 @@ func (t *Table) AddCellParagraph(row, col int, text string) (*Paragraph, error) 
 		},
 	}
 
-	// 添加到单元格
+	// add to cell
 	cell.Paragraphs = append(cell.Paragraphs, *para)
 
-	Info(fmt.Sprintf("向单元格(%d,%d)添加段落成功", row, col))
+	InfoMsgf(MsgParagraphAddedToCell, row, col)
 	return &cell.Paragraphs[len(cell.Paragraphs)-1], nil
 }
 
-// AddCellFormattedParagraph 向单元格添加格式化段落
-// 参数:
-//   - row: 行索引（从0开始）
-//   - col: 列索引（从0开始）
-//   - text: 段落文本内容
-//   - format: 文本格式配置
+// AddCellFormattedParagraph adds a formatted paragraph to a cell.
+// Parameters:
+//   - row: row index (0-based)
+//   - col: column index (0-based)
+//   - text: paragraph text content
+//   - format: text format configuration
 //
-// 返回:
-//   - *Paragraph: 新添加的段落对象
-//   - error: 如果索引无效则返回错误
+// Returns:
+//   - *Paragraph: the newly added paragraph object
+//   - error: an error if the index is invalid
 func (t *Table) AddCellFormattedParagraph(row, col int, text string, format *TextFormat) (*Paragraph, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return nil, err
 	}
 
-	// 创建运行属性
+	// create run properties
 	runProps := &RunProperties{}
 
 	if format != nil {
@@ -2740,7 +2738,7 @@ func (t *Table) AddCellFormattedParagraph(row, col int, text string, format *Tex
 		}
 	}
 
-	// 创建新段落
+	// create new paragraph
 	para := &Paragraph{
 		Runs: []Run{
 			{
@@ -2753,27 +2751,27 @@ func (t *Table) AddCellFormattedParagraph(row, col int, text string, format *Tex
 		},
 	}
 
-	// 添加到单元格
+	// add to cell
 	cell.Paragraphs = append(cell.Paragraphs, *para)
 
-	Info(fmt.Sprintf("向单元格(%d,%d)添加格式化段落成功", row, col))
+	InfoMsgf(MsgFormattedParagraphAddedToCell, row, col)
 	return &cell.Paragraphs[len(cell.Paragraphs)-1], nil
 }
 
-// ClearCellParagraphs 清空单元格中的所有段落，只保留一个空段落
-// 参数:
-//   - row: 行索引（从0开始）
-//   - col: 列索引（从0开始）
+// ClearCellParagraphs clears all paragraphs in a cell, keeping only one empty paragraph.
+// Parameters:
+//   - row: row index (0-based)
+//   - col: column index (0-based)
 //
-// 返回:
-//   - error: 如果索引无效则返回错误
+// Returns:
+//   - error: an error if the index is invalid
 func (t *Table) ClearCellParagraphs(row, col int) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
 		return err
 	}
 
-	// 清空段落，只保留一个空段落（OOXML规范要求单元格至少有一个段落）
+	// clear paragraphs, keep only one empty paragraph (OOXML spec requires at least one paragraph per cell)
 	cell.Paragraphs = []Paragraph{
 		{
 			Runs: []Run{
@@ -2784,18 +2782,18 @@ func (t *Table) ClearCellParagraphs(row, col int) error {
 		},
 	}
 
-	Info(fmt.Sprintf("清空单元格(%d,%d)段落成功", row, col))
+	InfoMsgf(MsgCellParagraphsCleared, row, col)
 	return nil
 }
 
-// GetCellParagraphs 获取单元格中的所有段落
-// 参数:
-//   - row: 行索引（从0开始）
-//   - col: 列索引（从0开始）
+// GetCellParagraphs returns all paragraphs in a cell.
+// Parameters:
+//   - row: row index (0-based)
+//   - col: column index (0-based)
 //
-// 返回:
-//   - []Paragraph: 单元格中的所有段落
-//   - error: 如果索引无效则返回错误
+// Returns:
+//   - []Paragraph: all paragraphs in the cell
+//   - error: an error if the index is invalid
 func (t *Table) GetCellParagraphs(row, col int) ([]Paragraph, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -2805,15 +2803,15 @@ func (t *Table) GetCellParagraphs(row, col int) ([]Paragraph, error) {
 	return cell.Paragraphs, nil
 }
 
-// AddNestedTable 向单元格添加嵌套表格
-// 参数:
-//   - row: 行索引（从0开始）
-//   - col: 列索引（从0开始）
-//   - config: 嵌套表格的配置
+// AddNestedTable adds a nested table to a cell.
+// Parameters:
+//   - row: row index (0-based)
+//   - col: column index (0-based)
+//   - config: nested table configuration
 //
-// 返回:
-//   - *Table: 新创建的嵌套表格对象
-//   - error: 如果索引无效或配置无效则返回错误
+// Returns:
+//   - *Table: the newly created nested table object
+//   - error: an error if the index or configuration is invalid
 func (t *Table) AddNestedTable(row, col int, config *TableConfig) (*Table, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -2821,11 +2819,11 @@ func (t *Table) AddNestedTable(row, col int, config *TableConfig) (*Table, error
 	}
 
 	if config.Rows <= 0 || config.Cols <= 0 {
-		Error("嵌套表格行数和列数必须大于0")
-		return nil, NewValidationError("TableConfig", "", "嵌套表格行数和列数必须大于0")
+		Error("nested table rows and columns must be greater than 0")
+		return nil, NewValidationError("TableConfig", "", "nested table rows and columns must be greater than 0")
 	}
 
-	// 创建嵌套表格
+	// create nested table
 	nestedTable := &Table{
 		Properties: &TableProperties{
 			TableW: &TableWidth{
@@ -2864,7 +2862,7 @@ func (t *Table) AddNestedTable(row, col int, config *TableConfig) (*Table, error
 		Rows: make([]TableRow, 0, config.Rows),
 	}
 
-	// 设置列宽
+	// set column widths
 	colWidths := config.ColWidths
 	if len(colWidths) == 0 {
 		avgWidth := config.Width / config.Cols
@@ -2873,18 +2871,18 @@ func (t *Table) AddNestedTable(row, col int, config *TableConfig) (*Table, error
 			colWidths[i] = avgWidth
 		}
 	} else if len(colWidths) != config.Cols {
-		Error("嵌套表格列宽数量与列数不匹配")
-		return nil, NewValidationError("TableConfig.ColWidths", "", "列宽数量与列数不匹配")
+		Error("nested table column width count does not match column count")
+		return nil, NewValidationError("TableConfig.ColWidths", "", "column width count does not match column count")
 	}
 
-	// 创建表格网格
+	// create table grid
 	for _, width := range colWidths {
 		nestedTable.Grid.Cols = append(nestedTable.Grid.Cols, TableGridCol{
 			W: fmt.Sprintf("%d", width),
 		})
 	}
 
-	// 创建表格行和单元格
+	// create table rows and cells
 	for i := 0; i < config.Rows; i++ {
 		tableRow := TableRow{
 			Cells: make([]TableCell, 0, config.Cols),
@@ -2912,7 +2910,7 @@ func (t *Table) AddNestedTable(row, col int, config *TableConfig) (*Table, error
 				},
 			}
 
-			// 如果有初始数据，设置单元格内容
+			// set cell content if initial data is provided
 			if config.Data != nil && i < len(config.Data) && j < len(config.Data[i]) {
 				tableCell.Paragraphs[0].Runs[0].Text.Content = config.Data[i][j]
 			}
@@ -2923,21 +2921,21 @@ func (t *Table) AddNestedTable(row, col int, config *TableConfig) (*Table, error
 		nestedTable.Rows = append(nestedTable.Rows, tableRow)
 	}
 
-	// 添加到单元格的嵌套表格列表
+	// add to the cell's nested table list
 	cell.Tables = append(cell.Tables, *nestedTable)
 
-	Info(fmt.Sprintf("向单元格(%d,%d)添加嵌套表格成功：%d行 x %d列", row, col, config.Rows, config.Cols))
+	InfoMsgf(MsgNestedTableAddedToCell, row, col, config.Rows, config.Cols)
 	return &cell.Tables[len(cell.Tables)-1], nil
 }
 
-// GetNestedTables 获取单元格中的所有嵌套表格
-// 参数:
-//   - row: 行索引（从0开始）
-//   - col: 列索引（从0开始）
+// GetNestedTables returns all nested tables in a cell.
+// Parameters:
+//   - row: row index (0-based)
+//   - col: column index (0-based)
 //
-// 返回:
-//   - []Table: 单元格中的所有嵌套表格
-//   - error: 如果索引无效则返回错误
+// Returns:
+//   - []Table: all nested tables in the cell
+//   - error: an error if the index is invalid
 func (t *Table) GetNestedTables(row, col int) ([]Table, error) {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -2947,21 +2945,21 @@ func (t *Table) GetNestedTables(row, col int) ([]Table, error) {
 	return cell.Tables, nil
 }
 
-// CellListConfig 单元格列表配置
+// CellListConfig represents cell list configuration.
 type CellListConfig struct {
-	Type         ListType   // 列表类型
-	BulletSymbol BulletType // 项目符号（仅用于无序列表）
-	Items        []string   // 列表项内容
+	Type         ListType   // list type
+	BulletSymbol BulletType // bullet symbol (for unordered lists only)
+	Items        []string   // list item content
 }
 
-// AddCellList 向单元格添加列表
-// 参数:
-//   - row: 行索引（从0开始）
-//   - col: 列索引（从0开始）
-//   - config: 列表配置
+// AddCellList adds a list to a cell.
+// Parameters:
+//   - row: row index (0-based)
+//   - col: column index (0-based)
+//   - config: list configuration
 //
-// 返回:
-//   - error: 如果索引无效则返回错误
+// Returns:
+//   - error: an error if the index is invalid
 func (t *Table) AddCellList(row, col int, config *CellListConfig) error {
 	cell, err := t.GetCell(row, col)
 	if err != nil {
@@ -2969,41 +2967,41 @@ func (t *Table) AddCellList(row, col int, config *CellListConfig) error {
 	}
 
 	if config == nil || len(config.Items) == 0 {
-		return NewValidationError("CellListConfig", "", "列表配置不能为空且必须包含列表项")
+		return NewValidationError("CellListConfig", "", "list configuration cannot be empty and must contain list items")
 	}
 
-	// 根据列表类型确定前缀
+	// determine prefix based on list type
 	for i, item := range config.Items {
 		var prefix string
 		switch config.Type {
 		case ListTypeBullet:
-			// 使用项目符号
+			// use bullet symbol
 			bulletSymbol := config.BulletSymbol
 			if bulletSymbol == "" {
 				bulletSymbol = BulletTypeDot
 			}
 			prefix = string(bulletSymbol) + " "
 		case ListTypeNumber, ListTypeDecimal:
-			// 使用数字编号
+			// use numeric numbering
 			prefix = fmt.Sprintf("%d. ", i+1)
 		case ListTypeLowerLetter:
-			// 使用小写字母
+			// use lowercase letters
 			prefix = fmt.Sprintf("%c. ", 'a'+i)
 		case ListTypeUpperLetter:
-			// 使用大写字母
+			// use uppercase letters
 			prefix = fmt.Sprintf("%c. ", 'A'+i)
 		case ListTypeLowerRoman:
-			// 使用小写罗马数字
+			// use lowercase Roman numerals
 			prefix = fmt.Sprintf("%s. ", toRomanLower(i+1))
 		case ListTypeUpperRoman:
-			// 使用大写罗马数字
+			// use uppercase Roman numerals
 			prefix = fmt.Sprintf("%s. ", toRomanUpper(i+1))
 		default:
-			// 默认使用项目符号
+			// default to bullet symbol
 			prefix = string(BulletTypeDot) + " "
 		}
 
-		// 创建列表项段落
+		// create list item paragraph
 		para := Paragraph{
 			Runs: []Run{
 				{
@@ -3015,20 +3013,20 @@ func (t *Table) AddCellList(row, col int, config *CellListConfig) error {
 			},
 		}
 
-		// 添加到单元格
+		// add to cell
 		cell.Paragraphs = append(cell.Paragraphs, para)
 	}
 
-	Info(fmt.Sprintf("向单元格(%d,%d)添加列表成功：%d个列表项", row, col, len(config.Items)))
+	InfoMsgf(MsgListAddedToCell, row, col, len(config.Items))
 	return nil
 }
 
-// toRomanLower 将数字转换为小写罗马数字
+// toRomanLower converts a number to lowercase Roman numerals.
 func toRomanLower(num int) string {
 	return strings.ToLower(toRomanUpper(num))
 }
 
-// toRomanUpper 将数字转换为大写罗马数字
+// toRomanUpper converts a number to uppercase Roman numerals.
 func toRomanUpper(num int) string {
 	values := []int{1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1}
 	symbols := []string{"M", "CM", "D", "CD", "C", "XC", "L", "XL", "X", "IX", "V", "IV", "I"}
@@ -3047,22 +3045,22 @@ func toRomanUpper(num int) string {
 	return result
 }
 
-// CellImageConfig 单元格图片配置
+// CellImageConfig represents cell image configuration.
 type CellImageConfig struct {
-	// 图片来源 - 文件路径
+	// image source - file path
 	FilePath string
-	// 图片来源 - 二进制数据
+	// image source - binary data
 	Data []byte
-	// 图片格式（当使用Data时需要指定）
+	// image format (required when using Data)
 	Format ImageFormat
-	// 图片宽度（毫米），0表示自动
+	// image width (mm), 0 for auto
 	Width float64
-	// 图片高度（毫米），0表示自动
+	// image height (mm), 0 for auto
 	Height float64
-	// 是否保持宽高比
+	// whether to maintain aspect ratio
 	KeepAspectRatio bool
-	// 图片替代文字
+	// image alt text
 	AltText string
-	// 图片标题
+	// image title
 	Title string
 }

@@ -1,173 +1,173 @@
-// Package document 页面设置功能测试
+// Package document page settings tests
 package document
 
 import (
 	"testing"
 )
 
-// TestDefaultPageSettings 测试默认页面设置
+// TestDefaultPageSettings tests default page settings
 func TestDefaultPageSettings(t *testing.T) {
 	settings := DefaultPageSettings()
 
 	if settings.Size != PageSizeA4 {
-		t.Errorf("默认页面尺寸应为A4，实际为: %s", settings.Size)
+		t.Errorf("default page size should be A4, got: %s", settings.Size)
 	}
 
 	if settings.Orientation != OrientationPortrait {
-		t.Errorf("默认页面方向应为纵向，实际为: %s", settings.Orientation)
+		t.Errorf("default page orientation should be portrait, got: %s", settings.Orientation)
 	}
 
 	if settings.MarginTop != 25.4 {
-		t.Errorf("默认上边距应为25.4mm，实际为: %.1fmm", settings.MarginTop)
+		t.Errorf("default top margin should be 25.4mm, got: %.1fmm", settings.MarginTop)
 	}
 }
 
-// TestSetPageSize 测试设置页面尺寸
+// TestSetPageSize tests setting page size
 func TestSetPageSize(t *testing.T) {
 	doc := New()
 
-	// 测试设置为Letter尺寸
+	// Test setting to Letter size
 	err := doc.SetPageSize(PageSizeLetter)
 	if err != nil {
-		t.Errorf("设置页面尺寸失败: %v", err)
+		t.Errorf("failed to set page size: %v", err)
 	}
 
 	settings := doc.GetPageSettings()
 	if settings.Size != PageSizeLetter {
-		t.Errorf("页面尺寸应为Letter，实际为: %s", settings.Size)
+		t.Errorf("page size should be Letter, got: %s", settings.Size)
 	}
 }
 
-// TestSetCustomPageSize 测试设置自定义页面尺寸
+// TestSetCustomPageSize tests setting custom page size
 func TestSetCustomPageSize(t *testing.T) {
 	doc := New()
 
-	// 测试有效的自定义尺寸
+	// Test valid custom size
 	err := doc.SetCustomPageSize(200, 300)
 	if err != nil {
-		t.Errorf("设置自定义页面尺寸失败: %v", err)
+		t.Errorf("failed to set custom page size: %v", err)
 	}
 
 	settings := doc.GetPageSettings()
 	if settings.Size != PageSizeCustom {
-		t.Errorf("页面尺寸应为Custom，实际为: %s", settings.Size)
+		t.Errorf("page size should be Custom, got: %s", settings.Size)
 	}
 
 	if abs(settings.CustomWidth-200) > 0.1 {
-		t.Errorf("自定义宽度应为200mm，实际为: %.1fmm", settings.CustomWidth)
+		t.Errorf("custom width should be 200mm, got: %.1fmm", settings.CustomWidth)
 	}
 
 	if abs(settings.CustomHeight-300) > 0.1 {
-		t.Errorf("自定义高度应为300mm，实际为: %.1fmm", settings.CustomHeight)
+		t.Errorf("custom height should be 300mm, got: %.1fmm", settings.CustomHeight)
 	}
 
-	// 测试无效的自定义尺寸
+	// Test invalid custom size
 	err = doc.SetCustomPageSize(-100, 200)
 	if err == nil {
-		t.Error("设置负数尺寸应该返回错误")
+		t.Error("setting negative size should return an error")
 	}
 
 	err = doc.SetCustomPageSize(100, 0)
 	if err == nil {
-		t.Error("设置零高度应该返回错误")
+		t.Error("setting zero height should return an error")
 	}
 }
 
-// TestSetPageOrientation 测试设置页面方向
+// TestSetPageOrientation tests setting page orientation
 func TestSetPageOrientation(t *testing.T) {
 	doc := New()
 
-	// 测试设置为横向
+	// Test setting to landscape
 	err := doc.SetPageOrientation(OrientationLandscape)
 	if err != nil {
-		t.Errorf("设置页面方向失败: %v", err)
+		t.Errorf("failed to set page orientation: %v", err)
 	}
 
 	settings := doc.GetPageSettings()
 	if settings.Orientation != OrientationLandscape {
-		t.Errorf("页面方向应为横向，实际为: %s", settings.Orientation)
+		t.Errorf("page orientation should be landscape, got: %s", settings.Orientation)
 	}
 }
 
-// TestSetPageMargins 测试设置页面边距
+// TestSetPageMargins tests setting page margins
 func TestSetPageMargins(t *testing.T) {
 	doc := New()
 
-	// 测试有效的边距设置
+	// Test valid margin settings
 	err := doc.SetPageMargins(20, 15, 25, 30)
 	if err != nil {
-		t.Errorf("设置页面边距失败: %v", err)
+		t.Errorf("failed to set page margins: %v", err)
 	}
 
 	settings := doc.GetPageSettings()
 	if abs(settings.MarginTop-20) > 0.1 {
-		t.Errorf("上边距应为20mm，实际为: %.1fmm", settings.MarginTop)
+		t.Errorf("top margin should be 20mm, got: %.1fmm", settings.MarginTop)
 	}
 	if abs(settings.MarginRight-15) > 0.1 {
-		t.Errorf("右边距应为15mm，实际为: %.1fmm", settings.MarginRight)
+		t.Errorf("right margin should be 15mm, got: %.1fmm", settings.MarginRight)
 	}
 	if abs(settings.MarginBottom-25) > 0.1 {
-		t.Errorf("下边距应为25mm，实际为: %.1fmm", settings.MarginBottom)
+		t.Errorf("bottom margin should be 25mm, got: %.1fmm", settings.MarginBottom)
 	}
 	if abs(settings.MarginLeft-30) > 0.1 {
-		t.Errorf("左边距应为30mm，实际为: %.1fmm", settings.MarginLeft)
+		t.Errorf("left margin should be 30mm, got: %.1fmm", settings.MarginLeft)
 	}
 
-	// 测试负数边距
+	// Test negative margins
 	err = doc.SetPageMargins(-10, 15, 25, 30)
 	if err == nil {
-		t.Error("设置负数边距应该返回错误")
+		t.Error("setting negative margins should return an error")
 	}
 }
 
-// TestSetHeaderFooterDistance 测试设置页眉页脚距离
+// TestSetHeaderFooterDistance tests setting header/footer distance
 func TestSetHeaderFooterDistance(t *testing.T) {
 	doc := New()
 
-	// 测试有效的页眉页脚距离
+	// Test valid header/footer distance
 	err := doc.SetHeaderFooterDistance(10, 15)
 	if err != nil {
-		t.Errorf("设置页眉页脚距离失败: %v", err)
+		t.Errorf("failed to set header/footer distance: %v", err)
 	}
 
 	settings := doc.GetPageSettings()
 	if abs(settings.HeaderDistance-10) > 0.1 {
-		t.Errorf("页眉距离应为10mm，实际为: %.1fmm", settings.HeaderDistance)
+		t.Errorf("header distance should be 10mm, got: %.1fmm", settings.HeaderDistance)
 	}
 	if abs(settings.FooterDistance-15) > 0.1 {
-		t.Errorf("页脚距离应为15mm，实际为: %.1fmm", settings.FooterDistance)
+		t.Errorf("footer distance should be 15mm, got: %.1fmm", settings.FooterDistance)
 	}
 
-	// 测试负数距离
+	// Test negative distance
 	err = doc.SetHeaderFooterDistance(-5, 15)
 	if err == nil {
-		t.Error("设置负数页眉距离应该返回错误")
+		t.Error("setting negative header distance should return an error")
 	}
 }
 
-// TestSetGutterWidth 测试设置装订线宽度
+// TestSetGutterWidth tests setting gutter width
 func TestSetGutterWidth(t *testing.T) {
 	doc := New()
 
-	// 测试有效的装订线宽度
+	// Test valid gutter width
 	err := doc.SetGutterWidth(5)
 	if err != nil {
-		t.Errorf("设置装订线宽度失败: %v", err)
+		t.Errorf("failed to set gutter width: %v", err)
 	}
 
 	settings := doc.GetPageSettings()
 	if abs(settings.GutterWidth-5) > 0.1 {
-		t.Errorf("装订线宽度应为5mm，实际为: %.1fmm", settings.GutterWidth)
+		t.Errorf("gutter width should be 5mm, got: %.1fmm", settings.GutterWidth)
 	}
 
-	// 测试负数装订线宽度
+	// Test negative gutter width
 	err = doc.SetGutterWidth(-2)
 	if err == nil {
-		t.Error("设置负数装订线宽度应该返回错误")
+		t.Error("setting negative gutter width should return an error")
 	}
 }
 
-// TestPageDimensions 测试页面尺寸计算
+// TestPageDimensions tests page dimension calculations
 func TestPageDimensions(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -176,7 +176,7 @@ func TestPageDimensions(t *testing.T) {
 		expHeight float64
 	}{
 		{
-			name: "A4纵向",
+			name: "A4 portrait",
 			settings: &PageSettings{
 				Size:        PageSizeA4,
 				Orientation: OrientationPortrait,
@@ -185,7 +185,7 @@ func TestPageDimensions(t *testing.T) {
 			expHeight: 297,
 		},
 		{
-			name: "A4横向",
+			name: "A4 landscape",
 			settings: &PageSettings{
 				Size:        PageSizeA4,
 				Orientation: OrientationLandscape,
@@ -194,7 +194,7 @@ func TestPageDimensions(t *testing.T) {
 			expHeight: 210,
 		},
 		{
-			name: "自定义尺寸",
+			name: "Custom size",
 			settings: &PageSettings{
 				Size:         PageSizeCustom,
 				CustomWidth:  150,
@@ -211,17 +211,17 @@ func TestPageDimensions(t *testing.T) {
 			width, height := getPageDimensions(tt.settings)
 
 			if width != tt.expWidth {
-				t.Errorf("宽度不匹配，期望: %.1fmm, 实际: %.1fmm", tt.expWidth, width)
+				t.Errorf("width mismatch, expected: %.1fmm, got: %.1fmm", tt.expWidth, width)
 			}
 
 			if height != tt.expHeight {
-				t.Errorf("高度不匹配，期望: %.1fmm, 实际: %.1fmm", tt.expHeight, height)
+				t.Errorf("height mismatch, expected: %.1fmm, got: %.1fmm", tt.expHeight, height)
 			}
 		})
 	}
 }
 
-// TestIdentifyPageSize 测试页面尺寸识别
+// TestIdentifyPageSize tests page size identification
 func TestIdentifyPageSize(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -230,13 +230,13 @@ func TestIdentifyPageSize(t *testing.T) {
 		expected PageSize
 	}{
 		{
-			name:     "A4纵向",
+			name:     "A4 portrait",
 			width:    210,
 			height:   297,
 			expected: PageSizeA4,
 		},
 		{
-			name:     "A4横向",
+			name:     "A4 landscape",
 			width:    297,
 			height:   210,
 			expected: PageSizeA4,
@@ -248,7 +248,7 @@ func TestIdentifyPageSize(t *testing.T) {
 			expected: PageSizeLetter,
 		},
 		{
-			name:     "自定义尺寸",
+			name:     "Custom size",
 			width:    100,
 			height:   150,
 			expected: PageSizeCustom,
@@ -260,15 +260,15 @@ func TestIdentifyPageSize(t *testing.T) {
 			result := identifyPageSize(tt.width, tt.height)
 
 			if result != tt.expected {
-				t.Errorf("页面尺寸识别错误，期望: %s, 实际: %s", tt.expected, result)
+				t.Errorf("page size identification error, expected: %s, got: %s", tt.expected, result)
 			}
 		})
 	}
 }
 
-// TestValidatePageSettings 测试页面设置验证
+// TestValidatePageSettings tests page settings validation
 func TestValidatePageSettings(t *testing.T) {
-	// 测试有效设置
+	// Test valid settings
 	validSettings := &PageSettings{
 		Size:         PageSizeA4,
 		Orientation:  OrientationPortrait,
@@ -278,10 +278,10 @@ func TestValidatePageSettings(t *testing.T) {
 
 	err := validatePageSettings(validSettings)
 	if err != nil {
-		t.Errorf("有效设置应该通过验证，错误: %v", err)
+		t.Errorf("valid settings should pass validation, error: %v", err)
 	}
 
-	// 测试无效的自定义尺寸
+	// Test invalid custom size
 	invalidCustomSize := &PageSettings{
 		Size:         PageSizeCustom,
 		Orientation:  OrientationPortrait,
@@ -291,23 +291,23 @@ func TestValidatePageSettings(t *testing.T) {
 
 	err = validatePageSettings(invalidCustomSize)
 	if err == nil {
-		t.Error("负数自定义尺寸应该验证失败")
+		t.Error("negative custom size should fail validation")
 	}
 
-	// 测试过大的自定义尺寸
+	// Test oversized custom dimensions
 	oversizeCustom := &PageSettings{
 		Size:         PageSizeCustom,
 		Orientation:  OrientationPortrait,
-		CustomWidth:  600, // 超过最大尺寸
+		CustomWidth:  600, // exceeds maximum size
 		CustomHeight: 200,
 	}
 
 	err = validatePageSettings(oversizeCustom)
 	if err == nil {
-		t.Error("过大的自定义尺寸应该验证失败")
+		t.Error("oversized custom dimensions should fail validation")
 	}
 
-	// 测试无效方向
+	// Test invalid orientation
 	invalidOrientation := &PageSettings{
 		Size:        PageSizeA4,
 		Orientation: PageOrientation("invalid"),
@@ -315,59 +315,59 @@ func TestValidatePageSettings(t *testing.T) {
 
 	err = validatePageSettings(invalidOrientation)
 	if err == nil {
-		t.Error("无效方向应该验证失败")
+		t.Error("invalid orientation should fail validation")
 	}
 }
 
-// TestMmToTwips 测试毫米到Twips的转换
+// TestMmToTwips tests millimeter to twips conversion
 func TestMmToTwips(t *testing.T) {
-	// 测试几个已知的转换值
+	// Test several known conversion values
 	tests := []struct {
 		mm       float64
 		expected float64
 	}{
-		{25.4, 1440}, // 1英寸 = 1440 twips
-		{0, 0},       // 0毫米 = 0 twips
-		{10, 566.93}, // 约567 twips
+		{25.4, 1440}, // 1 inch = 1440 twips
+		{0, 0},       // 0mm = 0 twips
+		{10, 566.93}, // approx 567 twips
 	}
 
 	for _, tt := range tests {
 		result := mmToTwips(tt.mm)
-		// 允许小数点误差
+		// Allow decimal point error
 		if abs(result-tt.expected) > 1 {
-			t.Errorf("毫米转换错误，输入: %.1fmm, 期望: %.0f twips, 实际: %.0f twips",
+			t.Errorf("mm conversion error, input: %.1fmm, expected: %.0f twips, got: %.0f twips",
 				tt.mm, tt.expected, result)
 		}
 	}
 }
 
-// TestTwipsToMM 测试Twips到毫米的转换
+// TestTwipsToMM tests twips to millimeter conversion
 func TestTwipsToMM(t *testing.T) {
-	// 测试反向转换
+	// Test reverse conversion
 	tests := []struct {
 		twips    float64
 		expected float64
 	}{
-		{1440, 25.4}, // 1440 twips = 1英寸 = 25.4mm
+		{1440, 25.4}, // 1440 twips = 1 inch = 25.4mm
 		{0, 0},       // 0 twips = 0mm
-		{567, 10.0},  // 约10mm
+		{567, 10.0},  // approx 10mm
 	}
 
 	for _, tt := range tests {
 		result := twipsToMM(tt.twips)
-		// 允许小数点误差
+		// Allow decimal point error
 		if abs(result-tt.expected) > 0.1 {
-			t.Errorf("Twips转换错误，输入: %.0f twips, 期望: %.1fmm, 实际: %.1fmm",
+			t.Errorf("twips conversion error, input: %.0f twips, expected: %.1fmm, got: %.1fmm",
 				tt.twips, tt.expected, result)
 		}
 	}
 }
 
-// TestCompletePageSettings 测试完整的页面设置流程
+// TestCompletePageSettings tests the complete page settings workflow
 func TestCompletePageSettings(t *testing.T) {
 	doc := New()
 
-	// 创建完整的页面设置
+	// Create complete page settings
 	settings := &PageSettings{
 		Size:           PageSizeLetter,
 		Orientation:    OrientationLandscape,
@@ -380,24 +380,24 @@ func TestCompletePageSettings(t *testing.T) {
 		GutterWidth:    5,
 	}
 
-	// 应用设置
+	// Apply settings
 	err := doc.SetPageSettings(settings)
 	if err != nil {
-		t.Errorf("设置页面属性失败: %v", err)
+		t.Errorf("failed to set page settings: %v", err)
 	}
 
-	// 验证设置是否正确应用
+	// Verify settings were correctly applied
 	retrieved := doc.GetPageSettings()
 
 	if retrieved.Size != settings.Size {
-		t.Errorf("页面尺寸不匹配，期望: %s, 实际: %s", settings.Size, retrieved.Size)
+		t.Errorf("page size mismatch, expected: %s, got: %s", settings.Size, retrieved.Size)
 	}
 
 	if retrieved.Orientation != settings.Orientation {
-		t.Errorf("页面方向不匹配，期望: %s, 实际: %s", settings.Orientation, retrieved.Orientation)
+		t.Errorf("page orientation mismatch, expected: %s, got: %s", settings.Orientation, retrieved.Orientation)
 	}
 
 	if abs(retrieved.MarginTop-settings.MarginTop) > 0.1 {
-		t.Errorf("上边距不匹配，期望: %.1fmm, 实际: %.1fmm", settings.MarginTop, retrieved.MarginTop)
+		t.Errorf("top margin mismatch, expected: %.1fmm, got: %.1fmm", settings.MarginTop, retrieved.MarginTop)
 	}
 }

@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-// createTestImage 创建一个测试用的PNG图片
+// createTestImage creates a test PNG image
 func createTestImage(width, height int) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	// 创建一个简单的红色矩形
+	// Create a simple red rectangle
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			img.Set(x, y, color.RGBA{255, 0, 0, 255})
@@ -33,37 +33,37 @@ func TestDetectImageFormat(t *testing.T) {
 		hasError bool
 	}{
 		{
-			name:     "PNG格式",
+			name:     "PNG format",
 			data:     []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A},
 			expected: ImageFormatPNG,
 			hasError: false,
 		},
 		{
-			name:     "JPEG格式",
+			name:     "JPEG format",
 			data:     []byte{0xFF, 0xD8, 0xFF},
 			expected: ImageFormatJPEG,
 			hasError: false,
 		},
 		{
-			name:     "GIF87a格式",
+			name:     "GIF87a format",
 			data:     []byte("GIF87a"),
 			expected: ImageFormatGIF,
 			hasError: false,
 		},
 		{
-			name:     "GIF89a格式",
+			name:     "GIF89a format",
 			data:     []byte("GIF89a"),
 			expected: ImageFormatGIF,
 			hasError: false,
 		},
 		{
-			name:     "数据太短",
+			name:     "Data too short",
 			data:     []byte{0x89},
 			expected: "",
 			hasError: true,
 		},
 		{
-			name:     "不支持的格式",
+			name:     "Unsupported format",
 			data:     []byte("INVALID_FORMAT"),
 			expected: "",
 			hasError: true,
@@ -76,14 +76,14 @@ func TestDetectImageFormat(t *testing.T) {
 
 			if tt.hasError {
 				if err == nil {
-					t.Errorf("期望有错误，但没有错误")
+					t.Errorf("expected an error, but got none")
 				}
 			} else {
 				if err != nil {
-					t.Errorf("不期望有错误，但出现错误: %v", err)
+					t.Errorf("did not expect an error, but got: %v", err)
 				}
 				if format != tt.expected {
-					t.Errorf("期望格式 %v，但得到 %v", tt.expected, format)
+					t.Errorf("expected format %v, but got %v", tt.expected, format)
 				}
 			}
 		})
@@ -91,20 +91,20 @@ func TestDetectImageFormat(t *testing.T) {
 }
 
 func TestGetImageDimensions(t *testing.T) {
-	// 创建一个100x50的测试图片
+	// Create a 100x50 test image
 	testImageData := createTestImage(100, 50)
 
 	width, height, err := getImageDimensions(testImageData, ImageFormatPNG)
 	if err != nil {
-		t.Fatalf("获取图片尺寸失败: %v", err)
+		t.Fatalf("failed to get image dimensions: %v", err)
 	}
 
 	if width != 100 {
-		t.Errorf("期望宽度100，得到 %d", width)
+		t.Errorf("expected width 100, got %d", width)
 	}
 
 	if height != 50 {
-		t.Errorf("期望高度50，得到 %d", height)
+		t.Errorf("expected height 50, got %d", height)
 	}
 }
 
@@ -118,44 +118,44 @@ func TestCalculateDisplaySize(t *testing.T) {
 		expectedH int64
 	}{
 		{
-			name: "默认尺寸",
+			name: "Default size",
 			imageInfo: &ImageInfo{
 				Width:  100,
 				Height: 50,
 				Config: nil,
 			},
-			expectedW: 100 * 9525, // 像素转EMU
+			expectedW: 100 * 9525, // pixels to EMU
 			expectedH: 50 * 9525,
 		},
 		{
-			name: "指定具体尺寸",
+			name: "Specified dimensions",
 			imageInfo: &ImageInfo{
 				Width:  100,
 				Height: 50,
 				Config: &ImageConfig{
 					Size: &ImageSize{
-						Width:  50.0, // 50毫米
-						Height: 25.0, // 25毫米
+						Width:  50.0, // 50mm
+						Height: 25.0, // 25mm
 					},
 				},
 			},
-			expectedW: int64(50.0 * 36000), // 毫米转EMU
+			expectedW: int64(50.0 * 36000), // mm to EMU
 			expectedH: int64(25.0 * 36000),
 		},
 		{
-			name: "只指定宽度，保持长宽比",
+			name: "Width only, keep aspect ratio",
 			imageInfo: &ImageInfo{
 				Width:  100,
 				Height: 50,
 				Config: &ImageConfig{
 					Size: &ImageSize{
-						Width:           50.0, // 50毫米
+						Width:           50.0, // 50mm
 						KeepAspectRatio: true,
 					},
 				},
 			},
 			expectedW: int64(50.0 * 36000),
-			expectedH: int64(50.0 * 36000 * 0.5), // 保持长宽比2:1
+			expectedH: int64(50.0 * 36000 * 0.5), // keep aspect ratio 2:1
 		},
 	}
 
@@ -164,11 +164,11 @@ func TestCalculateDisplaySize(t *testing.T) {
 			width, height := doc.calculateDisplaySize(tt.imageInfo)
 
 			if width != tt.expectedW {
-				t.Errorf("期望宽度 %d，得到 %d", tt.expectedW, width)
+				t.Errorf("expected width %d, got %d", tt.expectedW, width)
 			}
 
 			if height != tt.expectedH {
-				t.Errorf("期望高度 %d，得到 %d", tt.expectedH, height)
+				t.Errorf("expected height %d, got %d", tt.expectedH, height)
 			}
 		})
 	}
@@ -177,10 +177,10 @@ func TestCalculateDisplaySize(t *testing.T) {
 func TestAddImageFromData(t *testing.T) {
 	doc := New()
 
-	// 创建测试图片数据
+	// Create test image data
 	imageData := createTestImage(100, 50)
 
-	// 添加图片
+	// Add image
 	imageInfo, err := doc.AddImageFromData(
 		imageData,
 		"test.png",
@@ -194,37 +194,37 @@ func TestAddImageFromData(t *testing.T) {
 	)
 
 	if err != nil {
-		t.Fatalf("添加图片失败: %v", err)
+		t.Fatalf("failed to add image: %v", err)
 	}
 
-	// 验证图片信息
+	// Verify image info
 	if imageInfo.Format != ImageFormatPNG {
-		t.Errorf("期望格式PNG，得到 %v", imageInfo.Format)
+		t.Errorf("expected format PNG, got %v", imageInfo.Format)
 	}
 
 	if imageInfo.Width != 100 {
-		t.Errorf("期望宽度100，得到 %d", imageInfo.Width)
+		t.Errorf("expected width 100, got %d", imageInfo.Width)
 	}
 
 	if imageInfo.Height != 50 {
-		t.Errorf("期望高度50，得到 %d", imageInfo.Height)
+		t.Errorf("expected height 50, got %d", imageInfo.Height)
 	}
 
 	if imageInfo.Config.AltText != "测试图片" {
-		t.Errorf("期望替代文字'测试图片'，得到 '%s'", imageInfo.Config.AltText)
+		t.Errorf("expected alt text '测试图片', got '%s'", imageInfo.Config.AltText)
 	}
 
-	// 验证关系是否正确添加
+	// Verify relationship was correctly added
 	if len(doc.documentRelationships.Relationships) != 1 {
-		t.Errorf("期望1个关系，得到 %d", len(doc.documentRelationships.Relationships))
+		t.Errorf("expected 1 relationship, got %d", len(doc.documentRelationships.Relationships))
 	}
 
-	// 验证图片数据是否存储（现在使用安全的文件名 image0.png）
+	// Verify image data is stored (now uses safe filename image0.png)
 	if _, exists := doc.parts["word/media/image0.png"]; !exists {
-		t.Error("图片数据未正确存储")
+		t.Error("image data was not stored correctly")
 	}
 
-	// 验证内容类型是否添加
+	// Verify content type was added
 	foundPNG := false
 	for _, def := range doc.contentTypes.Defaults {
 		if def.Extension == "png" && def.ContentType == "image/png" {
@@ -233,7 +233,7 @@ func TestAddImageFromData(t *testing.T) {
 		}
 	}
 	if !foundPNG {
-		t.Error("PNG内容类型未正确添加")
+		t.Error("PNG content type was not added correctly")
 	}
 }
 
@@ -252,11 +252,11 @@ func TestResizeImage(t *testing.T) {
 
 	err := doc.ResizeImage(imageInfo, newSize)
 	if err != nil {
-		t.Fatalf("调整图片大小失败: %v", err)
+		t.Fatalf("failed to resize image: %v", err)
 	}
 
 	if imageInfo.Config.Size != newSize {
-		t.Error("图片大小未正确设置")
+		t.Error("image size was not set correctly")
 	}
 }
 
@@ -269,19 +269,19 @@ func TestSetImagePosition(t *testing.T) {
 
 	err := doc.SetImagePosition(imageInfo, ImagePositionFloatLeft, 10.0, 20.0)
 	if err != nil {
-		t.Fatalf("设置图片位置失败: %v", err)
+		t.Fatalf("failed to set image position: %v", err)
 	}
 
 	if imageInfo.Config.Position != ImagePositionFloatLeft {
-		t.Error("图片位置未正确设置")
+		t.Error("image position was not set correctly")
 	}
 
 	if imageInfo.Config.OffsetX != 10.0 {
-		t.Error("图片X偏移未正确设置")
+		t.Error("image X offset was not set correctly")
 	}
 
 	if imageInfo.Config.OffsetY != 20.0 {
-		t.Error("图片Y偏移未正确设置")
+		t.Error("image Y offset was not set correctly")
 	}
 }
 
@@ -294,22 +294,22 @@ func TestSetImageWrapText(t *testing.T) {
 
 	err := doc.SetImageWrapText(imageInfo, ImageWrapSquare)
 	if err != nil {
-		t.Fatalf("设置图片文字环绕失败: %v", err)
+		t.Fatalf("failed to set image text wrapping: %v", err)
 	}
 
 	if imageInfo.Config.WrapText != ImageWrapSquare {
-		t.Error("图片文字环绕未正确设置")
+		t.Error("image text wrapping was not set correctly")
 	}
 }
 
-// TestFloatingImageXMLStructure 测试浮动图片XML结构修复
+// TestFloatingImageXMLStructure tests the floating image XML structure fix
 func TestFloatingImageXMLStructure(t *testing.T) {
 	doc := New()
 
-	// 创建测试图片数据
+	// Create test image data
 	imageData := []byte{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A} // PNG header
 
-	// 测试左浮动 + 紧密环绕
+	// Test left float + tight wrap
 	config := &ImageConfig{
 		Position: ImagePositionFloatLeft,
 		WrapText: ImageWrapTight,
@@ -323,63 +323,63 @@ func TestFloatingImageXMLStructure(t *testing.T) {
 
 	imageInfo, err := doc.AddImageFromData(imageData, "test.png", ImageFormatPNG, 100, 75, config)
 	if err != nil {
-		t.Fatalf("添加浮动图片失败: %v", err)
+		t.Fatalf("failed to add floating image: %v", err)
 	}
 
-	// 验证配置是否正确设置
+	// Verify config was set correctly
 	if imageInfo.Config.Position != ImagePositionFloatLeft {
-		t.Error("图片位置未正确设置为左浮动")
+		t.Error("image position was not set to float left")
 	}
 
 	if imageInfo.Config.WrapText != ImageWrapTight {
-		t.Error("图片环绕类型未正确设置为紧密环绕")
+		t.Error("image wrap type was not set to tight wrap")
 	}
 
-	// 保存文档并检查是否成功
+	// Save document and check for success
 	err = doc.Save("test_floating_fix.docx")
 	if err != nil {
-		t.Fatalf("保存包含修复后浮动图片的文档失败: %v", err)
+		t.Fatalf("failed to save document with fixed floating image: %v", err)
 	}
 
-	// 清理测试文件
+	// Clean up test file
 	defer func() {
 		if err := os.Remove("test_floating_fix.docx"); err != nil {
-			t.Logf("清理测试文件失败: %v", err)
+			t.Logf("failed to clean up test file: %v", err)
 		}
 	}()
 
-	t.Log("✓ 浮动图片XML结构修复测试通过")
+	t.Log("floating image XML structure fix test passed")
 }
 
-// TestCreateDefaultWrapPolygon 测试默认环绕多边形创建
+// TestCreateDefaultWrapPolygon tests default wrap polygon creation
 func TestCreateDefaultWrapPolygon(t *testing.T) {
 	doc := New()
 
 	polygon := doc.createDefaultWrapPolygon()
 	if polygon == nil {
-		t.Fatal("创建默认环绕多边形失败")
+		t.Fatal("failed to create default wrap polygon")
 	}
 
 	if polygon.Start == nil {
-		t.Error("环绕多边形缺少起点")
+		t.Error("wrap polygon missing start point")
 	}
 
 	if len(polygon.LineTo) == 0 {
-		t.Error("环绕多边形缺少线段")
+		t.Error("wrap polygon missing line segments")
 	}
 
-	// 验证起点坐标
+	// Verify start point coordinates
 	if polygon.Start.X != "0" || polygon.Start.Y != "0" {
-		t.Error("环绕多边形起点坐标不正确")
+		t.Error("wrap polygon start point coordinates are incorrect")
 	}
 
-	// 验证是否形成闭合路径
-	expectedPoints := 4 // 矩形应该有4个点
+	// Verify closed path is formed
+	expectedPoints := 4 // rectangle should have 4 points
 	if len(polygon.LineTo) != expectedPoints {
-		t.Errorf("期望%d个线段，实际%d个", expectedPoints, len(polygon.LineTo))
+		t.Errorf("expected %d line segments, got %d", expectedPoints, len(polygon.LineTo))
 	}
 
-	t.Log("✓ 默认环绕多边形创建测试通过")
+	t.Log("default wrap polygon creation test passed")
 }
 
 func TestSetImageAltText(t *testing.T) {
@@ -391,11 +391,11 @@ func TestSetImageAltText(t *testing.T) {
 
 	err := doc.SetImageAltText(imageInfo, "新的替代文字")
 	if err != nil {
-		t.Fatalf("设置图片替代文字失败: %v", err)
+		t.Fatalf("failed to set image alt text: %v", err)
 	}
 
 	if imageInfo.Config.AltText != "新的替代文字" {
-		t.Error("图片替代文字未正确设置")
+		t.Error("image alt text was not set correctly")
 	}
 }
 
@@ -408,18 +408,18 @@ func TestSetImageTitle(t *testing.T) {
 
 	err := doc.SetImageTitle(imageInfo, "新的标题")
 	if err != nil {
-		t.Fatalf("设置图片标题失败: %v", err)
+		t.Fatalf("failed to set image title: %v", err)
 	}
 
 	if imageInfo.Config.Title != "新的标题" {
-		t.Error("图片标题未正确设置")
+		t.Error("image title was not set correctly")
 	}
 }
 
 func TestAddImageContentType(t *testing.T) {
 	doc := New()
 
-	// 测试添加PNG内容类型
+	// Test adding PNG content type
 	doc.addImageContentType(ImageFormatPNG)
 
 	found := false
@@ -431,15 +431,15 @@ func TestAddImageContentType(t *testing.T) {
 	}
 
 	if !found {
-		t.Error("PNG内容类型未正确添加")
+		t.Error("PNG content type was not added correctly")
 	}
 
-	// 测试重复添加同一类型
+	// Test adding the same type again
 	originalCount := len(doc.contentTypes.Defaults)
 	doc.addImageContentType(ImageFormatPNG)
 
 	if len(doc.contentTypes.Defaults) != originalCount {
-		t.Error("重复添加内容类型应该被忽略")
+		t.Error("duplicate content type addition should be ignored")
 	}
 }
 
@@ -450,7 +450,7 @@ func TestSetImageAlignment(t *testing.T) {
 		Config: &ImageConfig{},
 	}
 
-	// 测试各种对齐方式
+	// Test various alignment types
 	alignments := []AlignmentType{
 		AlignLeft,
 		AlignCenter,
@@ -461,11 +461,11 @@ func TestSetImageAlignment(t *testing.T) {
 	for _, alignment := range alignments {
 		err := doc.SetImageAlignment(imageInfo, alignment)
 		if err != nil {
-			t.Fatalf("设置图片对齐方式失败: %v, 对齐方式: %s", err, alignment)
+			t.Fatalf("failed to set image alignment: %v, alignment: %s", err, alignment)
 		}
 
 		if imageInfo.Config.Alignment != alignment {
-			t.Errorf("图片对齐方式未正确设置，预期: %s，实际: %s", alignment, imageInfo.Config.Alignment)
+			t.Errorf("image alignment not set correctly, expected: %s, got: %s", alignment, imageInfo.Config.Alignment)
 		}
 	}
 }
@@ -473,11 +473,11 @@ func TestSetImageAlignment(t *testing.T) {
 func TestImageParagraphAlignment(t *testing.T) {
 	doc := New()
 
-	// 创建测试图片数据
+	// Create test image data
 	imageData := []byte{
-		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG头
+		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, // PNG header
 		0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52, // IHDR
-		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1像素
+		0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, // 1x1 pixel
 		0x08, 0x06, 0x00, 0x00, 0x00, 0x1F, 0x15, 0xC4,
 		0x89, 0x00, 0x00, 0x00, 0x0B, 0x49, 0x44, 0x41,
 		0x54, 0x78, 0x9C, 0x63, 0x00, 0x01, 0x00, 0x00,
@@ -486,7 +486,7 @@ func TestImageParagraphAlignment(t *testing.T) {
 		0x42, 0x60, 0x82,
 	}
 
-	// 测试居中对齐的图片
+	// Test center-aligned image
 	imageInfo, err := doc.AddImageFromData(
 		imageData,
 		"test.png",
@@ -498,39 +498,39 @@ func TestImageParagraphAlignment(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("添加图片失败: %v", err)
+		t.Fatalf("failed to add image: %v", err)
 	}
 
-	// 验证图片段落的对齐设置
+	// Verify paragraph alignment of the image
 	if len(doc.Body.Elements) == 0 {
-		t.Fatal("文档中没有添加段落")
+		t.Fatal("no paragraphs were added to the document")
 	}
 
 	paragraph, ok := doc.Body.Elements[0].(*Paragraph)
 	if !ok {
-		t.Fatal("第一个元素不是段落")
+		t.Fatal("first element is not a paragraph")
 	}
 
 	if paragraph.Properties == nil {
-		t.Fatal("段落属性为空")
+		t.Fatal("paragraph properties are nil")
 	}
 
 	if paragraph.Properties.Justification == nil {
-		t.Fatal("段落对齐属性为空")
+		t.Fatal("paragraph justification property is nil")
 	}
 
 	if paragraph.Properties.Justification.Val != string(AlignCenter) {
-		t.Errorf("段落对齐方式不正确，预期: %s，实际: %s",
+		t.Errorf("paragraph alignment is incorrect, expected: %s, got: %s",
 			AlignCenter, paragraph.Properties.Justification.Val)
 	}
 
-	// 测试修改对齐方式
+	// Test modifying alignment
 	err = doc.SetImageAlignment(imageInfo, AlignRight)
 	if err != nil {
-		t.Fatalf("修改图片对齐方式失败: %v", err)
+		t.Fatalf("failed to modify image alignment: %v", err)
 	}
 
 	if imageInfo.Config.Alignment != AlignRight {
-		t.Error("图片对齐方式修改失败")
+		t.Error("image alignment modification failed")
 	}
 }

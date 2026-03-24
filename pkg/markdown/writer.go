@@ -9,53 +9,53 @@ import (
 	"github.com/zerx-lab/wordZero/pkg/document"
 )
 
-// ExportOptions 导出选项配置
+// ExportOptions configures export options.
 type ExportOptions struct {
-	// 基础配置
-	UseGFMTables       bool // 使用GFM表格语法
-	PreserveFootnotes  bool // 保留脚注
-	PreserveLineBreaks bool // 保留换行符
-	WrapLongLines      bool // 自动换行长行
-	MaxLineLength      int  // 最大行长度
+	// Basic configuration
+	UseGFMTables       bool // use GFM table syntax
+	PreserveFootnotes  bool // preserve footnotes
+	PreserveLineBreaks bool // preserve line breaks
+	WrapLongLines      bool // auto-wrap long lines
+	MaxLineLength      int  // maximum line length
 
-	// 图片处理
-	ExtractImages     bool   // 是否导出图片文件
-	ImageOutputDir    string // 图片输出目录
-	ImageNamePattern  string // 图片命名模式
-	ImageRelativePath bool   // 使用相对路径引用图片
+	// Image handling
+	ExtractImages     bool   // whether to export image files
+	ImageOutputDir    string // image output directory
+	ImageNamePattern  string // image naming pattern
+	ImageRelativePath bool   // use relative paths for image references
 
-	// 链接处理
-	PreserveBookmarks bool // 保留书签为锚点链接
-	ConvertHyperlinks bool // 转换超链接
+	// Link handling
+	PreserveBookmarks bool // preserve bookmarks as anchor links
+	ConvertHyperlinks bool // convert hyperlinks
 
-	// 代码块处理
-	PreserveCodeStyle bool   // 保留代码样式
-	DefaultCodeLang   string // 默认代码语言标识
+	// Code block handling
+	PreserveCodeStyle bool   // preserve code style
+	DefaultCodeLang   string // default code language identifier
 
-	// 样式映射
-	CustomStyleMap      map[string]string // 自定义样式映射
-	IgnoreUnknownStyles bool              // 忽略未知样式
+	// Style mapping
+	CustomStyleMap      map[string]string // custom style mapping
+	IgnoreUnknownStyles bool              // ignore unknown styles
 
-	// 内容处理
-	PreserveTOC     bool // 保留目录
-	IncludeMetadata bool // 包含文档元数据
-	StripComments   bool // 移除注释
+	// Content handling
+	PreserveTOC     bool // preserve table of contents
+	IncludeMetadata bool // include document metadata
+	StripComments   bool // remove comments
 
-	// 格式化选项
-	UseSetext        bool   // 使用Setext样式标题
-	BulletListMarker string // 项目符号标记
-	EmphasisMarker   string // 强调标记
+	// Formatting options
+	UseSetext        bool   // use Setext-style headings
+	BulletListMarker string // bullet list marker
+	EmphasisMarker   string // emphasis marker
 
-	// 错误处理
-	StrictMode    bool        // 严格模式
-	IgnoreErrors  bool        // 忽略转换错误
-	ErrorCallback func(error) // 错误回调
+	// Error handling
+	StrictMode    bool        // strict mode
+	IgnoreErrors  bool        // ignore conversion errors
+	ErrorCallback func(error) // error callback
 
-	// 进度报告
-	ProgressCallback func(int, int) // 进度回调
+	// Progress reporting
+	ProgressCallback func(int, int) // progress callback
 }
 
-// MarkdownWriter Markdown格式输出器
+// MarkdownWriter outputs content in Markdown format.
 type MarkdownWriter struct {
 	opts      *ExportOptions
 	doc       *document.Document
@@ -64,14 +64,14 @@ type MarkdownWriter struct {
 	footnotes []string
 }
 
-// Write 生成Markdown内容
+// Write generates Markdown content.
 func (w *MarkdownWriter) Write() ([]byte, error) {
-	// 处理文档元数据
+	// Process document metadata
 	if w.opts.IncludeMetadata {
 		w.writeMetadata()
 	}
 
-	// 遍历文档段落
+	// Iterate over document paragraphs
 	if w.doc.Body != nil {
 		for _, para := range w.doc.Body.GetParagraphs() {
 			err := w.writeParagraph(para)
@@ -85,7 +85,7 @@ func (w *MarkdownWriter) Write() ([]byte, error) {
 			}
 		}
 
-		// 处理表格
+		// Process tables
 		for _, table := range w.doc.Body.GetTables() {
 			err := w.writeTable(table)
 			if err != nil {
@@ -99,7 +99,7 @@ func (w *MarkdownWriter) Write() ([]byte, error) {
 		}
 	}
 
-	// 添加脚注
+	// Add footnotes
 	if w.opts.PreserveFootnotes && len(w.footnotes) > 0 {
 		w.writeFootnotes()
 	}
@@ -107,20 +107,20 @@ func (w *MarkdownWriter) Write() ([]byte, error) {
 	return []byte(w.output.String()), nil
 }
 
-// writeMetadata 写入文档元数据
+// writeMetadata writes document metadata.
 func (w *MarkdownWriter) writeMetadata() {
 	w.output.WriteString("---\n")
 	w.output.WriteString("title: \"Document\"\n")
 	w.output.WriteString("---\n\n")
 }
 
-// writeParagraph 写入段落
+// writeParagraph writes a paragraph.
 func (w *MarkdownWriter) writeParagraph(para *document.Paragraph) error {
 	if para == nil {
 		return nil
 	}
 
-	// 检查段落样式
+	// Check paragraph style
 	style := w.getParagraphStyle(para)
 
 	switch {
@@ -137,7 +137,7 @@ func (w *MarkdownWriter) writeParagraph(para *document.Paragraph) error {
 	}
 }
 
-// writeHeading 写入标题
+// writeHeading writes a heading.
 func (w *MarkdownWriter) writeHeading(para *document.Paragraph, style string) error {
 	level := w.getHeadingLevel(style)
 	if level > 6 {
@@ -150,7 +150,7 @@ func (w *MarkdownWriter) writeHeading(para *document.Paragraph, style string) er
 	}
 
 	if w.opts.UseSetext && level <= 2 {
-		// 使用Setext样式
+		// Use Setext style
 		w.output.WriteString(text + "\n")
 		if level == 1 {
 			w.output.WriteString(strings.Repeat("=", len(text)) + "\n\n")
@@ -158,14 +158,14 @@ func (w *MarkdownWriter) writeHeading(para *document.Paragraph, style string) er
 			w.output.WriteString(strings.Repeat("-", len(text)) + "\n\n")
 		}
 	} else {
-		// 使用ATX样式
+		// Use ATX style
 		w.output.WriteString(strings.Repeat("#", level) + " " + text + "\n\n")
 	}
 
 	return nil
 }
 
-// writeQuote 写入引用
+// writeQuote writes a blockquote.
 func (w *MarkdownWriter) writeQuote(para *document.Paragraph) error {
 	text := w.extractParagraphText(para)
 	if strings.TrimSpace(text) == "" {
@@ -181,7 +181,7 @@ func (w *MarkdownWriter) writeQuote(para *document.Paragraph) error {
 	return nil
 }
 
-// writeCodeBlock 写入代码块
+// writeCodeBlock writes a code block.
 func (w *MarkdownWriter) writeCodeBlock(para *document.Paragraph) error {
 	text := w.extractParagraphText(para)
 	if strings.TrimSpace(text) == "" {
@@ -196,14 +196,14 @@ func (w *MarkdownWriter) writeCodeBlock(para *document.Paragraph) error {
 	return nil
 }
 
-// writeListItem 写入列表项
+// writeListItem writes a list item.
 func (w *MarkdownWriter) writeListItem(para *document.Paragraph) error {
 	text := w.extractParagraphText(para)
 	if strings.TrimSpace(text) == "" {
 		return nil
 	}
 
-	// 简单的列表项处理
+	// Simple list item handling
 	marker := w.opts.BulletListMarker
 	if w.isNumberedList(para) {
 		marker = "1."
@@ -214,7 +214,7 @@ func (w *MarkdownWriter) writeListItem(para *document.Paragraph) error {
 	return nil
 }
 
-// writeNormalParagraph 写入普通段落
+// writeNormalParagraph writes a normal paragraph.
 func (w *MarkdownWriter) writeNormalParagraph(para *document.Paragraph) error {
 	text := w.extractParagraphText(para)
 	if strings.TrimSpace(text) == "" {
@@ -222,7 +222,7 @@ func (w *MarkdownWriter) writeNormalParagraph(para *document.Paragraph) error {
 		return nil
 	}
 
-	// 处理长行换行
+	// Handle long line wrapping
 	if w.opts.WrapLongLines && len(text) > w.opts.MaxLineLength {
 		text = w.wrapText(text, w.opts.MaxLineLength)
 	}
@@ -232,7 +232,7 @@ func (w *MarkdownWriter) writeNormalParagraph(para *document.Paragraph) error {
 	return nil
 }
 
-// writeTable 写入表格
+// writeTable writes a table.
 func (w *MarkdownWriter) writeTable(table *document.Table) error {
 	if table == nil || len(table.Rows) == 0 {
 		return nil
@@ -244,7 +244,7 @@ func (w *MarkdownWriter) writeTable(table *document.Table) error {
 
 	rows := table.Rows
 
-	// 写表头
+	// Write header row
 	if len(rows) > 0 {
 		headerRow := rows[0]
 		w.output.WriteString("|")
@@ -254,14 +254,14 @@ func (w *MarkdownWriter) writeTable(table *document.Table) error {
 		}
 		w.output.WriteString("\n")
 
-		// 写分隔行
+		// Write separator row
 		w.output.WriteString("|")
 		for i := 0; i < len(headerRow.Cells); i++ {
 			w.output.WriteString("-----|")
 		}
 		w.output.WriteString("\n")
 
-		// 写数据行
+		// Write data rows
 		for i := 1; i < len(rows); i++ {
 			w.output.WriteString("|")
 			for _, cell := range rows[i].Cells {
@@ -277,7 +277,7 @@ func (w *MarkdownWriter) writeTable(table *document.Table) error {
 	return nil
 }
 
-// writeSimpleTable 写入简单表格格式
+// writeSimpleTable writes a simple table format.
 func (w *MarkdownWriter) writeSimpleTable(table *document.Table) error {
 	for i, row := range table.Rows {
 		if i == 0 {
@@ -300,7 +300,7 @@ func (w *MarkdownWriter) writeSimpleTable(table *document.Table) error {
 	return nil
 }
 
-// writeFootnotes 写入脚注
+// writeFootnotes writes footnotes.
 func (w *MarkdownWriter) writeFootnotes() {
 	w.output.WriteString("\n---\n\n")
 	for i, footnote := range w.footnotes {
@@ -308,7 +308,7 @@ func (w *MarkdownWriter) writeFootnotes() {
 	}
 }
 
-// extractParagraphText 提取段落文本
+// extractParagraphText extracts text from a paragraph.
 func (w *MarkdownWriter) extractParagraphText(para *document.Paragraph) string {
 	if para == nil {
 		return ""
@@ -324,7 +324,7 @@ func (w *MarkdownWriter) extractParagraphText(para *document.Paragraph) string {
 	return result.String()
 }
 
-// formatRunText 格式化文本运行
+// formatRunText formats a text run.
 func (w *MarkdownWriter) formatRunText(run *document.Run) string {
 	if run == nil {
 		return ""
@@ -335,25 +335,25 @@ func (w *MarkdownWriter) formatRunText(run *document.Run) string {
 		return ""
 	}
 
-	// 检查格式属性
+	// Check formatting properties
 	if run.Properties != nil {
-		// 检查粗体
+		// Check for bold
 		if run.Properties.Bold != nil {
 			if run.Properties.Italic != nil {
-				text = "***" + text + "***" // 粗斜体
+				text = "***" + text + "***" // bold italic
 			} else {
-				text = "**" + text + "**" // 粗体
+				text = "**" + text + "**" // bold
 			}
 		} else if run.Properties.Italic != nil {
-			text = w.opts.EmphasisMarker + text + w.opts.EmphasisMarker // 斜体
+			text = w.opts.EmphasisMarker + text + w.opts.EmphasisMarker // italic
 		}
 
-		// 检查删除线
+		// Check for strikethrough
 		if run.Properties.Strike != nil {
-			text = "~~" + text + "~~" // 删除线
+			text = "~~" + text + "~~" // strikethrough
 		}
 
-		// 处理代码样式
+		// Handle code style
 		if w.isCodeStyle(run.Properties) {
 			text = "`" + text + "`"
 		}
@@ -362,7 +362,7 @@ func (w *MarkdownWriter) formatRunText(run *document.Run) string {
 	return text
 }
 
-// extractCellText 提取单元格文本
+// extractCellText extracts text from a table cell.
 func (w *MarkdownWriter) extractCellText(cell *document.TableCell) string {
 	if cell == nil {
 		return ""
@@ -375,7 +375,7 @@ func (w *MarkdownWriter) extractCellText(cell *document.TableCell) string {
 		result.WriteString(text)
 	}
 
-	// 清理表格单元格中的换行符
+	// Clean up line breaks in table cell text
 	text := result.String()
 	text = strings.ReplaceAll(text, "\n", " ")
 	text = strings.TrimSpace(text)
@@ -383,7 +383,7 @@ func (w *MarkdownWriter) extractCellText(cell *document.TableCell) string {
 	return text
 }
 
-// getParagraphStyle 获取段落样式
+// getParagraphStyle returns the paragraph style name.
 func (w *MarkdownWriter) getParagraphStyle(para *document.Paragraph) string {
 	if para.Properties != nil && para.Properties.ParagraphStyle != nil {
 		return para.Properties.ParagraphStyle.Val
@@ -391,9 +391,9 @@ func (w *MarkdownWriter) getParagraphStyle(para *document.Paragraph) string {
 	return "Normal"
 }
 
-// getHeadingLevel 获取标题级别
+// getHeadingLevel returns the heading level from a style name.
 func (w *MarkdownWriter) getHeadingLevel(style string) int {
-	// 提取数字
+	// Extract digit
 	re := regexp.MustCompile(`\d+`)
 	matches := re.FindString(style)
 	if matches != "" {
@@ -404,7 +404,7 @@ func (w *MarkdownWriter) getHeadingLevel(style string) int {
 	return 1
 }
 
-// isListParagraph 判断是否为列表段落
+// isListParagraph checks whether the paragraph is a list item.
 func (w *MarkdownWriter) isListParagraph(para *document.Paragraph) bool {
 	if para.Properties == nil {
 		return false
@@ -412,17 +412,17 @@ func (w *MarkdownWriter) isListParagraph(para *document.Paragraph) bool {
 	return para.Properties.NumberingProperties != nil
 }
 
-// isNumberedList 判断是否为编号列表
+// isNumberedList checks whether the paragraph is a numbered list item.
 func (w *MarkdownWriter) isNumberedList(para *document.Paragraph) bool {
-	// 简单实现，实际应该检查编号格式
+	// Simple implementation; should check numbering format in practice
 	return false
 }
 
-// isCodeStyle 判断是否为代码样式
+// isCodeStyle checks whether the run properties indicate a code style.
 func (w *MarkdownWriter) isCodeStyle(props *document.RunProperties) bool {
 	if props.FontFamily != nil {
 		font := props.FontFamily.ASCII
-		// 检查是否为等宽字体
+		// Check if it is a monospace font
 		codefonts := []string{"Consolas", "Courier New", "Monaco", "Menlo", "Source Code Pro"}
 		for _, codefont := range codefonts {
 			if strings.Contains(font, codefont) {
@@ -433,7 +433,7 @@ func (w *MarkdownWriter) isCodeStyle(props *document.RunProperties) bool {
 	return false
 }
 
-// wrapText 文本换行
+// wrapText wraps text to the specified maximum line length.
 func (w *MarkdownWriter) wrapText(text string, maxLength int) string {
 	if len(text) <= maxLength {
 		return text

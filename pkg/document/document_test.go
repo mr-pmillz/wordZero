@@ -7,32 +7,31 @@ import (
 	"github.com/zerx-lab/wordZero/pkg/style"
 )
 
-// assertParagraphContent 验证段落的文本内容（带边界检查）
 // assertParagraphContent verifies the text content of a paragraph with bounds checking
 func assertParagraphContent(t *testing.T, paragraphs []*Paragraph, index int, expectedContent string) {
 	t.Helper()
 	if index >= len(paragraphs) {
-		t.Errorf("段落索引 %d 超出范围，总共只有 %d 个段落", index, len(paragraphs))
+		t.Errorf("paragraph index %d out of range, only %d paragraphs total", index, len(paragraphs))
 		return
 	}
 
 	para := paragraphs[index]
 	if len(para.Runs) == 0 {
-		t.Errorf("索引 %d 的段落没有任何运行（Runs）", index)
+		t.Errorf("paragraph at index %d has no runs", index)
 		return
 	}
 
 	actualContent := para.Runs[0].Text.Content
 	if actualContent != expectedContent {
-		t.Errorf("索引 %d 的段落内容应该是'%s'，实际是'%s'", index, expectedContent, actualContent)
+		t.Errorf("paragraph at index %d content should be '%s', got '%s'", index, expectedContent, actualContent)
 	}
 }
 
-// TestNewDocument 测试新文档创建
+// TestNewDocument tests new document creation
 func TestNewDocument(t *testing.T) {
 	doc := New()
 
-	// 验证基本结构
+	// Verify basic structure
 	if doc == nil {
 		t.Fatal("Failed to create new document")
 	}
@@ -45,31 +44,31 @@ func TestNewDocument(t *testing.T) {
 		t.Fatal("Style manager is nil")
 	}
 
-	// 验证初始状态
+	// Verify initial state
 	if len(doc.Body.GetParagraphs()) != 0 {
 		t.Errorf("Expected 0 paragraphs, got %d", len(doc.Body.GetParagraphs()))
 	}
 
-	// 验证样式管理器初始化
+	// Verify style manager initialization
 	styles := doc.styleManager.GetAllStyles()
 	if len(styles) == 0 {
 		t.Error("Style manager should have predefined styles")
 	}
 }
 
-// TestAddParagraph 测试添加普通段落
+// TestAddParagraph tests adding a plain paragraph
 func TestAddParagraph(t *testing.T) {
 	doc := New()
 	text := "测试段落内容"
 
 	para := doc.AddParagraph(text)
 
-	// 验证段落添加
+	// Verify paragraph was added
 	if len(doc.Body.GetParagraphs()) != 1 {
 		t.Errorf("Expected 1 paragraph, got %d", len(doc.Body.GetParagraphs()))
 	}
 
-	// 验证段落内容
+	// Verify paragraph content
 	if len(para.Runs) != 1 {
 		t.Errorf("Expected 1 run, got %d", len(para.Runs))
 	}
@@ -78,14 +77,14 @@ func TestAddParagraph(t *testing.T) {
 		t.Errorf("Expected %s, got %s", text, para.Runs[0].Text.Content)
 	}
 
-	// 验证返回的指针是否正确
+	// Verify the returned pointer is correct
 	paragraphs := doc.Body.GetParagraphs()
 	if paragraphs[0] != para {
 		t.Error("Returned paragraph pointer is incorrect")
 	}
 }
 
-// TestAddHeadingParagraph 测试添加标题段落
+// TestAddHeadingParagraph tests adding heading paragraphs
 func TestAddHeadingParagraph(t *testing.T) {
 	doc := New()
 
@@ -103,7 +102,7 @@ func TestAddHeadingParagraph(t *testing.T) {
 	for _, tc := range testCases {
 		para := doc.AddHeadingParagraph(tc.text, tc.level)
 
-		// 验证段落样式设置
+		// Verify paragraph style is set
 		if para.Properties == nil {
 			t.Errorf("Heading paragraph should have properties")
 			continue
@@ -118,7 +117,7 @@ func TestAddHeadingParagraph(t *testing.T) {
 			t.Errorf("Expected style %s, got %s", tc.styleID, para.Properties.ParagraphStyle.Val)
 		}
 
-		// 验证内容
+		// Verify content
 		if len(para.Runs) != 1 {
 			t.Errorf("Expected 1 run, got %d", len(para.Runs))
 			continue
@@ -129,7 +128,7 @@ func TestAddHeadingParagraph(t *testing.T) {
 		}
 	}
 
-	// 测试超出范围的级别
+	// Test out-of-range level
 	para := doc.AddHeadingParagraph("超出范围", 10)
 	if para.Properties.ParagraphStyle.Val != "Heading1" {
 		t.Error("Out of range level should default to Heading1")
@@ -141,7 +140,7 @@ func TestAddHeadingParagraph(t *testing.T) {
 	}
 }
 
-// TestAddFormattedParagraph 测试添加格式化段落
+// TestAddFormattedParagraph tests adding a formatted paragraph
 func TestAddFormattedParagraph(t *testing.T) {
 	doc := New()
 	text := "格式化文本"
@@ -156,12 +155,12 @@ func TestAddFormattedParagraph(t *testing.T) {
 
 	para := doc.AddFormattedParagraph(text, format)
 
-	// 验证段落添加
+	// Verify paragraph was added
 	if len(doc.Body.GetParagraphs()) != 1 {
 		t.Error("Failed to add formatted paragraph")
 	}
 
-	// 验证格式设置
+	// Verify formatting
 	run := para.Runs[0]
 	if run.Properties == nil {
 		t.Fatal("Run properties should not be nil")
@@ -188,7 +187,7 @@ func TestAddFormattedParagraph(t *testing.T) {
 	}
 }
 
-// TestParagraphSetAlignment 测试段落对齐设置
+// TestParagraphSetAlignment tests paragraph alignment setting
 func TestParagraphSetAlignment(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试对齐")
@@ -217,7 +216,7 @@ func TestParagraphSetAlignment(t *testing.T) {
 	}
 }
 
-// TestParagraphSetSpacing 测试段落间距设置
+// TestParagraphSetSpacing tests paragraph spacing setting
 func TestParagraphSetSpacing(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试间距")
@@ -231,7 +230,7 @@ func TestParagraphSetSpacing(t *testing.T) {
 
 	para.SetSpacing(config)
 
-	// 验证属性设置
+	// Verify property settings
 	if para.Properties == nil {
 		t.Fatal("Properties should not be nil")
 	}
@@ -240,7 +239,7 @@ func TestParagraphSetSpacing(t *testing.T) {
 		t.Fatal("Spacing should not be nil")
 	}
 
-	// 验证间距值（转换为TWIPs）
+	// Verify spacing values (converted to TWIPs)
 	spacing := para.Properties.Spacing
 	if spacing.Before != "240" { // 12 * 20
 		t.Errorf("Expected before spacing 240, got %s", spacing.Before)
@@ -254,7 +253,7 @@ func TestParagraphSetSpacing(t *testing.T) {
 		t.Errorf("Expected line spacing 360, got %s", spacing.Line)
 	}
 
-	// 验证首行缩进
+	// Verify first line indent
 	if para.Properties.Indentation == nil {
 		t.Fatal("Indentation should not be nil")
 	}
@@ -264,12 +263,12 @@ func TestParagraphSetSpacing(t *testing.T) {
 	}
 }
 
-// TestParagraphAddFormattedText 测试段落添加格式化文本
+// TestParagraphAddFormattedText tests adding formatted text to a paragraph
 func TestParagraphAddFormattedText(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("初始文本")
 
-	// 添加格式化文本
+	// Add formatted text
 	format := &TextFormat{
 		Bold:      true,
 		FontColor: "0000FF",
@@ -277,12 +276,12 @@ func TestParagraphAddFormattedText(t *testing.T) {
 
 	para.AddFormattedText("格式化文本", format)
 
-	// 验证运行数量
+	// Verify run count
 	if len(para.Runs) != 2 {
 		t.Errorf("Expected 2 runs, got %d", len(para.Runs))
 	}
 
-	// 验证第二个运行的格式
+	// Verify the second run's formatting
 	run := para.Runs[1]
 	if run.Properties == nil {
 		t.Fatal("Second run should have properties")
@@ -301,7 +300,7 @@ func TestParagraphAddFormattedText(t *testing.T) {
 	}
 }
 
-// TestParagraphSetStyle 测试段落样式设置
+// TestParagraphSetStyle tests paragraph style setting
 func TestParagraphSetStyle(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试样式")
@@ -321,12 +320,12 @@ func TestParagraphSetStyle(t *testing.T) {
 	}
 }
 
-// TestParagraphSetIndentation 测试段落缩进设置
+// TestParagraphSetIndentation tests paragraph indentation setting
 func TestParagraphSetIndentation(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试缩进")
 
-	// 测试首行缩进
+	// Test first line indent
 	para.SetIndentation(0.5, 0, 0)
 
 	if para.Properties == nil {
@@ -337,18 +336,18 @@ func TestParagraphSetIndentation(t *testing.T) {
 		t.Fatal("Indentation should not be nil")
 	}
 
-	// 0.5厘米 = 283.5 TWIPs，四舍五入为284
+	// 0.5 cm = 283.5 TWIPs, rounded to 284
 	expectedFirstLine := "283"
 	if para.Properties.Indentation.FirstLine != expectedFirstLine {
 		t.Errorf("Expected FirstLine %s, got %s", expectedFirstLine, para.Properties.Indentation.FirstLine)
 	}
 
-	// 测试左右缩进
+	// Test left and right indent
 	para.SetIndentation(-0.5, 1.0, 0.5)
 
-	expectedFirstLine = "-283" // 悬挂缩进
-	expectedLeft := "567"      // 1厘米
-	expectedRight := "283"     // 0.5厘米
+	expectedFirstLine = "-283" // hanging indent
+	expectedLeft := "567"      // 1 cm
+	expectedRight := "283"     // 0.5 cm
 
 	if para.Properties.Indentation.FirstLine != expectedFirstLine {
 		t.Errorf("Expected FirstLine %s, got %s", expectedFirstLine, para.Properties.Indentation.FirstLine)
@@ -361,12 +360,12 @@ func TestParagraphSetIndentation(t *testing.T) {
 	}
 }
 
-// TestParagraphSetKeepWithNext 测试段落与下一段保持在一起
+// TestParagraphSetKeepWithNext tests keeping a paragraph with the next one
 func TestParagraphSetKeepWithNext(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试保持与下一段")
 
-	// 测试启用
+	// Test enabling
 	para.SetKeepWithNext(true)
 
 	if para.Properties == nil {
@@ -381,7 +380,7 @@ func TestParagraphSetKeepWithNext(t *testing.T) {
 		t.Errorf("Expected KeepNext Val to be '1', got '%s'", para.Properties.KeepNext.Val)
 	}
 
-	// 测试禁用
+	// Test disabling
 	para.SetKeepWithNext(false)
 
 	if para.Properties.KeepNext != nil {
@@ -389,12 +388,12 @@ func TestParagraphSetKeepWithNext(t *testing.T) {
 	}
 }
 
-// TestParagraphSetKeepLines 测试段落行保持在一起
+// TestParagraphSetKeepLines tests keeping paragraph lines together
 func TestParagraphSetKeepLines(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试行保持")
 
-	// 测试启用
+	// Test enabling
 	para.SetKeepLines(true)
 
 	if para.Properties == nil {
@@ -409,7 +408,7 @@ func TestParagraphSetKeepLines(t *testing.T) {
 		t.Errorf("Expected KeepLines Val to be '1', got '%s'", para.Properties.KeepLines.Val)
 	}
 
-	// 测试禁用
+	// Test disabling
 	para.SetKeepLines(false)
 
 	if para.Properties.KeepLines != nil {
@@ -417,12 +416,12 @@ func TestParagraphSetKeepLines(t *testing.T) {
 	}
 }
 
-// TestParagraphSetPageBreakBefore 测试段前分页
+// TestParagraphSetPageBreakBefore tests page break before paragraph
 func TestParagraphSetPageBreakBefore(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试段前分页")
 
-	// 测试启用
+	// Test enabling
 	para.SetPageBreakBefore(true)
 
 	if para.Properties == nil {
@@ -437,7 +436,7 @@ func TestParagraphSetPageBreakBefore(t *testing.T) {
 		t.Errorf("Expected PageBreakBefore Val to be '1', got '%s'", para.Properties.PageBreakBefore.Val)
 	}
 
-	// 测试禁用
+	// Test disabling
 	para.SetPageBreakBefore(false)
 
 	if para.Properties.PageBreakBefore != nil {
@@ -445,12 +444,12 @@ func TestParagraphSetPageBreakBefore(t *testing.T) {
 	}
 }
 
-// TestParagraphSetWidowControl 测试孤行控制
+// TestParagraphSetWidowControl tests widow/orphan control
 func TestParagraphSetWidowControl(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试孤行控制")
 
-	// 测试启用
+	// Test enabling
 	para.SetWidowControl(true)
 
 	if para.Properties == nil {
@@ -465,7 +464,7 @@ func TestParagraphSetWidowControl(t *testing.T) {
 		t.Errorf("Expected WidowControl Val to be '1', got '%s'", para.Properties.WidowControl.Val)
 	}
 
-	// 测试禁用
+	// Test disabling
 	para.SetWidowControl(false)
 
 	if para.Properties.WidowControl == nil {
@@ -477,12 +476,12 @@ func TestParagraphSetWidowControl(t *testing.T) {
 	}
 }
 
-// TestParagraphSetOutlineLevel 测试大纲级别设置
+// TestParagraphSetOutlineLevel tests outline level setting
 func TestParagraphSetOutlineLevel(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试大纲级别")
 
-	// 测试有效级别
+	// Test valid level
 	para.SetOutlineLevel(0)
 
 	if para.Properties == nil {
@@ -497,19 +496,19 @@ func TestParagraphSetOutlineLevel(t *testing.T) {
 		t.Errorf("Expected OutlineLevel Val to be '0', got '%s'", para.Properties.OutlineLevel.Val)
 	}
 
-	// 测试其他级别
+	// Test other levels
 	para.SetOutlineLevel(3)
 	if para.Properties.OutlineLevel.Val != "3" {
 		t.Errorf("Expected OutlineLevel Val to be '3', got '%s'", para.Properties.OutlineLevel.Val)
 	}
 
-	// 测试边界值
+	// Test boundary values
 	para.SetOutlineLevel(8)
 	if para.Properties.OutlineLevel.Val != "8" {
 		t.Errorf("Expected OutlineLevel Val to be '8', got '%s'", para.Properties.OutlineLevel.Val)
 	}
 
-	// 测试超出范围的值（应该被限制）
+	// Test out-of-range values (should be clamped)
 	para.SetOutlineLevel(10)
 	if para.Properties.OutlineLevel.Val != "8" {
 		t.Errorf("Expected OutlineLevel to be capped at '8', got '%s'", para.Properties.OutlineLevel.Val)
@@ -521,12 +520,12 @@ func TestParagraphSetOutlineLevel(t *testing.T) {
 	}
 }
 
-// TestParagraphSetParagraphFormat 测试综合段落格式设置
+// TestParagraphSetParagraphFormat tests comprehensive paragraph format setting
 func TestParagraphSetParagraphFormat(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试综合格式设置")
 
-	// 测试完整配置
+	// Test full configuration
 	config := &ParagraphFormatConfig{
 		Alignment:       AlignCenter,
 		Style:           "Heading1",
@@ -545,32 +544,32 @@ func TestParagraphSetParagraphFormat(t *testing.T) {
 
 	para.SetParagraphFormat(config)
 
-	// 验证所有属性
+	// Verify all properties
 	if para.Properties == nil {
 		t.Fatal("Properties should not be nil")
 	}
 
-	// 验证对齐
+	// Verify alignment
 	if para.Properties.Justification == nil || para.Properties.Justification.Val != string(AlignCenter) {
 		t.Error("Alignment not set correctly")
 	}
 
-	// 验证样式
+	// Verify style
 	if para.Properties.ParagraphStyle == nil || para.Properties.ParagraphStyle.Val != "Heading1" {
 		t.Error("Style not set correctly")
 	}
 
-	// 验证间距
+	// Verify spacing
 	if para.Properties.Spacing == nil {
 		t.Fatal("Spacing should not be nil")
 	}
 
-	// 验证缩进
+	// Verify indentation
 	if para.Properties.Indentation == nil {
 		t.Fatal("Indentation should not be nil")
 	}
 
-	// 验证分页控制
+	// Verify pagination control
 	if para.Properties.KeepNext == nil || para.Properties.KeepNext.Val != "1" {
 		t.Error("KeepNext not set correctly")
 	}
@@ -587,32 +586,32 @@ func TestParagraphSetParagraphFormat(t *testing.T) {
 		t.Error("WidowControl not set correctly")
 	}
 
-	// 验证大纲级别
+	// Verify outline level
 	if para.Properties.OutlineLevel == nil || para.Properties.OutlineLevel.Val != "0" {
 		t.Error("OutlineLevel not set correctly")
 	}
 }
 
-// TestParagraphSetParagraphFormatNil 测试nil配置
+// TestParagraphSetParagraphFormatNil tests nil configuration
 func TestParagraphSetParagraphFormatNil(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试nil配置")
 
-	// nil配置不应该导致panic
+	// nil config should not cause a panic
 	para.SetParagraphFormat(nil)
 
-	// 段落应该保持默认状态
+	// Paragraph should remain in default state
 	if para.Properties != nil && para.Properties.Justification != nil {
 		t.Error("Properties should remain unchanged with nil config")
 	}
 }
 
-// TestParagraphSetParagraphFormatPartial 测试部分配置
+// TestParagraphSetParagraphFormatPartial tests partial configuration
 func TestParagraphSetParagraphFormatPartial(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试部分配置")
 
-	// 只设置部分属性
+	// Set only some properties
 	config := &ParagraphFormatConfig{
 		Alignment:    AlignRight,
 		KeepWithNext: true,
@@ -621,7 +620,7 @@ func TestParagraphSetParagraphFormatPartial(t *testing.T) {
 
 	para.SetParagraphFormat(config)
 
-	// 验证设置的属性
+	// Verify the set properties
 	if para.Properties == nil {
 		t.Fatal("Properties should not be nil")
 	}
@@ -638,31 +637,31 @@ func TestParagraphSetParagraphFormatPartial(t *testing.T) {
 		t.Error("Spacing should be set")
 	}
 
-	// 验证未设置的属性保持默认
+	// Verify unset properties remain at defaults
 	if para.Properties.PageBreakBefore != nil {
 		t.Error("PageBreakBefore should remain nil")
 	}
 }
 
-// TestDocumentSave 测试文档保存
+// TestDocumentSave tests document saving
 func TestDocumentSave(t *testing.T) {
 	doc := New()
 	doc.AddParagraph("测试保存功能")
 
 	filename := "test_save.docx"
-	defer os.Remove(filename) // 清理测试文件
+	defer os.Remove(filename) // Clean up test file
 
 	err := doc.Save(filename)
 	if err != nil {
 		t.Fatalf("Failed to save document: %v", err)
 	}
 
-	// 验证文件是否存在
+	// Verify file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
 		t.Error("Saved file does not exist")
 	}
 
-	// 验证文件大小
+	// Verify file size
 	stat, err := os.Stat(filename)
 	if err != nil {
 		t.Fatalf("Failed to get file stats: %v", err)
@@ -673,7 +672,7 @@ func TestDocumentSave(t *testing.T) {
 	}
 }
 
-// TestDocumentGetStyleManager 测试获取样式管理器
+// TestDocumentGetStyleManager tests getting the style manager
 func TestDocumentGetStyleManager(t *testing.T) {
 	doc := New()
 
@@ -682,7 +681,7 @@ func TestDocumentGetStyleManager(t *testing.T) {
 		t.Fatal("Style manager should not be nil")
 	}
 
-	// 验证样式管理器功能
+	// Verify style manager functionality
 	if !styleManager.StyleExists("Normal") {
 		t.Error("Normal style should exist")
 	}
@@ -692,23 +691,23 @@ func TestDocumentGetStyleManager(t *testing.T) {
 	}
 }
 
-// TestComplexDocument 测试复杂文档创建
+// TestComplexDocument tests complex document creation
 func TestComplexDocument(t *testing.T) {
 	doc := New()
 
-	// 添加标题
+	// Add title
 	title := doc.AddFormattedParagraph("文档标题", &TextFormat{
 		Bold:     true,
 		FontSize: 18,
 	})
 	title.SetAlignment(AlignCenter)
 
-	// 添加各级标题
+	// Add various heading levels
 	doc.AddHeadingParagraph("第一章", 1)
 	doc.AddHeadingParagraph("1.1 概述", 2)
 	doc.AddHeadingParagraph("1.1.1 背景", 3)
 
-	// 添加带间距的段落
+	// Add paragraph with spacing
 	para := doc.AddParagraph("这是一个带有特殊间距的段落")
 	para.SetSpacing(&SpacingConfig{
 		LineSpacing: 1.5,
@@ -716,19 +715,19 @@ func TestComplexDocument(t *testing.T) {
 		AfterPara:   6,
 	})
 
-	// 添加混合格式段落
+	// Add mixed-format paragraph
 	mixed := doc.AddParagraph("这段文字包含")
 	mixed.AddFormattedText("粗体", &TextFormat{Bold: true})
 	mixed.AddFormattedText("和", nil)
 	mixed.AddFormattedText("斜体", &TextFormat{Italic: true})
 	mixed.AddFormattedText("文本。", nil)
 
-	// 验证文档结构
+	// Verify document structure
 	if len(doc.Body.GetParagraphs()) != 6 {
 		t.Errorf("Expected 6 paragraphs, got %d", len(doc.Body.GetParagraphs()))
 	}
 
-	// 保存并验证
+	// Save and verify
 	filename := "test_complex.docx"
 	defer os.Remove(filename)
 
@@ -738,9 +737,9 @@ func TestComplexDocument(t *testing.T) {
 	}
 }
 
-// TestDocumentOpen 测试打开文档（需要先创建一个测试文档）
+// TestDocumentOpen tests opening a document (requires creating a test document first)
 func TestDocumentOpen(t *testing.T) {
-	// 先创建一个测试文档
+	// First create a test document
 	originalDoc := New()
 	originalDoc.AddParagraph("第一段")
 	originalDoc.AddParagraph("第二段")
@@ -754,18 +753,18 @@ func TestDocumentOpen(t *testing.T) {
 		t.Fatalf("Failed to save test document: %v", err)
 	}
 
-	// 打开文档
+	// Open document
 	loadedDoc, err := Open(filename)
 	if err != nil {
 		t.Fatalf("Failed to open document: %v", err)
 	}
 
-	// 验证文档内容
+	// Verify document content
 	if len(loadedDoc.Body.GetParagraphs()) != 3 {
 		t.Errorf("Expected 3 paragraphs, got %d", len(loadedDoc.Body.GetParagraphs()))
 	}
 
-	// 验证第一段内容
+	// Verify first paragraph content
 	if len(loadedDoc.Body.GetParagraphs()[0].Runs) > 0 {
 		content := loadedDoc.Body.GetParagraphs()[0].Runs[0].Text.Content
 		if content != "第一段" {
@@ -774,24 +773,24 @@ func TestDocumentOpen(t *testing.T) {
 	}
 }
 
-// TestErrorHandling 测试错误处理
+// TestErrorHandling tests error handling
 func TestErrorHandling(t *testing.T) {
-	// 测试打开不存在的文件
+	// Test opening a non-existent file
 	_, err := Open("nonexistent.docx")
 	if err == nil {
 		t.Error("Should return error when opening non-existent file")
 	}
 
-	// 测试保存到只读目录（如果创建失败则跳过这个测试）
+	// Test saving to a read-only directory (skip if creation fails)
 	doc := New()
 	doc.AddParagraph("测试")
 
-	// 尝试保存到一个包含空字符的无效文件名
+	// Try saving to an invalid filename containing a null character
 	invalidPath := "test\x00invalid.docx"
 	err = doc.Save(invalidPath)
 	if err == nil {
-		// 如果第一个测试没有失败，尝试另一个策略
-		// 尝试保存到一个超长路径
+		// If the first test didn't fail, try another strategy
+		// Try saving to an excessively long path
 		longPath := string(make([]byte, 300)) + ".docx"
 		err = doc.Save(longPath)
 		if err == nil {
@@ -800,13 +799,13 @@ func TestErrorHandling(t *testing.T) {
 	}
 }
 
-// TestStyleIntegration 测试样式集成
+// TestStyleIntegration tests style integration
 func TestStyleIntegration(t *testing.T) {
 	doc := New()
 	styleManager := doc.GetStyleManager()
 	quickAPI := style.NewQuickStyleAPI(styleManager)
 
-	// 创建自定义样式
+	// Create custom style
 	config := style.QuickStyleConfig{
 		ID:      "TestStyle",
 		Name:    "测试样式",
@@ -823,11 +822,11 @@ func TestStyleIntegration(t *testing.T) {
 		t.Fatalf("Failed to create custom style: %v", err)
 	}
 
-	// 使用自定义样式
+	// Use custom style
 	para := doc.AddParagraph("使用自定义样式")
 	para.SetStyle("TestStyle")
 
-	// 验证样式应用
+	// Verify style is applied
 	if para.Properties == nil || para.Properties.ParagraphStyle == nil {
 		t.Fatal("Style should be applied to paragraph")
 	}
@@ -836,13 +835,13 @@ func TestStyleIntegration(t *testing.T) {
 		t.Errorf("Expected TestStyle, got %s", para.Properties.ParagraphStyle.Val)
 	}
 
-	// 验证样式存在
+	// Verify style exists
 	if !styleManager.StyleExists("TestStyle") {
 		t.Error("Custom style should exist in style manager")
 	}
 }
 
-// BenchmarkAddParagraph 基准测试 - 添加段落性能
+// BenchmarkAddParagraph benchmarks paragraph addition performance
 func BenchmarkAddParagraph(b *testing.B) {
 	doc := New()
 
@@ -852,11 +851,11 @@ func BenchmarkAddParagraph(b *testing.B) {
 	}
 }
 
-// BenchmarkDocumentSave 基准测试 - 文档保存性能
+// BenchmarkDocumentSave benchmarks document save performance
 func BenchmarkDocumentSave(b *testing.B) {
 	doc := New()
 
-	// 创建一个中等大小的文档
+	// Create a medium-sized document
 	for i := 0; i < 100; i++ {
 		doc.AddParagraph("基准测试段落内容")
 	}
@@ -872,17 +871,17 @@ func BenchmarkDocumentSave(b *testing.B) {
 	}
 }
 
-// TestTextFormatValidation 测试文本格式验证
+// TestTextFormatValidation tests text format validation
 func TestTextFormatValidation(t *testing.T) {
 	doc := New()
 
-	// 测试颜色格式
+	// Test color format
 	testCases := []struct {
 		color    string
 		expected string
 	}{
-		{"#FF0000", "FF0000"}, // 带#前缀
-		{"FF0000", "FF0000"},  // 不带#前缀
+		{"#FF0000", "FF0000"}, // with # prefix
+		{"FF0000", "FF0000"},  // without # prefix
 		{"#123456", "123456"},
 		{"ABCDEF", "ABCDEF"},
 	}
@@ -900,11 +899,11 @@ func TestTextFormatValidation(t *testing.T) {
 	}
 }
 
-// TestMemoryUsage 测试内存使用
+// TestMemoryUsage tests memory usage
 func TestMemoryUsage(t *testing.T) {
 	doc := New()
 
-	// 添加大量段落测试内存使用
+	// Add a large number of paragraphs to test memory usage
 	const numParagraphs = 1000
 	for i := 0; i < numParagraphs; i++ {
 		doc.AddParagraph("内存测试段落")
@@ -914,7 +913,7 @@ func TestMemoryUsage(t *testing.T) {
 		t.Errorf("Expected %d paragraphs, got %d", numParagraphs, len(doc.Body.GetParagraphs()))
 	}
 
-	// 测试保存大文档
+	// Test saving a large document
 	filename := "test_memory.docx"
 	defer os.Remove(filename)
 
@@ -925,7 +924,7 @@ func TestMemoryUsage(t *testing.T) {
 }
 
 func TestDocumentOpenFromMemory(t *testing.T) {
-	// 先创建一个测试文档
+	// First create a test document
 	originalDoc := New()
 	originalDoc.AddParagraph("第一段")
 	originalDoc.AddParagraph("第二段")
@@ -939,7 +938,7 @@ func TestDocumentOpenFromMemory(t *testing.T) {
 		t.Fatalf("Failed to save test document: %v", err)
 	}
 
-	// 打开文档
+	// Open document
 	files, err := os.Open(filename)
 	if err != nil {
 		t.Fatalf("Failed to open test document: %v", err)
@@ -958,213 +957,213 @@ func TestDocumentOpenFromMemory(t *testing.T) {
 	}
 }
 
-// TestAddPageBreak 测试添加分页符功能
+// TestAddPageBreak tests the add page break functionality
 func TestAddPageBreak(t *testing.T) {
 	doc := New()
 
-	// 添加第一页内容
+	// Add first page content
 	doc.AddParagraph("第一页内容")
 
-	// 添加分页符
+	// Add page break
 	doc.AddPageBreak()
 
-	// 添加第二页内容
+	// Add second page content
 	doc.AddParagraph("第二页内容")
 
-	// 验证文档包含3个元素（段落、分页符段落、段落）
+	// Verify document contains 3 elements (paragraph, page break paragraph, paragraph)
 	if len(doc.Body.Elements) != 3 {
-		t.Errorf("期望文档包含3个元素，实际包含 %d 个", len(doc.Body.Elements))
+		t.Errorf("expected document to contain 3 elements, got %d", len(doc.Body.Elements))
 	}
 
-	// 验证第二个元素是包含分页符的段落
+	// Verify the second element is a paragraph containing a page break
 	if p, ok := doc.Body.Elements[1].(*Paragraph); ok {
 		if len(p.Runs) == 0 || p.Runs[0].Break == nil {
-			t.Error("第二个元素应该是包含分页符的段落")
+			t.Error("second element should be a paragraph containing a page break")
 		} else if p.Runs[0].Break.Type != "page" {
-			t.Errorf("分页符类型应该是 'page'，实际是 '%s'", p.Runs[0].Break.Type)
+			t.Errorf("page break type should be 'page', got '%s'", p.Runs[0].Break.Type)
 		}
 	} else {
-		t.Error("第二个元素应该是段落类型")
+		t.Error("second element should be a paragraph type")
 	}
 
-	// 保存并验证文档可以正常生成
+	// Save and verify document can be generated correctly
 	filename := "test_page_break.docx"
 	defer os.Remove(filename)
 
 	err := doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存包含分页符的文档失败: %v", err)
+		t.Fatalf("failed to save document with page break: %v", err)
 	}
 
-	// 验证文件存在
+	// Verify file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		t.Error("保存的文档文件不存在")
+		t.Error("saved document file does not exist")
 	}
 }
 
-// TestParagraphAddPageBreak 测试段落内添加分页符功能
+// TestParagraphAddPageBreak tests adding a page break within a paragraph
 func TestParagraphAddPageBreak(t *testing.T) {
 	doc := New()
 
-	// 创建一个段落并添加分页符
+	// Create a paragraph and add a page break
 	para := doc.AddParagraph("分页符前的内容")
 	para.AddPageBreak()
 	para.AddFormattedText("分页符后的内容", nil)
 
-	// 验证段落包含3个运行（文本、分页符、文本）
+	// Verify paragraph contains 3 runs (text, page break, text)
 	if len(para.Runs) != 3 {
-		t.Errorf("期望段落包含3个运行，实际包含 %d 个", len(para.Runs))
+		t.Errorf("expected paragraph to contain 3 runs, got %d", len(para.Runs))
 	}
 
-	// 验证第二个运行是分页符
+	// Verify the second run is a page break
 	if para.Runs[1].Break == nil {
-		t.Error("第二个运行应该是分页符")
+		t.Error("second run should be a page break")
 	} else if para.Runs[1].Break.Type != "page" {
-		t.Errorf("分页符类型应该是 'page'，实际是 '%s'", para.Runs[1].Break.Type)
+		t.Errorf("page break type should be 'page', got '%s'", para.Runs[1].Break.Type)
 	}
 
-	// 保存并验证文档可以正常生成
+	// Save and verify document can be generated correctly
 	filename := "test_paragraph_page_break.docx"
 	defer os.Remove(filename)
 
 	err := doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存包含段落内分页符的文档失败: %v", err)
+		t.Fatalf("failed to save document with paragraph page break: %v", err)
 	}
 
-	// 验证文件存在
+	// Verify file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		t.Error("保存的文档文件不存在")
+		t.Error("saved document file does not exist")
 	}
 }
 
-// TestRemoveParagraph 测试删除段落功能
+// TestRemoveParagraph tests the remove paragraph functionality
 func TestRemoveParagraph(t *testing.T) {
 	doc := New()
 
-	// 添加三个段落
+	// Add three paragraphs
 	para1 := doc.AddParagraph("第一段")
 	para2 := doc.AddParagraph("第二段")
 	para3 := doc.AddParagraph("第三段")
 
-	// 验证初始状态
+	// Verify initial state
 	if len(doc.Body.Elements) != 3 {
-		t.Fatalf("期望文档包含3个段落，实际包含 %d 个", len(doc.Body.Elements))
+		t.Fatalf("expected document to contain 3 paragraphs, got %d", len(doc.Body.Elements))
 	}
 
-	// 删除第二个段落
+	// Remove the second paragraph
 	if !doc.RemoveParagraph(para2) {
-		t.Error("删除段落应该成功")
+		t.Error("removing paragraph should succeed")
 	}
 
-	// 验证删除后的状态
+	// Verify state after removal
 	if len(doc.Body.Elements) != 2 {
-		t.Errorf("删除后期望文档包含2个段落，实际包含 %d 个", len(doc.Body.Elements))
+		t.Errorf("after removal, expected document to contain 2 paragraphs, got %d", len(doc.Body.Elements))
 	}
 
-	// 验证剩余的段落是正确的
+	// Verify the remaining paragraphs are correct
 	paragraphs := doc.Body.GetParagraphs()
 	if len(paragraphs) != 2 {
-		t.Fatalf("期望获取到2个段落，实际获取到 %d 个", len(paragraphs))
+		t.Fatalf("expected to get 2 paragraphs, got %d", len(paragraphs))
 	}
 
 	if paragraphs[0] != para1 {
-		t.Error("第一个段落应该是 para1")
+		t.Error("first paragraph should be para1")
 	}
 	if paragraphs[1] != para3 {
-		t.Error("第二个段落应该是 para3")
+		t.Error("second paragraph should be para3")
 	}
 
-	// 尝试删除已删除的段落（应该返回false）
+	// Try to remove an already-removed paragraph (should return false)
 	if doc.RemoveParagraph(para2) {
-		t.Error("删除不存在的段落应该返回false")
+		t.Error("removing a non-existent paragraph should return false")
 	}
 }
 
-// TestRemoveParagraphAt 测试按索引删除段落功能
+// TestRemoveParagraphAt tests removing a paragraph by index
 func TestRemoveParagraphAt(t *testing.T) {
 	doc := New()
 
-	// 添加三个段落
+	// Add three paragraphs
 	doc.AddParagraph("第一段")
 	doc.AddParagraph("第二段")
 	doc.AddParagraph("第三段")
 
-	// 验证初始状态
+	// Verify initial state
 	paragraphs := doc.Body.GetParagraphs()
 	if len(paragraphs) != 3 {
-		t.Fatalf("期望文档包含3个段落，实际包含 %d 个", len(paragraphs))
+		t.Fatalf("expected document to contain 3 paragraphs, got %d", len(paragraphs))
 	}
 
-	// 删除索引为1的段落（第二段）
+	// Remove the paragraph at index 1 (second paragraph)
 	if !doc.RemoveParagraphAt(1) {
-		t.Error("删除索引1的段落应该成功")
+		t.Error("removing paragraph at index 1 should succeed")
 	}
 
-	// 验证删除后的状态
+	// Verify state after removal
 	paragraphs = doc.Body.GetParagraphs()
 	if len(paragraphs) != 2 {
-		t.Errorf("删除后期望文档包含2个段落，实际包含 %d 个", len(paragraphs))
+		t.Errorf("after removal, expected document to contain 2 paragraphs, got %d", len(paragraphs))
 	}
 
-	// 验证剩余段落的内容
+	// Verify remaining paragraph content
 	assertParagraphContent(t, paragraphs, 0, "第一段")
 	assertParagraphContent(t, paragraphs, 1, "第三段")
 
-	// 尝试删除超出范围的索引
+	// Try to remove an out-of-range index
 	if doc.RemoveParagraphAt(10) {
-		t.Error("删除超出范围的索引应该返回false")
+		t.Error("removing an out-of-range index should return false")
 	}
 
 	if doc.RemoveParagraphAt(-1) {
-		t.Error("删除负数索引应该返回false")
+		t.Error("removing a negative index should return false")
 	}
 }
 
-// TestRemoveElementAt 测试按元素索引删除功能
+// TestRemoveElementAt tests removing an element by index
 func TestRemoveElementAt(t *testing.T) {
 	doc := New()
 
-	// 添加段落和表格
+	// Add paragraphs and a table
 	doc.AddParagraph("段落1")
 	_, err := doc.AddTable(&TableConfig{Rows: 2, Cols: 2})
 	if err != nil {
-		t.Fatalf("添加表格失败: %v", err)
+		t.Fatalf("failed to add table: %v", err)
 	}
 	doc.AddParagraph("段落2")
 
-	// 验证初始状态
+	// Verify initial state
 	if len(doc.Body.Elements) != 3 {
-		t.Fatalf("期望文档包含3个元素，实际包含 %d 个", len(doc.Body.Elements))
+		t.Fatalf("expected document to contain 3 elements, got %d", len(doc.Body.Elements))
 	}
 
-	// 删除索引为1的元素（表格）
+	// Remove the element at index 1 (table)
 	if !doc.RemoveElementAt(1) {
-		t.Error("删除索引1的元素应该成功")
+		t.Error("removing element at index 1 should succeed")
 	}
 
-	// 验证删除后的状态
+	// Verify state after removal
 	if len(doc.Body.Elements) != 2 {
-		t.Errorf("删除后期望文档包含2个元素，实际包含 %d 个", len(doc.Body.Elements))
+		t.Errorf("after removal, expected document to contain 2 elements, got %d", len(doc.Body.Elements))
 	}
 
-	// 验证剩余的都是段落
+	// Verify the remaining elements are all paragraphs
 	paragraphs := doc.Body.GetParagraphs()
 	if len(paragraphs) != 2 {
-		t.Errorf("期望获取到2个段落，实际获取到 %d 个", len(paragraphs))
+		t.Errorf("expected to get 2 paragraphs, got %d", len(paragraphs))
 	}
 
-	// 尝试删除超出范围的索引
+	// Try to remove an out-of-range index
 	if doc.RemoveElementAt(10) {
-		t.Error("删除超出范围的索引应该返回false")
+		t.Error("removing an out-of-range index should return false")
 	}
 }
 
-// TestPageBreakAndDeletion 综合测试分页符和删除功能
+// TestPageBreakAndDeletion is an integration test for page breaks and deletion
 func TestPageBreakAndDeletion(t *testing.T) {
 	doc := New()
 
-	// 创建一个包含分页符的文档
+	// Create a document with page breaks
 	doc.AddParagraph("第一页 - 段落1")
 	doc.AddParagraph("第一页 - 段落2")
 	doc.AddPageBreak()
@@ -1172,41 +1171,41 @@ func TestPageBreakAndDeletion(t *testing.T) {
 	doc.AddPageBreak()
 	doc.AddParagraph("第三页 - 段落1")
 
-	// 验证初始状态（2个段落 + 1个分页符 + 1个段落 + 1个分页符 + 1个段落 = 6个元素）
+	// Verify initial state (2 paragraphs + 1 page break + 1 paragraph + 1 page break + 1 paragraph = 6 elements)
 	if len(doc.Body.Elements) != 6 {
-		t.Fatalf("期望文档包含6个元素，实际包含 %d 个", len(doc.Body.Elements))
+		t.Fatalf("expected document to contain 6 elements, got %d", len(doc.Body.Elements))
 	}
 
-	// 删除第一个分页符（索引2）
+	// Remove the first page break (index 2)
 	if !doc.RemoveElementAt(2) {
-		t.Error("删除分页符应该成功")
+		t.Error("removing page break should succeed")
 	}
 
-	// 验证删除后的状态
+	// Verify state after removal
 	if len(doc.Body.Elements) != 5 {
-		t.Errorf("删除后期望文档包含5个元素，实际包含 %d 个", len(doc.Body.Elements))
+		t.Errorf("after removal, expected document to contain 5 elements, got %d", len(doc.Body.Elements))
 	}
 
-	// 保存文档并验证
+	// Save and verify document
 	filename := "test_pagebreak_deletion.docx"
 	defer os.Remove(filename)
 
 	err := doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 
-	// 验证文件存在
+	// Verify file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		t.Error("保存的文档文件不存在")
+		t.Error("saved document file does not exist")
 	}
 }
 
-// TestAddFormattedHeader 测试添加格式化页眉
+// TestAddFormattedHeader tests adding a formatted header
 func TestAddFormattedHeader(t *testing.T) {
 	doc := New()
 
-	// 测试添加格式化页眉
+	// Test adding a formatted header
 	config := &HeaderFooterConfig{
 		Text: "公司报告",
 		Format: &TextFormat{
@@ -1219,35 +1218,35 @@ func TestAddFormattedHeader(t *testing.T) {
 
 	err := doc.AddFormattedHeader(HeaderFooterTypeDefault, config)
 	if err != nil {
-		t.Fatalf("添加格式化页眉失败: %v", err)
+		t.Fatalf("failed to add formatted header: %v", err)
 	}
 
-	// 验证页眉文件被创建
+	// Verify header file was created
 	headerPartName := "word/header1.xml"
 	if _, ok := doc.parts[headerPartName]; !ok {
-		t.Errorf("页眉文件 %s 未创建", headerPartName)
+		t.Errorf("header file %s was not created", headerPartName)
 	}
 
-	// 保存并验证文档
+	// Save and verify document
 	filename := "test_formatted_header.docx"
 	defer os.Remove(filename)
 
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 
-	// 验证文件存在
+	// Verify file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		t.Error("保存的文档文件不存在")
+		t.Error("saved document file does not exist")
 	}
 }
 
-// TestAddFormattedFooter 测试添加格式化页脚
+// TestAddFormattedFooter tests adding a formatted footer
 func TestAddFormattedFooter(t *testing.T) {
 	doc := New()
 
-	// 测试添加格式化页脚
+	// Test adding a formatted footer
 	config := &HeaderFooterConfig{
 		Text: "第 1 页",
 		Format: &TextFormat{
@@ -1261,52 +1260,52 @@ func TestAddFormattedFooter(t *testing.T) {
 
 	err := doc.AddFormattedFooter(HeaderFooterTypeDefault, config)
 	if err != nil {
-		t.Fatalf("添加格式化页脚失败: %v", err)
+		t.Fatalf("failed to add formatted footer: %v", err)
 	}
 
-	// 验证页脚文件被创建
+	// Verify footer file was created
 	footerPartName := "word/footer1.xml"
 	if _, ok := doc.parts[footerPartName]; !ok {
-		t.Errorf("页脚文件 %s 未创建", footerPartName)
+		t.Errorf("footer file %s was not created", footerPartName)
 	}
 
-	// 保存并验证文档
+	// Save and verify document
 	filename := "test_formatted_footer.docx"
 	defer os.Remove(filename)
 
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 
-	// 验证文件存在
+	// Verify file exists
 	if _, err := os.Stat(filename); os.IsNotExist(err) {
-		t.Error("保存的文档文件不存在")
+		t.Error("saved document file does not exist")
 	}
 }
 
-// TestAddFormattedHeaderWithNilConfig 测试使用空配置添加页眉
+// TestAddFormattedHeaderWithNilConfig tests adding a header with nil config
 func TestAddFormattedHeaderWithNilConfig(t *testing.T) {
 	doc := New()
 
-	// 测试使用nil配置添加页眉
+	// Test adding a header with nil config
 	err := doc.AddFormattedHeader(HeaderFooterTypeDefault, nil)
 	if err != nil {
-		t.Fatalf("使用nil配置添加页眉失败: %v", err)
+		t.Fatalf("failed to add header with nil config: %v", err)
 	}
 
-	// 验证页眉文件被创建
+	// Verify header file was created
 	headerPartName := "word/header1.xml"
 	if _, ok := doc.parts[headerPartName]; !ok {
-		t.Errorf("页眉文件 %s 未创建", headerPartName)
+		t.Errorf("header file %s was not created", headerPartName)
 	}
 }
 
-// TestAddFormattedHeaderWithAllFormats 测试所有格式选项
+// TestAddFormattedHeaderWithAllFormats tests all formatting options
 func TestAddFormattedHeaderWithAllFormats(t *testing.T) {
 	doc := New()
 
-	// 测试所有格式选项
+	// Test all formatting options
 	config := &HeaderFooterConfig{
 		Text: "格式化测试",
 		Format: &TextFormat{
@@ -1324,43 +1323,43 @@ func TestAddFormattedHeaderWithAllFormats(t *testing.T) {
 
 	err := doc.AddFormattedHeader(HeaderFooterTypeDefault, config)
 	if err != nil {
-		t.Fatalf("添加格式化页眉失败: %v", err)
+		t.Fatalf("failed to add formatted header: %v", err)
 	}
 
-	// 保存并验证文档
+	// Save and verify document
 	filename := "test_all_formats_header.docx"
 	defer os.Remove(filename)
 
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 }
 
-// TestCreateFormattedParagraph 测试createFormattedParagraph函数
+// TestCreateFormattedParagraph tests the createFormattedParagraph function
 func TestCreateFormattedParagraph(t *testing.T) {
-	// 测试基本段落创建
+	// Test basic paragraph creation
 	para := createFormattedParagraph("测试文本", nil, "")
 	if len(para.Runs) != 1 {
-		t.Errorf("期望1个Run，实际得到%d个", len(para.Runs))
+		t.Errorf("expected 1 Run, got %d", len(para.Runs))
 	}
 	if para.Runs[0].Text.Content != "测试文本" {
-		t.Errorf("期望文本'测试文本'，实际得到'%s'", para.Runs[0].Text.Content)
+		t.Errorf("expected text '测试文本', got '%s'", para.Runs[0].Text.Content)
 	}
 
-	// 测试带对齐方式的段落
+	// Test paragraph with alignment
 	para2 := createFormattedParagraph("居中文本", nil, AlignCenter)
 	if para2.Properties == nil {
-		t.Fatal("段落属性不应为nil")
+		t.Fatal("paragraph properties should not be nil")
 	}
 	if para2.Properties.Justification == nil {
-		t.Fatal("对齐方式属性不应为nil")
+		t.Fatal("alignment property should not be nil")
 	}
 	if para2.Properties.Justification.Val != string(AlignCenter) {
-		t.Errorf("期望对齐方式'center'，实际得到'%s'", para2.Properties.Justification.Val)
+		t.Errorf("expected alignment 'center', got '%s'", para2.Properties.Justification.Val)
 	}
 
-	// 测试带格式的段落
+	// Test paragraph with formatting
 	format := &TextFormat{
 		Bold:       true,
 		FontSize:   14,
@@ -1369,296 +1368,296 @@ func TestCreateFormattedParagraph(t *testing.T) {
 	}
 	para3 := createFormattedParagraph("格式化文本", format, AlignLeft)
 	if para3.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para3.Runs[0].Properties.Bold == nil {
-		t.Error("粗体属性不应为nil")
+		t.Error("bold property should not be nil")
 	}
 	if para3.Runs[0].Properties.FontSize == nil {
-		t.Error("字体大小属性不应为nil")
+		t.Error("font size property should not be nil")
 	}
 	if para3.Runs[0].Properties.FontSize.Val != "28" { // 14 * 2 = 28
-		t.Errorf("期望字体大小'28'，实际得到'%s'", para3.Runs[0].Properties.FontSize.Val)
+		t.Errorf("expected font size '28', got '%s'", para3.Runs[0].Properties.FontSize.Val)
 	}
 	if para3.Runs[0].Properties.Color == nil {
-		t.Error("颜色属性不应为nil")
+		t.Error("color property should not be nil")
 	}
 	if para3.Runs[0].Properties.Color.Val != "0000FF" {
-		t.Errorf("期望颜色'0000FF'，实际得到'%s'", para3.Runs[0].Properties.Color.Val)
+		t.Errorf("expected color '0000FF', got '%s'", para3.Runs[0].Properties.Color.Val)
 	}
 	if para3.Runs[0].Properties.FontFamily == nil {
-		t.Error("字体属性不应为nil")
+		t.Error("font family property should not be nil")
 	}
 	if para3.Runs[0].Properties.FontFamily.ASCII != "Arial" {
-		t.Errorf("期望字体'Arial'，实际得到'%s'", para3.Runs[0].Properties.FontFamily.ASCII)
+		t.Errorf("expected font 'Arial', got '%s'", para3.Runs[0].Properties.FontFamily.ASCII)
 	}
 
-	// 测试空文本
+	// Test empty text
 	para4 := createFormattedParagraph("", nil, AlignCenter)
 	if len(para4.Runs) != 0 {
-		t.Errorf("空文本应该不添加Run，实际得到%d个", len(para4.Runs))
+		t.Errorf("empty text should not add a Run, got %d", len(para4.Runs))
 	}
 }
 
-// TestParagraphSetUnderline 测试段落下划线设置
+// TestParagraphSetUnderline tests paragraph underline setting
 func TestParagraphSetUnderline(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试下划线文本")
 
-	// 测试启用下划线
+	// Test enabling underline
 	para.SetUnderline(true)
 	if len(para.Runs) == 0 {
-		t.Fatal("段落应该包含至少一个Run")
+		t.Fatal("paragraph should contain at least one Run")
 	}
 	if para.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para.Runs[0].Properties.Underline == nil {
-		t.Error("下划线属性不应为nil")
+		t.Error("underline property should not be nil")
 	}
 	if para.Runs[0].Properties.Underline.Val != "single" {
-		t.Errorf("期望下划线类型'single'，实际得到'%s'", para.Runs[0].Properties.Underline.Val)
+		t.Errorf("expected underline type 'single', got '%s'", para.Runs[0].Properties.Underline.Val)
 	}
 
-	// 测试禁用下划线
+	// Test disabling underline
 	para.SetUnderline(false)
 	if para.Runs[0].Properties.Underline != nil {
-		t.Error("禁用后下划线属性应为nil")
+		t.Error("underline property should be nil after disabling")
 	}
 }
 
-// TestParagraphSetBold 测试段落粗体设置
+// TestParagraphSetBold tests paragraph bold setting
 func TestParagraphSetBold(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试粗体文本")
 
-	// 测试启用粗体
+	// Test enabling bold
 	para.SetBold(true)
 	if para.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para.Runs[0].Properties.Bold == nil {
-		t.Error("粗体属性不应为nil")
+		t.Error("bold property should not be nil")
 	}
 	if para.Runs[0].Properties.BoldCs == nil {
-		t.Error("复杂脚本粗体属性不应为nil")
+		t.Error("complex script bold property should not be nil")
 	}
 
-	// 测试禁用粗体
+	// Test disabling bold
 	para.SetBold(false)
 	if para.Runs[0].Properties.Bold != nil {
-		t.Error("禁用后粗体属性应为nil")
+		t.Error("bold property should be nil after disabling")
 	}
 	if para.Runs[0].Properties.BoldCs != nil {
-		t.Error("禁用后复杂脚本粗体属性应为nil")
+		t.Error("complex script bold property should be nil after disabling")
 	}
 }
 
-// TestParagraphSetItalic 测试段落斜体设置
+// TestParagraphSetItalic tests paragraph italic setting
 func TestParagraphSetItalic(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试斜体文本")
 
-	// 测试启用斜体
+	// Test enabling italic
 	para.SetItalic(true)
 	if para.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para.Runs[0].Properties.Italic == nil {
-		t.Error("斜体属性不应为nil")
+		t.Error("italic property should not be nil")
 	}
 	if para.Runs[0].Properties.ItalicCs == nil {
-		t.Error("复杂脚本斜体属性不应为nil")
+		t.Error("complex script italic property should not be nil")
 	}
 
-	// 测试禁用斜体
+	// Test disabling italic
 	para.SetItalic(false)
 	if para.Runs[0].Properties.Italic != nil {
-		t.Error("禁用后斜体属性应为nil")
+		t.Error("italic property should be nil after disabling")
 	}
 	if para.Runs[0].Properties.ItalicCs != nil {
-		t.Error("禁用后复杂脚本斜体属性应为nil")
+		t.Error("complex script italic property should be nil after disabling")
 	}
 }
 
-// TestParagraphSetStrike 测试段落删除线设置
+// TestParagraphSetStrike tests paragraph strikethrough setting
 func TestParagraphSetStrike(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试删除线文本")
 
-	// 测试启用删除线
+	// Test enabling strikethrough
 	para.SetStrike(true)
 	if para.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para.Runs[0].Properties.Strike == nil {
-		t.Error("删除线属性不应为nil")
+		t.Error("strikethrough property should not be nil")
 	}
 
-	// 测试禁用删除线
+	// Test disabling strikethrough
 	para.SetStrike(false)
 	if para.Runs[0].Properties.Strike != nil {
-		t.Error("禁用后删除线属性应为nil")
+		t.Error("strikethrough property should be nil after disabling")
 	}
 }
 
-// TestParagraphSetHighlight 测试段落高亮设置
+// TestParagraphSetHighlight tests paragraph highlight setting
 func TestParagraphSetHighlight(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试高亮文本")
 
-	// 测试设置黄色高亮
+	// Test setting yellow highlight
 	para.SetHighlight("yellow")
 	if para.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para.Runs[0].Properties.Highlight == nil {
-		t.Error("高亮属性不应为nil")
+		t.Error("highlight property should not be nil")
 	}
 	if para.Runs[0].Properties.Highlight.Val != "yellow" {
-		t.Errorf("期望高亮颜色'yellow'，实际得到'%s'", para.Runs[0].Properties.Highlight.Val)
+		t.Errorf("expected highlight color 'yellow', got '%s'", para.Runs[0].Properties.Highlight.Val)
 	}
 
-	// 测试移除高亮
+	// Test removing highlight
 	para.SetHighlight("")
 	if para.Runs[0].Properties.Highlight != nil {
-		t.Error("移除后高亮属性应为nil")
+		t.Error("highlight property should be nil after removal")
 	}
 }
 
-// TestParagraphSetFontFamily 测试段落字体设置
+// TestParagraphSetFontFamily tests paragraph font family setting
 func TestParagraphSetFontFamily(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试字体文本")
 
-	// 测试设置字体
+	// Test setting font family
 	para.SetFontFamily("微软雅黑")
 	if para.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para.Runs[0].Properties.FontFamily == nil {
-		t.Error("字体属性不应为nil")
+		t.Error("font family property should not be nil")
 	}
 	if para.Runs[0].Properties.FontFamily.ASCII != "微软雅黑" {
-		t.Errorf("期望字体'微软雅黑'，实际得到'%s'", para.Runs[0].Properties.FontFamily.ASCII)
+		t.Errorf("expected font '微软雅黑', got '%s'", para.Runs[0].Properties.FontFamily.ASCII)
 	}
 	if para.Runs[0].Properties.FontFamily.EastAsia != "微软雅黑" {
-		t.Errorf("期望东亚字体'微软雅黑'，实际得到'%s'", para.Runs[0].Properties.FontFamily.EastAsia)
+		t.Errorf("expected East Asian font '微软雅黑', got '%s'", para.Runs[0].Properties.FontFamily.EastAsia)
 	}
 
-	// 测试移除字体
+	// Test removing font family
 	para.SetFontFamily("")
 	if para.Runs[0].Properties.FontFamily != nil {
-		t.Error("移除后字体属性应为nil")
+		t.Error("font family property should be nil after removal")
 	}
 }
 
-// TestParagraphSetFontSize 测试段落字体大小设置
+// TestParagraphSetFontSize tests paragraph font size setting
 func TestParagraphSetFontSize(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试字体大小文本")
 
-	// 测试设置字体大小
+	// Test setting font size
 	para.SetFontSize(14)
 	if para.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para.Runs[0].Properties.FontSize == nil {
-		t.Error("字体大小属性不应为nil")
+		t.Error("font size property should not be nil")
 	}
-	// Word使用半磅单位，14磅 = 28半磅
+	// Word uses half-point units, 14pt = 28 half-points
 	if para.Runs[0].Properties.FontSize.Val != "28" {
-		t.Errorf("期望字体大小'28'（14磅），实际得到'%s'", para.Runs[0].Properties.FontSize.Val)
+		t.Errorf("expected font size '28' (14pt), got '%s'", para.Runs[0].Properties.FontSize.Val)
 	}
 	if para.Runs[0].Properties.FontSizeCs == nil {
-		t.Error("复杂脚本字体大小属性不应为nil")
+		t.Error("complex script font size property should not be nil")
 	}
 
-	// 测试移除字体大小
+	// Test removing font size
 	para.SetFontSize(0)
 	if para.Runs[0].Properties.FontSize != nil {
-		t.Error("移除后字体大小属性应为nil")
+		t.Error("font size property should be nil after removal")
 	}
 }
 
-// TestParagraphSetColor 测试段落颜色设置
+// TestParagraphSetColor tests paragraph color setting
 func TestParagraphSetColor(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("测试颜色文本")
 
-	// 测试设置颜色（不带#前缀）
+	// Test setting color (without # prefix)
 	para.SetColor("FF0000")
 	if para.Runs[0].Properties == nil {
-		t.Fatal("Run属性不应为nil")
+		t.Fatal("Run properties should not be nil")
 	}
 	if para.Runs[0].Properties.Color == nil {
-		t.Error("颜色属性不应为nil")
+		t.Error("color property should not be nil")
 	}
 	if para.Runs[0].Properties.Color.Val != "FF0000" {
-		t.Errorf("期望颜色'FF0000'，实际得到'%s'", para.Runs[0].Properties.Color.Val)
+		t.Errorf("expected color 'FF0000', got '%s'", para.Runs[0].Properties.Color.Val)
 	}
 
-	// 测试设置颜色（带#前缀，应被移除）
+	// Test setting color (with # prefix, should be removed)
 	para.SetColor("#0000FF")
 	if para.Runs[0].Properties.Color.Val != "0000FF" {
-		t.Errorf("期望颜色'0000FF'（#前缀应被移除），实际得到'%s'", para.Runs[0].Properties.Color.Val)
+		t.Errorf("expected color '0000FF' (# prefix should be removed), got '%s'", para.Runs[0].Properties.Color.Val)
 	}
 
-	// 测试移除颜色
+	// Test removing color
 	para.SetColor("")
 	if para.Runs[0].Properties.Color != nil {
-		t.Error("移除后颜色属性应为nil")
+		t.Error("color property should be nil after removal")
 	}
 }
 
-// TestParagraphMultipleRunsFormatting 测试多个Run的格式设置
+// TestParagraphMultipleRunsFormatting tests formatting with multiple Runs
 func TestParagraphMultipleRunsFormatting(t *testing.T) {
 	doc := New()
-	// 使用第一段文本创建段落，而不是空字符串
+	// Create paragraph with first text, not an empty string
 	para := doc.AddParagraph("第一段文本")
 
-	// 添加更多Run
+	// Add more Runs
 	para.AddFormattedText("第二段文本", nil)
 	para.AddFormattedText("第三段文本", nil)
 
 	if len(para.Runs) != 3 {
-		t.Fatalf("期望3个Run，实际得到%d个", len(para.Runs))
+		t.Fatalf("expected 3 Runs, got %d", len(para.Runs))
 	}
 
-	// 测试设置下划线应用于所有Run
+	// Test that underline is applied to all Runs
 	para.SetUnderline(true)
 	for i, run := range para.Runs {
 		if run.Properties == nil || run.Properties.Underline == nil {
-			t.Errorf("Run %d 应该有下划线属性", i)
+			t.Errorf("Run %d should have underline property", i)
 		}
 	}
 
-	// 测试设置粗体应用于所有Run
+	// Test that bold is applied to all Runs
 	para.SetBold(true)
 	for i, run := range para.Runs {
 		if run.Properties == nil || run.Properties.Bold == nil {
-			t.Errorf("Run %d 应该有粗体属性", i)
+			t.Errorf("Run %d should have bold property", i)
 		}
 	}
 
-	// 测试设置字体应用于所有Run
+	// Test that font family is applied to all Runs
 	para.SetFontFamily("Arial")
 	for i, run := range para.Runs {
 		if run.Properties == nil || run.Properties.FontFamily == nil {
-			t.Errorf("Run %d 应该有字体属性", i)
+			t.Errorf("Run %d should have font family property", i)
 		}
 		if run.Properties.FontFamily.ASCII != "Arial" {
-			t.Errorf("Run %d 的字体应该是'Arial'，实际得到'%s'", i, run.Properties.FontFamily.ASCII)
+			t.Errorf("Run %d font should be 'Arial', got '%s'", i, run.Properties.FontFamily.ASCII)
 		}
 	}
 }
 
-// TestParagraphFormattingIntegration 测试文本格式化集成
+// TestParagraphFormattingIntegration tests text formatting integration
 func TestParagraphFormattingIntegration(t *testing.T) {
 	doc := New()
 	para := doc.AddParagraph("完整格式化测试文本")
 
-	// 应用所有格式
+	// Apply all formatting
 	para.SetBold(true)
 	para.SetItalic(true)
 	para.SetUnderline(true)
@@ -1668,39 +1667,39 @@ func TestParagraphFormattingIntegration(t *testing.T) {
 	para.SetFontSize(16)
 	para.SetColor("0000FF")
 
-	// 验证所有格式都已应用
+	// Verify all formatting has been applied
 	props := para.Runs[0].Properties
 	if props.Bold == nil {
-		t.Error("粗体属性未设置")
+		t.Error("bold property not set")
 	}
 	if props.Italic == nil {
-		t.Error("斜体属性未设置")
+		t.Error("italic property not set")
 	}
 	if props.Underline == nil {
-		t.Error("下划线属性未设置")
+		t.Error("underline property not set")
 	}
 	if props.Strike == nil {
-		t.Error("删除线属性未设置")
+		t.Error("strikethrough property not set")
 	}
 	if props.Highlight == nil || props.Highlight.Val != "yellow" {
-		t.Error("高亮属性未正确设置")
+		t.Error("highlight property not set correctly")
 	}
 	if props.FontFamily == nil || props.FontFamily.ASCII != "Times New Roman" {
-		t.Error("字体属性未正确设置")
+		t.Error("font family property not set correctly")
 	}
 	if props.FontSize == nil || props.FontSize.Val != "32" {
-		t.Errorf("字体大小属性未正确设置，期望'32'，实际得到'%s'", props.FontSize.Val)
+		t.Errorf("font size property not set correctly, expected '32', got '%s'", props.FontSize.Val)
 	}
 	if props.Color == nil || props.Color.Val != "0000FF" {
-		t.Error("颜色属性未正确设置")
+		t.Error("color property not set correctly")
 	}
 
-	// 保存文档验证
+	// Save document to verify
 	filename := "test_formatting_integration.docx"
 	defer os.Remove(filename)
 
 	err := doc.Save(filename)
 	if err != nil {
-		t.Errorf("保存文档失败: %v", err)
+		t.Errorf("failed to save document: %v", err)
 	}
 }

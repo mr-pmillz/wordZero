@@ -1,4 +1,4 @@
-// Package document 提供Word文档域字段结构
+// Package document provides Word document field structures.
 package document
 
 import (
@@ -6,20 +6,20 @@ import (
 	"fmt"
 )
 
-// FieldChar 域字符
+// FieldChar represents a field character.
 type FieldChar struct {
 	XMLName       xml.Name `xml:"w:fldChar"`
 	FieldCharType string   `xml:"w:fldCharType,attr"`
 }
 
-// InstrText 域指令文本
+// InstrText represents field instruction text.
 type InstrText struct {
 	XMLName xml.Name `xml:"w:instrText"`
 	Space   string   `xml:"xml:space,attr,omitempty"`
 	Content string   `xml:",chardata"`
 }
 
-// HyperlinkField 超链接域
+// HyperlinkField represents a hyperlink field.
 type HyperlinkField struct {
 	BeginChar    FieldChar
 	InstrText    InstrText
@@ -27,7 +27,7 @@ type HyperlinkField struct {
 	EndChar      FieldChar
 }
 
-// CreateHyperlinkField 创建超链接域
+// CreateHyperlinkField creates a hyperlink field.
 func CreateHyperlinkField(anchor string) HyperlinkField {
 	return HyperlinkField{
 		BeginChar: FieldChar{
@@ -46,7 +46,7 @@ func CreateHyperlinkField(anchor string) HyperlinkField {
 	}
 }
 
-// PageRefField 页码引用域
+// PageRefField represents a page reference field.
 type PageRefField struct {
 	BeginChar    FieldChar
 	InstrText    InstrText
@@ -54,7 +54,7 @@ type PageRefField struct {
 	EndChar      FieldChar
 }
 
-// CreatePageRefField 创建页码引用域
+// CreatePageRefField creates a page reference field.
 func CreatePageRefField(anchor string) PageRefField {
 	return PageRefField{
 		BeginChar: FieldChar{

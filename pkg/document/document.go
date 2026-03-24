@@ -1,4 +1,4 @@
-// Package document 提供Word文档的核心操作功能
+// Package document provides core operations for Word documents
 package document
 
 import (
@@ -15,116 +15,120 @@ import (
 	"github.com/zerx-lab/wordZero/pkg/style"
 )
 
-// Document 表示一个Word文档
+// Document represents a Word document
 type Document struct {
-	// 文档的主要内容
+	// Main document content
 	Body *Body
-	// 文档关系
+	// Document relationships
 	relationships *Relationships
-	// 文档级关系（用于页眉页脚等）
+	// Document-level relationships (for headers, footers, etc.)
 	documentRelationships *Relationships
-	// 内容类型
+	// Content types
 	contentTypes *ContentTypes
-	// 样式管理器
+	// Style manager
 	styleManager *style.StyleManager
-	// 临时存储文档部件
+	// Temporary storage for document parts
 	parts map[string][]byte
-	// 图片ID计数器，确保每个图片都有唯一的ID
+	// Image ID counter, ensures each image has a unique ID
 	nextImageID int
+	// Footnote/endnote manager (per-document, avoids global state leaks)
+	footnoteManager *FootnoteManager
+	// Numbering manager (per-document, avoids global state leaks)
+	numberingManager *NumberingManager
 }
 
-// Body 表示文档主体
+// Body represents the document body
 type Body struct {
 	XMLName  xml.Name      `xml:"w:body"`
-	Elements []interface{} `xml:"-"` // 不序列化此字段，使用自定义方法
+	Elements []interface{} `xml:"-"` // Not serialized directly; uses custom method
 }
 
-// MarshalXML 自定义XML序列化，按照元素顺序输出
+// MarshalXML performs custom XML serialization, outputting elements in order
 func (b *Body) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	// 开始元素
+	// Start element
 	if err := e.EncodeToken(start); err != nil {
 		return err
 	}
 
-	// 分离SectionProperties和其他元素
+	// Separate SectionProperties from other elements
 	var sectPr *SectionProperties
 	var otherElements []interface{}
 
 	for _, element := range b.Elements {
 		if sp, ok := element.(*SectionProperties); ok {
-			sectPr = sp // 保存最后一个SectionProperties
+			sectPr = sp // Keep the last SectionProperties
 		} else {
 			otherElements = append(otherElements, element)
 		}
 	}
 
-	// 先序列化其他元素（段落、表格等）
+	// Serialize other elements first (paragraphs, tables, etc.)
 	for _, element := range otherElements {
 		if err := e.Encode(element); err != nil {
 			return err
 		}
 	}
 
-	// 最后序列化SectionProperties（如果存在）
+	// Serialize SectionProperties last (if present)
 	if sectPr != nil {
 		if err := e.Encode(sectPr); err != nil {
 			return err
 		}
 	}
 
-	// 结束元素
+	// End element
 	return e.EncodeToken(start.End())
 }
 
-// BodyElement 文档主体元素接口
+// BodyElement is the interface for document body elements
 type BodyElement interface {
 	ElementType() string
 }
 
-// ElementType 返回段落元素类型
+// ElementType returns the paragraph element type
 func (p *Paragraph) ElementType() string {
 	return "paragraph"
 }
 
-// ElementType 返回表格元素类型
+// ElementType returns the table element type
 func (t *Table) ElementType() string {
 	return "table"
 }
 
-// Paragraph 表示一个段落
+// Paragraph represents a paragraph
 type Paragraph struct {
 	XMLName    xml.Name             `xml:"w:p"`
 	Properties *ParagraphProperties `xml:"w:pPr,omitempty"`
 	Runs       []Run                `xml:"w:r"`
 }
 
-// ParagraphProperties 段落属性
+// ParagraphProperties represents paragraph properties
 type ParagraphProperties struct {
 	XMLName             xml.Name             `xml:"w:pPr"`
 	ParagraphStyle      *ParagraphStyle      `xml:"w:pStyle,omitempty"`
 	NumberingProperties *NumberingProperties `xml:"w:numPr,omitempty"`
 	ParagraphBorder     *ParagraphBorder     `xml:"w:pBdr,omitempty"`
 	Tabs                *Tabs                `xml:"w:tabs,omitempty"`
-	SnapToGrid          *SnapToGrid          `xml:"w:snapToGrid,omitempty"` // 网格对齐设置
+	SnapToGrid          *SnapToGrid          `xml:"w:snapToGrid,omitempty"` // Snap to grid setting
 	Spacing             *Spacing             `xml:"w:spacing,omitempty"`
 	Indentation         *Indentation         `xml:"w:ind,omitempty"`
 	Justification       *Justification       `xml:"w:jc,omitempty"`
-	KeepNext            *KeepNext            `xml:"w:keepNext,omitempty"`        // 与下一段落保持在一起
-	KeepLines           *KeepLines           `xml:"w:keepLines,omitempty"`       // 段落中的行保持在一起
-	PageBreakBefore     *PageBreakBefore     `xml:"w:pageBreakBefore,omitempty"` // 段前分页
-	WidowControl        *WidowControl        `xml:"w:widowControl,omitempty"`    // 孤行控制
-	OutlineLevel        *OutlineLevel        `xml:"w:outlineLvl,omitempty"`      // 大纲级别
+	KeepNext            *KeepNext            `xml:"w:keepNext,omitempty"`        // Keep with next paragraph
+	KeepLines           *KeepLines           `xml:"w:keepLines,omitempty"`       // Keep all lines together
+	PageBreakBefore     *PageBreakBefore     `xml:"w:pageBreakBefore,omitempty"` // Page break before paragraph
+	WidowControl        *WidowControl        `xml:"w:widowControl,omitempty"`    // Widow/orphan control
+	OutlineLevel        *OutlineLevel        `xml:"w:outlineLvl,omitempty"`      // Outline level
 }
 
-// SnapToGrid 网格对齐设置
-// 设置为 "0" 或 "false" 时禁用网格对齐，允许自定义行间距生效
-// 注意：此类型在 style 包中有相同定义，这是有意为之，因为两个包可独立使用
+// SnapToGrid controls snap-to-grid alignment.
+// Set to "0" or "false" to disable grid alignment, allowing custom line spacing to take effect.
+// Note: This type has an identical definition in the style package; this is intentional since both packages can be used independently.
 type SnapToGrid struct {
 	XMLName xml.Name `xml:"w:snapToGrid"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// ParagraphBorder 段落边框
+// ParagraphBorder represents paragraph borders
 type ParagraphBorder struct {
 	XMLName xml.Name             `xml:"w:pBdr"`
 	Top     *ParagraphBorderLine `xml:"w:top,omitempty"`
@@ -133,7 +137,7 @@ type ParagraphBorder struct {
 	Right   *ParagraphBorderLine `xml:"w:right,omitempty"`
 }
 
-// ParagraphBorderLine 段落边框线
+// ParagraphBorderLine represents a paragraph border line
 type ParagraphBorderLine struct {
 	Val   string `xml:"w:val,attr"`
 	Color string `xml:"w:color,attr"`
@@ -141,7 +145,7 @@ type ParagraphBorderLine struct {
 	Space string `xml:"w:space,attr"`
 }
 
-// Spacing 间距设置
+// Spacing represents spacing settings
 type Spacing struct {
 	XMLName  xml.Name `xml:"w:spacing"`
 	Before   string   `xml:"w:before,attr,omitempty"`
@@ -150,209 +154,258 @@ type Spacing struct {
 	LineRule string   `xml:"w:lineRule,attr,omitempty"`
 }
 
-// Justification 对齐方式
+// Justification represents text alignment
 type Justification struct {
 	XMLName xml.Name `xml:"w:jc"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// KeepNext 与下一段落保持在一起
+// KeepNext keeps the paragraph with the next paragraph
 type KeepNext struct {
 	XMLName xml.Name `xml:"w:keepNext"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// KeepLines 段落中的行保持在一起
+// KeepLines keeps all lines in the paragraph together
 type KeepLines struct {
 	XMLName xml.Name `xml:"w:keepLines"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// PageBreakBefore 段前分页
+// PageBreakBefore inserts a page break before the paragraph
 type PageBreakBefore struct {
 	XMLName xml.Name `xml:"w:pageBreakBefore"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// WidowControl 孤行控制
+// WidowControl controls widow/orphan lines
 type WidowControl struct {
 	XMLName xml.Name `xml:"w:widowControl"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// OutlineLevel 大纲级别
+// OutlineLevel represents the outline level
 type OutlineLevel struct {
 	XMLName xml.Name `xml:"w:outlineLvl"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// Run 表示一段文本
+// Run represents a text run
 type Run struct {
-	XMLName    xml.Name        `xml:"w:r"`
-	Properties *RunProperties  `xml:"w:rPr,omitempty"`
-	Text       Text            `xml:"w:t,omitempty"`
-	Break      *Break          `xml:"w:br,omitempty"` // 分页符 / Page break
-	Drawing    *DrawingElement `xml:"w:drawing,omitempty"`
-	FieldChar  *FieldChar      `xml:"w:fldChar,omitempty"`
-	InstrText  *InstrText      `xml:"w:instrText,omitempty"`
+	XMLName            xml.Name           `xml:"w:r"`
+	Properties         *RunProperties     `xml:"w:rPr,omitempty"`
+	FootnoteReference  *FootnoteReference `xml:"w:footnoteReference,omitempty"`
+	EndnoteReference   *EndnoteReference  `xml:"w:endnoteReference,omitempty"`
+	FootnoteRef        *FootnoteRef       `xml:"w:footnoteRef,omitempty"`
+	EndnoteRef         *EndnoteRef        `xml:"w:endnoteRef,omitempty"`
+	Text               Text               `xml:"w:t,omitempty"`
+	Break              *Break             `xml:"w:br,omitempty"` // Page break
+	Drawing            *DrawingElement    `xml:"w:drawing,omitempty"`
+	FieldChar          *FieldChar         `xml:"w:fldChar,omitempty"`
+	InstrText          *InstrText         `xml:"w:instrText,omitempty"`
 }
 
-// MarshalXML 自定义Run的XML序列化
-// 此方法确保只有非空元素才被序列化，特别是对于Drawing元素
+// MarshalXML performs custom XML serialization for Run.
+// This method ensures only non-empty elements are serialized, especially for Drawing elements.
 func (r *Run) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	// 开始Run元素
+	// Start Run element
 	if err := e.EncodeToken(start); err != nil {
 		return err
 	}
 
-	// 序列化RunProperties（如果存在）
+	// Serialize RunProperties (if present)
 	if r.Properties != nil {
 		if err := e.EncodeElement(r.Properties, xml.StartElement{Name: xml.Name{Local: "w:rPr"}}); err != nil {
 			return err
 		}
 	}
 
-	// 序列化Text（仅当有内容时）
-	// 这是关键修复：避免序列化空的Text元素
+	// Serialize footnote/endnote reference elements (before Text)
+	if r.FootnoteReference != nil {
+		if err := e.EncodeElement(r.FootnoteReference, xml.StartElement{Name: xml.Name{Local: "w:footnoteReference"}}); err != nil {
+			return err
+		}
+	}
+	if r.EndnoteReference != nil {
+		if err := e.EncodeElement(r.EndnoteReference, xml.StartElement{Name: xml.Name{Local: "w:endnoteReference"}}); err != nil {
+			return err
+		}
+	}
+	if r.FootnoteRef != nil {
+		if err := e.EncodeElement(r.FootnoteRef, xml.StartElement{Name: xml.Name{Local: "w:footnoteRef"}}); err != nil {
+			return err
+		}
+	}
+	if r.EndnoteRef != nil {
+		if err := e.EncodeElement(r.EndnoteRef, xml.StartElement{Name: xml.Name{Local: "w:endnoteRef"}}); err != nil {
+			return err
+		}
+	}
+
+	// Serialize Text (only when it has content)
+	// This is a key fix: avoid serializing empty Text elements
 	if r.Text.Content != "" {
 		if err := e.EncodeElement(r.Text, xml.StartElement{Name: xml.Name{Local: "w:t"}}); err != nil {
 			return err
 		}
 	}
 
-	// 序列化Break（如果存在）
+	// Serialize Break (if present)
 	if r.Break != nil {
 		if err := e.EncodeElement(r.Break, xml.StartElement{Name: xml.Name{Local: "w:br"}}); err != nil {
 			return err
 		}
 	}
 
-	// 序列化Drawing（如果存在）
+	// Serialize Drawing (if present)
 	if r.Drawing != nil {
 		if err := e.EncodeElement(r.Drawing, xml.StartElement{Name: xml.Name{Local: "w:drawing"}}); err != nil {
 			return err
 		}
 	}
 
-	// 序列化FieldChar（如果存在）
+	// Serialize FieldChar (if present)
 	if r.FieldChar != nil {
 		if err := e.EncodeElement(r.FieldChar, xml.StartElement{Name: xml.Name{Local: "w:fldChar"}}); err != nil {
 			return err
 		}
 	}
 
-	// 序列化InstrText（如果存在）
+	// Serialize InstrText (if present)
 	if r.InstrText != nil {
 		if err := e.EncodeElement(r.InstrText, xml.StartElement{Name: xml.Name{Local: "w:instrText"}}); err != nil {
 			return err
 		}
 	}
 
-	// 结束Run元素
+	// End Run element
 	return e.EncodeToken(xml.EndElement{Name: start.Name})
 }
 
-// RunProperties 文本属性
-// 注意：字段顺序必须符合OpenXML标准，w:rFonts必须在w:color之前
+// RunProperties represents text run properties.
+// Note: Field order must conform to the OpenXML standard; w:rStyle comes first, and w:rFonts must precede w:color.
 type RunProperties struct {
-	XMLName    xml.Name    `xml:"w:rPr"`
-	FontFamily *FontFamily `xml:"w:rFonts,omitempty"`
-	Bold       *Bold       `xml:"w:b,omitempty"`
-	BoldCs     *BoldCs     `xml:"w:bCs,omitempty"`
-	Italic     *Italic     `xml:"w:i,omitempty"`
-	ItalicCs   *ItalicCs   `xml:"w:iCs,omitempty"`
-	Underline  *Underline  `xml:"w:u,omitempty"`
-	Strike     *Strike     `xml:"w:strike,omitempty"`
-	Color      *Color      `xml:"w:color,omitempty"`
-	FontSize   *FontSize   `xml:"w:sz,omitempty"`
-	FontSizeCs *FontSizeCs `xml:"w:szCs,omitempty"`
-	Highlight  *Highlight  `xml:"w:highlight,omitempty"`
+	XMLName       xml.Name           `xml:"w:rPr"`
+	RunStyle      *RunStyle          `xml:"w:rStyle,omitempty"`
+	FontFamily    *FontFamily        `xml:"w:rFonts,omitempty"`
+	Bold          *Bold              `xml:"w:b,omitempty"`
+	BoldCs        *BoldCs            `xml:"w:bCs,omitempty"`
+	Italic        *Italic            `xml:"w:i,omitempty"`
+	ItalicCs      *ItalicCs          `xml:"w:iCs,omitempty"`
+	Underline     *Underline         `xml:"w:u,omitempty"`
+	Strike        *Strike            `xml:"w:strike,omitempty"`
+	Color         *Color             `xml:"w:color,omitempty"`
+	FontSize      *FontSize          `xml:"w:sz,omitempty"`
+	FontSizeCs    *FontSizeCs        `xml:"w:szCs,omitempty"`
+	Highlight     *Highlight         `xml:"w:highlight,omitempty"`
+	VerticalAlign *VerticalAlignment `xml:"w:vertAlign,omitempty"`
 }
 
-// Bold 粗体
+// RunStyle represents a character style reference
+type RunStyle struct {
+	XMLName xml.Name `xml:"w:rStyle"`
+	Val     string   `xml:"w:val,attr"`
+}
+
+// VerticalAlignment represents vertical alignment (superscript/subscript)
+type VerticalAlignment struct {
+	XMLName xml.Name `xml:"w:vertAlign"`
+	Val     string   `xml:"w:val,attr"`
+}
+
+// FootnoteRef is the footnote self-reference element (marks the number position within footnote content)
+type FootnoteRef struct {
+	XMLName xml.Name `xml:"w:footnoteRef"`
+}
+
+// EndnoteRef is the endnote self-reference element (marks the number position within endnote content)
+type EndnoteRef struct {
+	XMLName xml.Name `xml:"w:endnoteRef"`
+}
+
+// Bold represents bold formatting
 type Bold struct {
 	XMLName xml.Name `xml:"w:b"`
 }
 
-// BoldCs 复杂脚本粗体
+// BoldCs represents complex script bold formatting
 type BoldCs struct {
 	XMLName xml.Name `xml:"w:bCs"`
 }
 
-// Italic 斜体
+// Italic represents italic formatting
 type Italic struct {
 	XMLName xml.Name `xml:"w:i"`
 }
 
-// ItalicCs 复杂脚本斜体
+// ItalicCs represents complex script italic formatting
 type ItalicCs struct {
 	XMLName xml.Name `xml:"w:iCs"`
 }
 
-// Underline 下划线
+// Underline represents underline formatting
 type Underline struct {
 	XMLName xml.Name `xml:"w:u"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// Strike 删除线
+// Strike represents strikethrough formatting
 type Strike struct {
 	XMLName xml.Name `xml:"w:strike"`
 }
 
-// FontSize 字体大小
+// FontSize represents font size
 type FontSize struct {
 	XMLName xml.Name `xml:"w:sz"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// FontSizeCs 复杂脚本字体大小
+// FontSizeCs represents complex script font size
 type FontSizeCs struct {
 	XMLName xml.Name `xml:"w:szCs"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// Color 颜色
+// Color represents text color
 type Color struct {
 	XMLName xml.Name `xml:"w:color"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// Highlight 背景色
+// Highlight represents background highlight color
 type Highlight struct {
 	XMLName xml.Name `xml:"w:highlight"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// Text 文本内容
+// Text represents text content
 type Text struct {
 	XMLName xml.Name `xml:"w:t"`
 	Space   string   `xml:"xml:space,attr,omitempty"`
 	Content string   `xml:",chardata"`
 }
 
-// Break 分页符
 // Break represents page breaks in Word documents
 type Break struct {
 	XMLName xml.Name `xml:"w:br"`
-	Type    string   `xml:"w:type,attr,omitempty"` // "page" 表示分页符 / "page" indicates a page break
+	Type    string   `xml:"w:type,attr,omitempty"` // "page" indicates a page break
 }
 
-// Relationships 文档关系
+// Relationships represents document relationships
 type Relationships struct {
 	XMLName       xml.Name       `xml:"Relationships"`
 	Xmlns         string         `xml:"xmlns,attr"`
 	Relationships []Relationship `xml:"Relationship"`
 }
 
-// Relationship 单个关系
+// Relationship represents a single relationship
 type Relationship struct {
 	ID     string `xml:"Id,attr"`
 	Type   string `xml:"Type,attr"`
 	Target string `xml:"Target,attr"`
 }
 
-// ContentTypes 内容类型
+// ContentTypes represents content types
 type ContentTypes struct {
 	XMLName   xml.Name   `xml:"Types"`
 	Xmlns     string     `xml:"xmlns,attr"`
@@ -360,19 +413,19 @@ type ContentTypes struct {
 	Overrides []Override `xml:"Override"`
 }
 
-// Default 默认内容类型
+// Default represents a default content type
 type Default struct {
 	Extension   string `xml:"Extension,attr"`
 	ContentType string `xml:"ContentType,attr"`
 }
 
-// Override 覆盖内容类型
+// Override represents an override content type
 type Override struct {
 	PartName    string `xml:"PartName,attr"`
 	ContentType string `xml:"ContentType,attr"`
 }
 
-// FontFamily 字体族
+// FontFamily represents a font family
 type FontFamily struct {
 	XMLName  xml.Name `xml:"w:rFonts"`
 	ASCII    string   `xml:"w:ascii,attr,omitempty"`
@@ -382,42 +435,42 @@ type FontFamily struct {
 	Hint     string   `xml:"w:hint,attr,omitempty"`
 }
 
-// TextFormat 文本格式配置
+// TextFormat represents text formatting configuration
 type TextFormat struct {
-	Bold       bool   // 是否粗体
-	Italic     bool   // 是否斜体
-	FontSize   int    // 字体大小（磅）
-	FontColor  string // 字体颜色（十六进制，如 "FF0000" 表示红色）
-	FontFamily string // 字体名称（首选字段）
-	FontName   string // 字体名称别名（为兼容早期文档示例/README 中使用的 FontName）
-	Underline  bool   // 是否下划线
-	Strike     bool   // 删除线
-	Highlight  string //高亮颜色
+	Bold       bool   // Whether to apply bold
+	Italic     bool   // Whether to apply italic
+	FontSize   int    // Font size in points
+	FontColor  string // Font color (hex, e.g. "FF0000" for red)
+	FontFamily string // Font name (preferred field)
+	FontName   string // Font name alias (for backward compatibility with earlier examples/README that used FontName)
+	Underline  bool   // Whether to apply underline
+	Strike     bool   // Strikethrough
+	Highlight  string // Highlight color
 }
 
-// AlignmentType 对齐类型
+// AlignmentType represents text alignment type
 type AlignmentType string
 
 const (
-	// AlignLeft 左对齐
+	// AlignLeft is left alignment
 	AlignLeft AlignmentType = "left"
-	// AlignCenter 居中对齐
+	// AlignCenter is center alignment
 	AlignCenter AlignmentType = "center"
-	// AlignRight 右对齐
+	// AlignRight is right alignment
 	AlignRight AlignmentType = "right"
-	// AlignJustify 两端对齐
+	// AlignJustify is justified alignment
 	AlignJustify AlignmentType = "both"
 )
 
-// SpacingConfig 间距配置
+// SpacingConfig represents spacing configuration
 type SpacingConfig struct {
-	LineSpacing     float64 // 行间距（倍数，如1.5表示1.5倍行距）
-	BeforePara      int     // 段前间距（磅）
-	AfterPara       int     // 段后间距（磅）
-	FirstLineIndent int     // 首行缩进（磅）
+	LineSpacing     float64 // Line spacing multiplier (e.g. 1.5 for 1.5x line spacing)
+	BeforePara      int     // Spacing before paragraph (in points)
+	AfterPara       int     // Spacing after paragraph (in points)
+	FirstLineIndent int     // First line indent (in points)
 }
 
-// Indentation 缩进设置
+// Indentation represents indentation settings
 type Indentation struct {
 	XMLName   xml.Name `xml:"w:ind"`
 	FirstLine string   `xml:"w:firstLine,attr,omitempty"`
@@ -425,13 +478,13 @@ type Indentation struct {
 	Right     string   `xml:"w:right,attr,omitempty"`
 }
 
-// Tabs 制表符设置
+// Tabs represents tab stop settings
 type Tabs struct {
 	XMLName xml.Name `xml:"w:tabs"`
 	Tabs    []TabDef `xml:"w:tab"`
 }
 
-// TabDef 制表符定义
+// TabDef represents a tab stop definition
 type TabDef struct {
 	XMLName xml.Name `xml:"w:tab"`
 	Val     string   `xml:"w:val,attr"`
@@ -439,34 +492,34 @@ type TabDef struct {
 	Pos     string   `xml:"w:pos,attr"`
 }
 
-// ParagraphStyle 段落样式引用
+// ParagraphStyle represents a paragraph style reference
 type ParagraphStyle struct {
 	XMLName xml.Name `xml:"w:pStyle"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// NumberingProperties 段落编号属性
+// NumberingProperties represents paragraph numbering properties
 type NumberingProperties struct {
 	XMLName xml.Name `xml:"w:numPr"`
 	ILevel  *ILevel  `xml:"w:ilvl,omitempty"`
 	NumID   *NumID   `xml:"w:numId,omitempty"`
 }
 
-// ILevel 编号级别
+// ILevel represents the numbering level
 type ILevel struct {
 	XMLName xml.Name `xml:"w:ilvl"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// NumID 编号ID
+// NumID represents the numbering ID
 type NumID struct {
 	XMLName xml.Name `xml:"w:numId"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// New 创建一个新的Word文档
+// New creates a new Word document
 func New() *Document {
-	Debugf("创建新文档")
+	DebugMsg(MsgCreatingNewDocument)
 
 	doc := &Document{
 		Body: &Body{
@@ -474,47 +527,53 @@ func New() *Document {
 		},
 		styleManager: style.NewStyleManager(),
 		parts:        make(map[string][]byte),
-		nextImageID:  0, // 初始化图片ID计数器，从0开始
+		nextImageID:  0, // Initialize image ID counter, starting from 0
 		documentRelationships: &Relationships{
 			Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
 			Relationships: []Relationship{},
 		},
+		footnoteManager: &FootnoteManager{
+			nextFootnoteID: 1,
+			nextEndnoteID:  1,
+			footnotes:      make(map[string]*Footnote),
+			endnotes:       make(map[string]*Endnote),
+		},
 	}
 
-	// 初始化文档结构
+	// Initialize document structure
 	doc.initializeStructure()
 
 	return doc
 }
 
-// Open 打开一个现有的Word文档。
+// Open opens an existing Word document.
 //
-// 参数 filename 是要打开的 .docx 文件路径。
-// 该函数会解析整个文档结构，包括文本内容、格式和属性。
+// The filename parameter is the path to the .docx file to open.
+// This function parses the entire document structure, including text content, formatting, and properties.
 //
-// 如果文件不存在、格式错误或解析失败，会返回相应的错误。
+// Returns an error if the file does not exist, has an invalid format, or fails to parse.
 //
-// 示例:
+// Example:
 //
 //	doc, err := document.Open("existing.docx")
 //	if err != nil {
 //		log.Fatal(err)
 //	}
 //
-//	// 打印所有段落内容
+//	// Print all paragraph content
 //	for i, para := range doc.Body.Paragraphs {
-//		fmt.Printf("段落 %d: ", i+1)
+//		fmt.Printf("Paragraph %d: ", i+1)
 //		for _, run := range para.Runs {
 //			fmt.Print(run.Text.Content)
 //		}
 //		fmt.Println()
 //	}
 func Open(filename string) (*Document, error) {
-	Infof("正在打开文档: %s", filename)
+	InfoMsgf(MsgOpeningDocumentPath, filename)
 
 	reader, err := zip.OpenReader(filename)
 	if err != nil {
-		Errorf("无法打开文件: %s", filename)
+		ErrorMsgf(MsgFailedToOpenFile, filename)
 		return nil, WrapErrorWithContext("open_file", err, filename)
 	}
 	defer reader.Close()
@@ -524,33 +583,33 @@ func Open(filename string) (*Document, error) {
 		return nil, err
 	}
 
-	Infof("成功打开文档: %s", filename)
+	InfoMsgf(MsgDocumentOpenedPath, filename)
 	return doc, nil
 }
 
 func OpenFromMemory(readCloser io.ReadCloser) (*Document, error) {
 	defer readCloser.Close()
-	Infof("正在打开文档")
+	InfoMsg(MsgOpeningDocument)
 
 	fileData, err := io.ReadAll(readCloser)
 	if err != nil {
-		return nil, fmt.Errorf("读取文件内容失败: %w", err)
+		return nil, fmt.Errorf("failed to read file content: %w", err)
 	}
 
 	readerAt := bytes.NewReader(fileData)
 	size := int64(len(fileData))
 	reader, err := zip.NewReader(readerAt, size)
 	if err != nil {
-		Errorf("无法打开文件")
+		ErrorMsg(MsgFailedToOpenFileSimple)
 		return nil, WrapErrorWithContext("open_file", err, "")
 	}
 
-	doc, err := openFromZipReader(reader, "内存")
+	doc, err := openFromZipReader(reader, "memory")
 	if err != nil {
 		return nil, err
 	}
 
-	Infof("成功打开文档")
+	InfoMsg(MsgDocumentOpened)
 	return doc, nil
 }
 
@@ -561,35 +620,41 @@ func openFromZipReader(zipReader *zip.Reader, filename string) (*Document, error
 			Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
 			Relationships: []Relationship{},
 		},
-		nextImageID: 0, // 初始化图片ID计数器，从0开始
+		nextImageID: 0, // Initialize image ID counter, starting from 0
+		footnoteManager: &FootnoteManager{
+			nextFootnoteID: 1,
+			nextEndnoteID:  1,
+			footnotes:      make(map[string]*Footnote),
+			endnotes:       make(map[string]*Endnote),
+		},
 	}
 
-	// 读取所有文件部件
+	// Read all file parts
 	for _, file := range zipReader.File {
 		rc, err := file.Open()
 		if err != nil {
-			Errorf("无法打开文件部件: %s", file.Name)
+			ErrorMsgf(MsgFailedToOpenFilePart, file.Name)
 			return nil, WrapErrorWithContext("open_part", err, file.Name)
 		}
 
 		data, err := io.ReadAll(rc)
 		rc.Close()
 		if err != nil {
-			Errorf("无法读取文件部件: %s", file.Name)
+			ErrorMsgf(MsgFailedToReadFilePart, file.Name)
 			return nil, WrapErrorWithContext("read_part", err, file.Name)
 		}
 
 		doc.parts[file.Name] = data
-		Debugf("已读取文件部件: %s (%d 字节)", file.Name, len(data))
+		DebugMsgf(MsgReadFilePart, file.Name, len(data))
 	}
 
-	// 初始化样式管理器
+	// Initialize style manager
 	doc.styleManager = style.NewStyleManager()
 
-	// 解析内容类型
+	// Parse content types
 	if err := doc.parseContentTypes(); err != nil {
-		Debugf("解析内容类型失败，使用默认值: %v", err)
-		// 如果解析失败，使用默认值
+		DebugMsgf(MsgFailedToParseContentTypesDefault, err)
+		// If parsing fails, use defaults
 		doc.contentTypes = &ContentTypes{
 			Xmlns: "http://schemas.openxmlformats.org/package/2006/content-types",
 			Defaults: []Default{
@@ -603,10 +668,10 @@ func openFromZipReader(zipReader *zip.Reader, filename string) (*Document, error
 		}
 	}
 
-	// 解析关系
+	// Parse relationships
 	if err := doc.parseRelationships(); err != nil {
-		Debugf("解析关系失败，使用默认值: %v", err)
-		// 如果解析失败，使用默认值
+		DebugMsgf(MsgFailedToParseRelationshipsDefault, err)
+		// If parsing fails, use defaults
 		doc.relationships = &Relationships{
 			Xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
 			Relationships: []Relationship{
@@ -619,139 +684,139 @@ func openFromZipReader(zipReader *zip.Reader, filename string) (*Document, error
 		}
 	}
 
-	// 解析主文档
+	// Parse main document
 	if err := doc.parseDocument(); err != nil {
-		Errorf("解析文档失败: %s", filename)
+		ErrorMsgf(MsgFailedToParseDocument, filename)
 		return nil, WrapErrorWithContext("parse_document", err, filename)
 	}
 
-	// 解析样式文件
+	// Parse styles file
 	if err := doc.parseStyles(); err != nil {
-		Debugf("解析样式失败，使用默认样式: %v", err)
-		// 如果样式解析失败，重新初始化为默认样式
+		DebugMsgf(MsgFailedToParseStylesDefault, err)
+		// If style parsing fails, reinitialize with default styles
 		doc.styleManager = style.NewStyleManager()
 	}
 
-	// 解析文档关系（包括图片等资源的关系）
+	// Parse document relationships (including relationships for images and other resources)
 	if err := doc.parseDocumentRelationships(); err != nil {
-		Debugf("解析文档关系失败，使用默认值: %v", err)
-		// 如果解析失败，保持初始化的空关系列表
+		DebugMsgf(MsgFailedToParseDocRelDefault, err)
+		// If parsing fails, keep the initialized empty relationship list
 	}
 
-	// 根据已有的图片关系更新nextImageID计数器
+	// Update nextImageID counter based on existing image relationships
 	doc.updateNextImageID()
 
 	return doc, nil
 
 }
 
-// Save 将文档保存到指定的文件路径。
+// Save saves the document to the specified file path.
 //
-// 参数 filename 是保存文件的路径，包含文件名和扩展名。
-// 如果目录不存在，会自动创建所需的目录结构。
+// The filename parameter is the path to save the file, including file name and extension.
+// If the directory does not exist, the required directory structure is created automatically.
 //
-// 保存过程包括序列化所有文档内容、压缩为ZIP格式，
-// 并写入到文件系统。
+// The save process includes serializing all document content, compressing it into ZIP format,
+// and writing it to the file system.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
-//	doc.AddParagraph("示例内容")
+//	doc.AddParagraph("Example content")
 //
-//	// 保存到当前目录
+//	// Save to current directory
 //	err := doc.Save("example.docx")
 //
-//	// 保存到子目录（会自动创建目录）
+//	// Save to subdirectory (directory created automatically)
 //	err = doc.Save("output/documents/example.docx")
 //
 //	if err != nil {
 //		log.Fatal(err)
 //	}
 func (d *Document) Save(filename string) error {
-	Infof("正在保存文档: %s", filename)
+	InfoMsgf(MsgSavingDocument, filename)
 
-	// 确保目录存在
+	// Ensure directory exists
 	dir := filepath.Dir(filename)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		Errorf("无法创建目录: %s", dir)
+		ErrorMsgf(MsgFailedToCreateDirectory, dir)
 		return WrapErrorWithContext("create_dir", err, dir)
 	}
 
-	// 创建文件
+	// Create file
 	file, err := os.Create(filename)
 	if err != nil {
-		Errorf("无法创建文件: %s", filename)
+		ErrorMsgf(MsgFailedToCreateFile, filename)
 		return WrapErrorWithContext("create_file", err, filename)
 	}
 	defer file.Close()
 
-	// 创建ZIP写入器
+	// Create ZIP writer
 	zipWriter := zip.NewWriter(file)
 	defer zipWriter.Close()
 
-	// 序列化主文档
+	// Serialize main document
 	if err := d.serializeDocument(); err != nil {
-		Errorf("序列化文档失败")
+		ErrorMsg(MsgFailedToSerializeDocument)
 		return WrapError("serialize_document", err)
 	}
 
-	// 序列化样式
+	// Serialize styles
 	if err := d.serializeStyles(); err != nil {
-		Errorf("序列化样式失败")
+		ErrorMsg(MsgFailedToSerializeStyles)
 		return WrapError("serialize_styles", err)
 	}
 
-	// 序列化内容类型
+	// Serialize content types
 	d.serializeContentTypes()
 
-	// 序列化关系
+	// Serialize relationships
 	d.serializeRelationships()
 
-	// 序列化文档关系
+	// Serialize document relationships
 	d.serializeDocumentRelationships()
 
-	// 写入所有部件
+	// Write all parts
 	for name, data := range d.parts {
 		writer, err := zipWriter.Create(name)
 		if err != nil {
-			Errorf("无法创建ZIP条目: %s", name)
+			ErrorMsgf(MsgFailedToCreateZIPEntry, name)
 			return WrapErrorWithContext("create_zip_entry", err, name)
 		}
 
 		if _, err := writer.Write(data); err != nil {
-			Errorf("无法写入ZIP条目: %s", name)
+			ErrorMsgf(MsgFailedToWriteZIPEntry, name)
 			return WrapErrorWithContext("write_zip_entry", err, name)
 		}
 
-		Debugf("已写入ZIP条目: %s (%d 字节)", name, len(data))
+		DebugMsgf(MsgWrittenZIPEntry, name, len(data))
 	}
 
-	Infof("成功保存文档: %s", filename)
+	InfoMsgf(MsgDocumentSaved, filename)
 	return nil
 }
 
-// AddParagraph 向文档添加一个普通段落。
+// AddParagraph adds a plain paragraph to the document.
 //
-// 参数 text 是段落的文本内容。段落会使用默认格式，
-// 可以后续通过返回的 Paragraph 指针设置格式和属性。
+// The text parameter is the paragraph's text content. The paragraph uses default formatting,
+// which can be modified later through the returned Paragraph pointer.
 //
-// 返回新创建段落的指针，可用于进一步格式化。
+// Returns a pointer to the newly created paragraph for further formatting.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
 //
-//	// 添加普通段落
-//	para := doc.AddParagraph("这是一个段落")
+//	// Add a plain paragraph
+//	para := doc.AddParagraph("This is a paragraph")
 //
-//	// 设置段落属性
+//	// Set paragraph properties
 //	para.SetAlignment(document.AlignCenter)
 //	para.SetSpacing(&document.SpacingConfig{
 //		LineSpacing: 1.5,
 //		BeforePara:  12,
 //	})
 func (d *Document) AddParagraph(text string) *Paragraph {
-	Debugf("添加段落: %s", text)
+	DebugMsgf(MsgAddingParagraph, text)
 	p := &Paragraph{
 		Runs: []Run{
 			{
@@ -767,44 +832,44 @@ func (d *Document) AddParagraph(text string) *Paragraph {
 	return p
 }
 
-// AddFormattedParagraph 向文档添加一个格式化段落。
+// AddFormattedParagraph adds a formatted paragraph to the document.
 //
-// 参数 text 是段落的文本内容。
-// 参数 format 指定文本格式，如果为 nil 则使用默认格式。
+// The text parameter is the paragraph's text content.
+// The format parameter specifies text formatting; if nil, default formatting is used.
 //
-// 返回新创建段落的指针，可用于进一步设置段落属性。
+// Returns a pointer to the newly created paragraph for further property setting.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
 //
-//	// 创建格式配置
+//	// Create format configuration
 //	titleFormat := &document.TextFormat{
 //		Bold:      true,
 //		FontSize:  18,
-//		FontColor: "FF0000", // 红色
-//		FontName:  "微软雅黑",
+//		FontColor: "FF0000", // Red
+//		FontName:  "Arial",
 //	}
 //
-//	// 添加格式化标题
-//	title := doc.AddFormattedParagraph("文档标题", titleFormat)
+//	// Add formatted title
+//	title := doc.AddFormattedParagraph("Document Title", titleFormat)
 //	title.SetAlignment(document.AlignCenter)
 func (d *Document) AddFormattedParagraph(text string, format *TextFormat) *Paragraph {
-	Debugf("添加格式化段落: %s", text)
+	DebugMsgf(MsgAddingFormattedParagraph, text)
 
-	// 创建运行属性
+	// Create run properties
 	runProps := &RunProperties{}
 
 	if format != nil {
-		// 兼容 FontFamily 与 FontName 两个字段
+		// Support both FontFamily and FontName fields
 		fontName := ""
 		if format.FontFamily != "" {
 			fontName = format.FontFamily
-		} else if format.FontName != "" { // 向后兼容示例代码
+		} else if format.FontName != "" { // Backward compatibility with example code
 			fontName = format.FontName
 		}
 		if fontName != "" {
-			runProps.FontFamily = &FontFamily{ // 设置所有相关字段，保证测试与渲染一致
+			runProps.FontFamily = &FontFamily{ // Set all related fields to ensure consistent testing and rendering
 				ASCII:    fontName,
 				HAnsi:    fontName,
 				EastAsia: fontName,
@@ -821,21 +886,21 @@ func (d *Document) AddFormattedParagraph(text string, format *TextFormat) *Parag
 		}
 
 		if format.FontColor != "" {
-			// 确保颜色格式正确（移除#前缀）
+			// Ensure correct color format (remove # prefix)
 			color := strings.TrimPrefix(format.FontColor, "#")
 			runProps.Color = &Color{Val: color}
 		}
 
 		if format.FontSize > 0 {
-			// Word中字体大小是半磅为单位，所以需要乘以2
+			// Word uses half-points for font size, so multiply by 2
 			runProps.FontSize = &FontSize{Val: strconv.Itoa(format.FontSize * 2)}
 		}
 		if format.Underline {
-			runProps.Underline = &Underline{Val: "single"} // 默认单线下划线
+			runProps.Underline = &Underline{Val: "single"} // Default single underline
 		}
 
 		if format.Strike {
-			runProps.Strike = &Strike{} // 添加删除线
+			runProps.Strike = &Strike{} // Add strikethrough
 		}
 
 		if format.Highlight != "" {
@@ -859,20 +924,20 @@ func (d *Document) AddFormattedParagraph(text string, format *TextFormat) *Parag
 	return p
 }
 
-// SetAlignment 设置段落的对齐方式。
+// SetAlignment sets the paragraph alignment.
 //
-// 参数 alignment 指定对齐类型，支持以下值：
-//   - AlignLeft: 左对齐（默认）
-//   - AlignCenter: 居中对齐
-//   - AlignRight: 右对齐
-//   - AlignJustify: 两端对齐
+// The alignment parameter specifies the alignment type. Supported values:
+//   - AlignLeft: left alignment (default)
+//   - AlignCenter: center alignment
+//   - AlignRight: right alignment
+//   - AlignJustify: justified alignment
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("居中标题")
+//	para := doc.AddParagraph("Centered title")
 //	para.SetAlignment(document.AlignCenter)
 //
-//	para2 := doc.AddParagraph("右对齐文本")
+//	para2 := doc.AddParagraph("Right-aligned text")
 //	para2.SetAlignment(document.AlignRight)
 func (p *Paragraph) SetAlignment(alignment AlignmentType) {
 	if p.Properties == nil {
@@ -880,34 +945,34 @@ func (p *Paragraph) SetAlignment(alignment AlignmentType) {
 	}
 
 	p.Properties.Justification = &Justification{Val: string(alignment)}
-	Debugf("设置段落对齐方式: %s", alignment)
+	DebugMsgf(MsgSettingParagraphAlignment, alignment)
 }
 
-// SetSpacing 设置段落的间距配置。
+// SetSpacing sets the paragraph spacing configuration.
 //
-// 参数 config 包含各种间距设置，如果为 nil 则不进行任何设置。
-// 配置选项包括：
-//   - LineSpacing: 行间距倍数（如 1.5 表示1.5倍行距）
-//   - BeforePara: 段前间距（磅）
-//   - AfterPara: 段后间距（磅）
-//   - FirstLineIndent: 首行缩进（磅）
+// The config parameter contains various spacing settings; if nil, no changes are made.
+// Configuration options include:
+//   - LineSpacing: line spacing multiplier (e.g. 1.5 for 1.5x line spacing)
+//   - BeforePara: spacing before paragraph (in points)
+//   - AfterPara: spacing after paragraph (in points)
+//   - FirstLineIndent: first line indent (in points)
 //
-// 注意：间距值会自动转换为 Word 内部使用的 TWIPs 单位（1磅=20TWIPs）。
+// Note: Spacing values are automatically converted to Word's internal TWIPs unit (1 point = 20 TWIPs).
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("带间距的段落")
+//	para := doc.AddParagraph("Paragraph with spacing")
 //
-//	// 设置复杂间距
+//	// Set complex spacing
 //	para.SetSpacing(&document.SpacingConfig{
-//		LineSpacing:     1.5, // 1.5倍行距
-//		BeforePara:      12,  // 段前12磅
-//		AfterPara:       6,   // 段后6磅
-//		FirstLineIndent: 24,  // 首行缩进24磅
+//		LineSpacing:     1.5, // 1.5x line spacing
+//		BeforePara:      12,  // 12pt before paragraph
+//		AfterPara:       6,   // 6pt after paragraph
+//		FirstLineIndent: 24,  // 24pt first line indent
 //	})
 //
-//	// 只设置行间距
-//	para2 := doc.AddParagraph("双倍行距")
+//	// Set only line spacing
+//	para2 := doc.AddParagraph("Double spaced")
 //	para2.SetSpacing(&document.SpacingConfig{
 //		LineSpacing: 2.0,
 //	})
@@ -920,17 +985,17 @@ func (p *Paragraph) SetSpacing(config *SpacingConfig) {
 		spacing := &Spacing{}
 
 		if config.BeforePara > 0 {
-			// 转换为TWIPs (1/20磅)
+			// Convert to TWIPs (1/20 of a point)
 			spacing.Before = strconv.Itoa(config.BeforePara * 20)
 		}
 
 		if config.AfterPara > 0 {
-			// 转换为TWIPs (1/20磅)
+			// Convert to TWIPs (1/20 of a point)
 			spacing.After = strconv.Itoa(config.AfterPara * 20)
 		}
 
 		if config.LineSpacing > 0 {
-			// 行间距，240表示单倍行距
+			// Line spacing; 240 represents single spacing
 			spacing.Line = strconv.Itoa(int(config.LineSpacing * 240))
 		}
 
@@ -940,51 +1005,51 @@ func (p *Paragraph) SetSpacing(config *SpacingConfig) {
 			if p.Properties.Indentation == nil {
 				p.Properties.Indentation = &Indentation{}
 			}
-			// 转换为TWIPs (1/20磅)
+			// Convert to TWIPs (1/20 of a point)
 			p.Properties.Indentation.FirstLine = strconv.Itoa(config.FirstLineIndent * 20)
 		}
 
-		Debugf("设置段落间距: 段前=%d, 段后=%d, 行距=%.1f, 首行缩进=%d",
+		DebugMsgf(MsgSettingParagraphSpacing,
 			config.BeforePara, config.AfterPara, config.LineSpacing, config.FirstLineIndent)
 	}
 }
 
-// AddFormattedText 向段落添加格式化的文本内容。
+// AddFormattedText adds formatted text content to the paragraph.
 //
-// 此方法允许在一个段落中混合使用不同格式的文本。
-// 新的文本会作为一个新的 Run 添加到段落中。
+// This method allows mixing different text formats within a single paragraph.
+// The new text is added as a new Run in the paragraph.
 //
-// 参数 text 是要添加的文本内容。
-// 参数 format 指定文本格式，如果为 nil 则使用默认格式。
+// The text parameter is the text content to add.
+// The format parameter specifies text formatting; if nil, default formatting is used.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这个段落包含")
+//	para := doc.AddParagraph("This paragraph contains ")
 //
-//	// 添加粗体红色文本
-//	para.AddFormattedText("粗体红色", &document.TextFormat{
+//	// Add bold red text
+//	para.AddFormattedText("bold red", &document.TextFormat{
 //		Bold: true,
 //		FontColor: "FF0000",
 //	})
 //
-//	// 添加普通文本
-//	para.AddFormattedText("和普通文本", nil)
+//	// Add plain text
+//	para.AddFormattedText(" and plain text", nil)
 //
-//	// 添加斜体蓝色文本
-//	para.AddFormattedText("以及斜体蓝色", &document.TextFormat{
+//	// Add italic blue text
+//	para.AddFormattedText(" and italic blue", &document.TextFormat{
 //		Italic: true,
 //		FontColor: "0000FF",
 //		FontSize: 14,
 //	})
 func (p *Paragraph) AddFormattedText(text string, format *TextFormat) {
-	// 创建运行属性
+	// Create run properties
 	runProps := &RunProperties{}
 
 	if format != nil {
 		fontName := ""
 		if format.FontFamily != "" {
 			fontName = format.FontFamily
-		} else if format.FontName != "" { // 兼容旧示例
+		} else if format.FontName != "" { // Backward compatibility with old examples
 			fontName = format.FontName
 		}
 		if fontName != "" {
@@ -1013,11 +1078,11 @@ func (p *Paragraph) AddFormattedText(text string, format *TextFormat) {
 			runProps.FontSize = &FontSize{Val: strconv.Itoa(format.FontSize * 2)}
 		}
 		if format.Underline {
-			runProps.Underline = &Underline{Val: "single"} // 默认单线下划线
+			runProps.Underline = &Underline{Val: "single"} // Default single underline
 		}
 
 		if format.Strike {
-			runProps.Strike = &Strike{} // 添加删除线
+			runProps.Strike = &Strike{} // Add strikethrough
 		}
 
 		if format.Highlight != "" {
@@ -1034,19 +1099,19 @@ func (p *Paragraph) AddFormattedText(text string, format *TextFormat) {
 	}
 
 	p.Runs = append(p.Runs, run)
-	Debugf("向段落添加格式化文本: %s", text)
+	DebugMsgf(MsgAddingFormattedText, text)
 }
 
-// AddPageBreak 向段落添加一个分页符。
+// AddPageBreak adds a page break to the paragraph.
 //
-// 此方法在当前段落中添加一个分页符，分页符之后的内容将显示在新页面上。
-// 与 Document.AddPageBreak() 不同，此方法不会创建新段落，而是在当前段落的运行中添加分页符。
+// This method adds a page break within the current paragraph; content after the break appears on a new page.
+// Unlike Document.AddPageBreak(), this method does not create a new paragraph but adds the break within the current paragraph's runs.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("第一页的内容")
+//	para := doc.AddParagraph("First page content")
 //	para.AddPageBreak()
-//	para.AddFormattedText("第二页的内容", nil)
+//	para.AddFormattedText("Second page content", nil)
 func (p *Paragraph) AddPageBreak() {
 	run := Run{
 		Break: &Break{
@@ -1054,72 +1119,72 @@ func (p *Paragraph) AddPageBreak() {
 		},
 	}
 	p.Runs = append(p.Runs, run)
-	Debugf("向段落添加分页符")
+	DebugMsg(MsgAddingPageBreakToParagraph)
 }
 
-// AddHeadingParagraph 向文档添加一个标题段落。
+// AddHeadingParagraph adds a heading paragraph to the document.
 //
-// 参数 text 是标题的文本内容。
-// 参数 level 是标题级别（1-9），对应 Heading1 到 Heading9。
+// The text parameter is the heading's text content.
+// The level parameter is the heading level (1-9), corresponding to Heading1 through Heading9.
 //
-// 返回新创建段落的指针，可用于进一步设置段落属性。
-// 此方法会自动设置正确的样式引用，确保标题能被 Word 导航窗格识别。
+// Returns a pointer to the newly created paragraph for further property setting.
+// This method automatically sets the correct style reference so the heading is recognized by Word's navigation pane.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
 //
-//	// 添加一级标题
-//	h1 := doc.AddHeadingParagraph("第一章：概述", 1)
+//	// Add level 1 heading
+//	h1 := doc.AddHeadingParagraph("Chapter 1: Overview", 1)
 //
-//	// 添加二级标题
-//	h2 := doc.AddHeadingParagraph("1.1 背景", 2)
+//	// Add level 2 heading
+//	h2 := doc.AddHeadingParagraph("1.1 Background", 2)
 //
-//	// 添加三级标题
-//	h3 := doc.AddHeadingParagraph("1.1.1 研究目标", 3)
+//	// Add level 3 heading
+//	h3 := doc.AddHeadingParagraph("1.1.1 Research Goals", 3)
 func (d *Document) AddHeadingParagraph(text string, level int) *Paragraph {
 	return d.AddHeadingParagraphWithBookmark(text, level, "")
 }
 
-// AddHeadingParagraphWithBookmark 向文档添加一个带书签的标题段落。
+// AddHeadingParagraphWithBookmark adds a heading paragraph with a bookmark to the document.
 //
-// 参数 text 是标题的文本内容。
-// 参数 level 是标题级别（1-9），对应 Heading1 到 Heading9。
-// 参数 bookmarkName 是书签名称，如果为空字符串则不添加书签。
+// The text parameter is the heading's text content.
+// The level parameter is the heading level (1-9), corresponding to Heading1 through Heading9.
+// The bookmarkName parameter is the bookmark name; if empty, no bookmark is added.
 //
-// 返回新创建段落的指针，可用于进一步设置段落属性。
-// 此方法会自动设置正确的样式引用，确保标题能被 Word 导航窗格识别，
-// 并在需要时添加书签以支持目录导航和超链接。
+// Returns a pointer to the newly created paragraph for further property setting.
+// This method automatically sets the correct style reference so the heading is recognized by Word's navigation pane,
+// and adds a bookmark when needed to support table of contents navigation and hyperlinks.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
 //
-//	// 添加带书签的一级标题
-//	h1 := doc.AddHeadingParagraphWithBookmark("第一章：概述", 1, "chapter1")
+//	// Add level 1 heading with bookmark
+//	h1 := doc.AddHeadingParagraphWithBookmark("Chapter 1: Overview", 1, "chapter1")
 //
-//	// 添加不带书签的二级标题
-//	h2 := doc.AddHeadingParagraphWithBookmark("1.1 背景", 2, "")
+//	// Add level 2 heading without bookmark
+//	h2 := doc.AddHeadingParagraphWithBookmark("1.1 Background", 2, "")
 //
-//	// 添加自动生成书签名的三级标题
-//	h3 := doc.AddHeadingParagraphWithBookmark("1.1.1 研究目标", 3, "auto_bookmark")
+//	// Add level 3 heading with auto-generated bookmark name
+//	h3 := doc.AddHeadingParagraphWithBookmark("1.1.1 Research Goals", 3, "auto_bookmark")
 func (d *Document) AddHeadingParagraphWithBookmark(text string, level int, bookmarkName string) *Paragraph {
 	if level < 1 || level > 9 {
-		Debugf("标题级别 %d 超出范围，使用默认级别 1", level)
+		DebugMsgf(MsgHeadingLevelOutOfRange, level)
 		level = 1
 	}
 
 	styleID := fmt.Sprintf("Heading%d", level)
-	Debugf("添加标题段落: %s (级别: %d, 样式: %s, 书签: %s)", text, level, styleID, bookmarkName)
+	DebugMsgf(MsgAddingHeadingParagraph, text, level, styleID, bookmarkName)
 
-	// 获取样式管理器中的样式
+	// Get the style from the style manager
 	headingStyle := d.styleManager.GetStyle(styleID)
 	if headingStyle == nil {
-		Debugf("警告：找不到样式 %s，使用默认样式", styleID)
+		DebugMsgf(MsgStyleNotFoundUsingDefault, styleID)
 		return d.AddParagraph(text)
 	}
 
-	// 创建运行属性，应用样式中的字符格式
+	// Create run properties, applying character formatting from the style
 	runProps := &RunProperties{}
 	if headingStyle.RunPr != nil {
 		if headingStyle.RunPr.Bold != nil {
@@ -1139,12 +1204,12 @@ func (d *Document) AddHeadingParagraphWithBookmark(text string, level int, bookm
 		}
 	}
 
-	// 创建段落属性，应用样式中的段落格式
+	// Create paragraph properties, applying paragraph formatting from the style
 	paraProps := &ParagraphProperties{
 		ParagraphStyle: &ParagraphStyle{Val: styleID},
 	}
 
-	// 应用样式中的段落格式
+	// Apply paragraph formatting from the style
 	if headingStyle.ParagraphPr != nil {
 		if headingStyle.ParagraphPr.Spacing != nil {
 			paraProps.Spacing = &Spacing{
@@ -1167,24 +1232,24 @@ func (d *Document) AddHeadingParagraphWithBookmark(text string, level int, bookm
 		}
 	}
 
-	// 创建段落的Run列表
+	// Create the paragraph's Run list
 	runs := make([]Run, 0)
 
-	// 如果需要添加书签，在段落开始处添加书签开始标记
+	// If a bookmark is needed, add a bookmark start marker at the beginning
 	if bookmarkName != "" {
-		// 生成唯一的书签ID
+		// Generate a unique bookmark ID
 		bookmarkID := fmt.Sprintf("bookmark_%d_%s", len(d.Body.Elements), bookmarkName)
 
-		// 添加书签开始标记作为单独的元素到文档主体中
+		// Add bookmark start marker as a separate element in the document body
 		d.Body.Elements = append(d.Body.Elements, &BookmarkStart{
 			ID:   bookmarkID,
 			Name: bookmarkName,
 		})
 
-		Debugf("添加书签开始: ID=%s, Name=%s", bookmarkID, bookmarkName)
+		DebugMsgf(MsgAddingBookmarkStart, bookmarkID, bookmarkName)
 	}
 
-	// 添加文本内容
+	// Add text content
 	runs = append(runs, Run{
 		Properties: runProps,
 		Text: Text{
@@ -1193,7 +1258,7 @@ func (d *Document) AddHeadingParagraphWithBookmark(text string, level int, bookm
 		},
 	})
 
-	// 创建段落
+	// Create paragraph
 	p := &Paragraph{
 		Properties: paraProps,
 		Runs:       runs,
@@ -1201,36 +1266,36 @@ func (d *Document) AddHeadingParagraphWithBookmark(text string, level int, bookm
 
 	d.Body.Elements = append(d.Body.Elements, p)
 
-	// 如果需要添加书签，在段落结束后添加书签结束标记
+	// If a bookmark is needed, add a bookmark end marker after the paragraph
 	if bookmarkName != "" {
-		bookmarkID := fmt.Sprintf("bookmark_%d_%s", len(d.Body.Elements)-2, bookmarkName) // -2 因为段落已经添加了
+		bookmarkID := fmt.Sprintf("bookmark_%d_%s", len(d.Body.Elements)-2, bookmarkName) // -2 because the paragraph has already been added
 
-		// 添加书签结束标记
+		// Add bookmark end marker
 		d.Body.Elements = append(d.Body.Elements, &BookmarkEnd{
 			ID: bookmarkID,
 		})
 
-		Debugf("添加书签结束: ID=%s", bookmarkID)
+		DebugMsgf(MsgAddingBookmarkEnd, bookmarkID)
 	}
 
 	return p
 }
 
-// AddPageBreak 向文档添加一个分页符。
+// AddPageBreak adds a page break to the document.
 //
-// 分页符会强制在当前位置开始一个新页面。
-// 此方法会创建一个包含分页符的段落。
+// The page break forces a new page to begin at the current position.
+// This method creates a paragraph containing the page break.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
-//	doc.AddParagraph("第一页内容")
+//	doc.AddParagraph("First page content")
 //	doc.AddPageBreak()
-//	doc.AddParagraph("第二页内容")
+//	doc.AddParagraph("Second page content")
 func (d *Document) AddPageBreak() {
-	Debugf("添加分页符")
+	DebugMsg(MsgAddingPageBreak)
 
-	// 创建一个包含分页符的段落
+	// Create a paragraph containing a page break
 	p := &Paragraph{
 		Runs: []Run{
 			{
@@ -1244,36 +1309,36 @@ func (d *Document) AddPageBreak() {
 	d.Body.Elements = append(d.Body.Elements, p)
 }
 
-// SetStyle 设置段落的样式。
+// SetStyle sets the paragraph style.
 //
-// 参数 styleID 是要应用的样式ID，如 "Heading1"、"Normal" 等。
-// 此方法会设置段落的样式引用，确保段落使用指定的样式。
+// The styleID parameter is the style ID to apply, such as "Heading1", "Normal", etc.
+// This method sets the paragraph's style reference, ensuring it uses the specified style.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是一个段落")
-//	para.SetStyle("Heading2")  // 设置为二级标题样式
+//	para := doc.AddParagraph("This is a paragraph")
+//	para.SetStyle("Heading2")  // Set to Heading 2 style
 func (p *Paragraph) SetStyle(styleID string) {
 	if p.Properties == nil {
 		p.Properties = &ParagraphProperties{}
 	}
 
 	p.Properties.ParagraphStyle = &ParagraphStyle{Val: styleID}
-	Debugf("设置段落样式: %s", styleID)
+	DebugMsgf(MsgSettingParagraphStyle, styleID)
 }
 
-// SetIndentation 设置段落的缩进属性。
+// SetIndentation sets the paragraph indentation properties.
 //
-// 参数：
-//   - firstLineCm: 首行缩进，单位为厘米（可以为负数表示悬挂缩进）
-//   - leftCm: 左缩进，单位为厘米
-//   - rightCm: 右缩进，单位为厘米
+// Parameters:
+//   - firstLineCm: first line indent in centimeters (negative values create a hanging indent)
+//   - leftCm: left indent in centimeters
+//   - rightCm: right indent in centimeters
 //
-// 示例：
+// Example:
 //
-//	para := doc.AddParagraph("这是一个有缩进的段落")
-//	para.SetIndentation(0.5, 0, 0)    // 首行缩进0.5厘米
-//	para.SetIndentation(-0.5, 1, 0)  // 悬挂缩进0.5厘米，左缩进1厘米
+//	para := doc.AddParagraph("This is an indented paragraph")
+//	para.SetIndentation(0.5, 0, 0)    // First line indent 0.5cm
+//	para.SetIndentation(-0.5, 1, 0)  // Hanging indent 0.5cm, left indent 1cm
 func (p *Paragraph) SetIndentation(firstLineCm, leftCm, rightCm float64) {
 	if p.Properties == nil {
 		p.Properties = &ParagraphProperties{}
@@ -1283,7 +1348,7 @@ func (p *Paragraph) SetIndentation(firstLineCm, leftCm, rightCm float64) {
 		p.Properties.Indentation = &Indentation{}
 	}
 
-	// 转换厘米为TWIPs (1厘米 = 567 TWIPs)
+	// Convert centimeters to TWIPs (1 cm = 567 TWIPs)
 	if firstLineCm != 0 {
 		p.Properties.Indentation.FirstLine = strconv.Itoa(int(firstLineCm * 567))
 	}
@@ -1296,23 +1361,23 @@ func (p *Paragraph) SetIndentation(firstLineCm, leftCm, rightCm float64) {
 		p.Properties.Indentation.Right = strconv.Itoa(int(rightCm * 567))
 	}
 
-	Debugf("设置段落缩进: 首行=%.2fcm, 左=%.2fcm, 右=%.2fcm", firstLineCm, leftCm, rightCm)
+	DebugMsgf(MsgSettingParagraphIndent, firstLineCm, leftCm, rightCm)
 }
 
-// SetKeepWithNext 设置段落与下一段落保持在同一页。
+// SetKeepWithNext sets the paragraph to stay on the same page as the next paragraph.
 //
-// 此方法用于确保当前段落和下一段落不会被分页符分隔，
-// 常用于标题和正文的组合，或需要保持连续性的内容。
+// This method ensures the current paragraph and the next paragraph are not separated by a page break.
+// Commonly used for heading-body combinations or content that must remain contiguous.
 //
-// 参数：
-//   - keep: true表示启用该属性，false表示禁用
+// Parameters:
+//   - keep: true to enable, false to disable
 //
-// 示例：
+// Example:
 //
-//	// 标题与下一段保持在一起
-//	title := doc.AddParagraph("第一章 概述")
+//	// Keep heading with next paragraph
+//	title := doc.AddParagraph("Chapter 1: Overview")
 //	title.SetKeepWithNext(true)
-//	doc.AddParagraph("本章介绍...")  // 这段内容会与标题保持在同一页
+//	doc.AddParagraph("This chapter introduces...")  // Stays on the same page as the heading
 func (p *Paragraph) SetKeepWithNext(keep bool) {
 	if p.Properties == nil {
 		p.Properties = &ParagraphProperties{}
@@ -1320,25 +1385,25 @@ func (p *Paragraph) SetKeepWithNext(keep bool) {
 
 	if keep {
 		p.Properties.KeepNext = &KeepNext{Val: "1"}
-		Debugf("设置段落与下一段保持在一起")
+		DebugMsg(MsgSettingKeepWithNext)
 	} else {
 		p.Properties.KeepNext = nil
-		Debugf("取消段落与下一段保持在一起")
+		DebugMsg(MsgUnsettingKeepWithNext)
 	}
 }
 
-// SetKeepLines 设置段落中的所有行保持在同一页。
+// SetKeepLines sets all lines in the paragraph to stay on the same page.
 //
-// 此方法用于防止段落在分页时被拆分到多个页面，
-// 确保段落的所有行都显示在同一页上。
+// This method prevents the paragraph from being split across multiple pages,
+// ensuring all lines are displayed on the same page.
 //
-// 参数：
-//   - keep: true表示启用该属性，false表示禁用
+// Parameters:
+//   - keep: true to enable, false to disable
 //
-// 示例：
+// Example:
 //
-//	// 确保整个段落不被分页
-//	para := doc.AddParagraph("这是一个重要的段落，需要保持完整显示。")
+//	// Ensure the entire paragraph is not split across pages
+//	para := doc.AddParagraph("This is an important paragraph that must be displayed in full.")
 //	para.SetKeepLines(true)
 func (p *Paragraph) SetKeepLines(keep bool) {
 	if p.Properties == nil {
@@ -1347,25 +1412,25 @@ func (p *Paragraph) SetKeepLines(keep bool) {
 
 	if keep {
 		p.Properties.KeepLines = &KeepLines{Val: "1"}
-		Debugf("设置段落行保持在一起")
+		DebugMsg(MsgSettingKeepLinesTogether)
 	} else {
 		p.Properties.KeepLines = nil
-		Debugf("取消段落行保持在一起")
+		DebugMsg(MsgUnsettingKeepLinesTogether)
 	}
 }
 
-// SetPageBreakBefore 设置段落前插入分页符。
+// SetPageBreakBefore sets a page break before the paragraph.
 //
-// 此方法用于在段落之前强制插入分页符，使段落从新页开始显示。
-// 常用于章节标题或需要单独成页的内容。
+// This method forces a page break before the paragraph, making it start on a new page.
+// Commonly used for chapter headings or content that needs its own page.
 //
-// 参数：
-//   - pageBreak: true表示启用段前分页，false表示禁用
+// Parameters:
+//   - pageBreak: true to enable page break before, false to disable
 //
-// 示例：
+// Example:
 //
-//	// 章节标题从新页开始
-//	chapter := doc.AddParagraph("第二章 详细说明")
+//	// Chapter heading starts on a new page
+//	chapter := doc.AddParagraph("Chapter 2: Detailed Description")
 //	chapter.SetPageBreakBefore(true)
 func (p *Paragraph) SetPageBreakBefore(pageBreak bool) {
 	if p.Properties == nil {
@@ -1374,25 +1439,25 @@ func (p *Paragraph) SetPageBreakBefore(pageBreak bool) {
 
 	if pageBreak {
 		p.Properties.PageBreakBefore = &PageBreakBefore{Val: "1"}
-		Debugf("设置段前分页")
+		DebugMsg(MsgSettingPageBreakBefore)
 	} else {
 		p.Properties.PageBreakBefore = nil
-		Debugf("取消段前分页")
+		DebugMsg(MsgUnsettingPageBreakBefore)
 	}
 }
 
-// SetWidowControl 设置段落的孤行控制。
+// SetWidowControl sets the paragraph's widow/orphan control.
 //
-// 孤行控制用于防止段落的第一行或最后一行单独出现在页面底部或顶部，
-// 提高文档的排版质量。
+// Widow/orphan control prevents the first or last line of a paragraph from appearing
+// alone at the bottom or top of a page, improving document layout quality.
 //
-// 参数：
-//   - control: true表示启用孤行控制（默认），false表示禁用
+// Parameters:
+//   - control: true to enable widow/orphan control (default), false to disable
 //
-// 示例：
+// Example:
 //
-//	para := doc.AddParagraph("这是一个长段落...")
-//	para.SetWidowControl(true)  // 启用孤行控制
+//	para := doc.AddParagraph("This is a long paragraph...")
+//	para.SetWidowControl(true)  // Enable widow/orphan control
 func (p *Paragraph) SetWidowControl(control bool) {
 	if p.Properties == nil {
 		p.Properties = &ParagraphProperties{}
@@ -1400,37 +1465,37 @@ func (p *Paragraph) SetWidowControl(control bool) {
 
 	if control {
 		p.Properties.WidowControl = &WidowControl{Val: "1"}
-		Debugf("启用段落孤行控制")
+		DebugMsg(MsgEnablingWidowOrphanControl)
 	} else {
 		p.Properties.WidowControl = &WidowControl{Val: "0"}
-		Debugf("禁用段落孤行控制")
+		DebugMsg(MsgDisablingWidowOrphanControl)
 	}
 }
 
-// SetOutlineLevel 设置段落的大纲级别。
+// SetOutlineLevel sets the paragraph's outline level.
 //
-// 大纲级别用于在文档导航窗格中显示文档结构，级别范围为0-8。
-// 通常用于标题段落，配合目录功能使用。
+// The outline level is used to display document structure in the navigation pane; the range is 0-8.
+// Typically used for heading paragraphs in conjunction with the table of contents feature.
 //
-// 参数：
-//   - level: 大纲级别，0-8之间的整数（0表示正文，1-8对应标题1-8）
+// Parameters:
+//   - level: outline level, an integer between 0 and 8 (0 for body text, 1-8 for Heading1 through Heading8)
 //
-// 示例：
+// Example:
 //
-//	// 设置为一级标题的大纲级别
-//	title := doc.AddParagraph("第一章")
-//	title.SetOutlineLevel(0)  // 对应Heading1
+//	// Set to level 1 heading outline level
+//	title := doc.AddParagraph("Chapter 1")
+//	title.SetOutlineLevel(0)  // Corresponds to Heading1
 //
-//	// 设置为二级标题的大纲级别
-//	subtitle := doc.AddParagraph("1.1 概述")
-//	subtitle.SetOutlineLevel(1)  // 对应Heading2
+//	// Set to level 2 heading outline level
+//	subtitle := doc.AddParagraph("1.1 Overview")
+//	subtitle.SetOutlineLevel(1)  // Corresponds to Heading2
 func (p *Paragraph) SetOutlineLevel(level int) {
 	if p.Properties == nil {
 		p.Properties = &ParagraphProperties{}
 	}
 
 	if level < 0 || level > 8 {
-		Warnf("大纲级别应在0-8之间，已调整为有效范围")
+		WarnMsg(MsgOutlineLevelAdjusted)
 		if level < 0 {
 			level = 0
 		} else {
@@ -1439,27 +1504,27 @@ func (p *Paragraph) SetOutlineLevel(level int) {
 	}
 
 	p.Properties.OutlineLevel = &OutlineLevel{Val: strconv.Itoa(level)}
-	Debugf("设置段落大纲级别: %d", level)
+	DebugMsgf(MsgSettingParagraphOutlineLevel, level)
 }
 
-// SetSnapToGrid 设置段落的网格对齐属性。
+// SetSnapToGrid sets the paragraph's snap-to-grid property.
 //
-// 网格对齐控制段落的行是否对齐到文档的网格。当文档启用了网格设置时
-// （如中文文档中常见的"如果定义了文档网格，则对齐到网格"选项），
-// 自定义的行间距可能不会精确生效，因为行会自动对齐到网格线。
+// Snap-to-grid controls whether paragraph lines align to the document grid. When the document
+// has grid settings enabled (common in CJK documents with the "snap to document grid" option),
+// custom line spacing may not take effect precisely because lines automatically align to grid lines.
 //
-// 通过设置 snapToGrid 为 false，可以禁用该段落的网格对齐，
-// 从而使自定义行间距能够精确生效。
+// By setting snapToGrid to false, grid alignment is disabled for this paragraph,
+// allowing custom line spacing to take effect precisely.
 //
-// 参数：
-//   - snapToGrid: true表示启用网格对齐（默认），false表示禁用网格对齐
+// Parameters:
+//   - snapToGrid: true to enable grid alignment (default), false to disable grid alignment
 //
-// 示例：
+// Example:
 //
-//	// 禁用网格对齐，使自定义行间距精确生效
-//	para := doc.AddParagraph("这段文字使用精确的行间距")
+//	// Disable grid alignment so custom line spacing takes effect precisely
+//	para := doc.AddParagraph("This text uses precise line spacing")
 //	para.SetSpacing(&document.SpacingConfig{LineSpacing: 1.5})
-//	para.SetSnapToGrid(false)  // 禁用网格对齐
+//	para.SetSnapToGrid(false)  // Disable grid alignment
 func (p *Paragraph) SetSnapToGrid(snapToGrid bool) {
 	if p.Properties == nil {
 		p.Properties = &ParagraphProperties{}
@@ -1467,57 +1532,57 @@ func (p *Paragraph) SetSnapToGrid(snapToGrid bool) {
 
 	if !snapToGrid {
 		p.Properties.SnapToGrid = &SnapToGrid{Val: "0"}
-		Debugf("禁用段落网格对齐")
+		DebugMsg(MsgDisablingParagraphGrid)
 	} else {
-		// 启用网格对齐时移除设置（使用默认行为）
+		// When enabling grid alignment, remove the setting (use default behavior)
 		p.Properties.SnapToGrid = nil
-		Debugf("启用段落网格对齐（默认）")
+		DebugMsg(MsgEnablingParagraphGrid)
 	}
 }
 
-// ParagraphFormatConfig 段落格式配置
+// ParagraphFormatConfig represents paragraph format configuration.
 //
-// 此结构体提供了段落所有格式属性的统一配置接口，
-// 允许一次性设置多个段落属性，提高代码的可读性和易用性。
+// This struct provides a unified configuration interface for all paragraph format properties,
+// allowing multiple paragraph properties to be set at once for improved readability and ease of use.
 type ParagraphFormatConfig struct {
-	// 基础格式
-	Alignment AlignmentType // 对齐方式（AlignLeft, AlignCenter, AlignRight, AlignJustify）
-	Style     string        // 段落样式ID（如"Heading1", "Normal"等）
+	// Basic formatting
+	Alignment AlignmentType // Alignment (AlignLeft, AlignCenter, AlignRight, AlignJustify)
+	Style     string        // Paragraph style ID (e.g. "Heading1", "Normal")
 
-	// 间距设置
-	LineSpacing     float64 // 行间距（倍数，如1.5表示1.5倍行距）
-	BeforePara      int     // 段前间距（磅）
-	AfterPara       int     // 段后间距（磅）
-	FirstLineIndent int     // 首行缩进（磅）
+	// Spacing settings
+	LineSpacing     float64 // Line spacing multiplier (e.g. 1.5 for 1.5x line spacing)
+	BeforePara      int     // Spacing before paragraph (in points)
+	AfterPara       int     // Spacing after paragraph (in points)
+	FirstLineIndent int     // First line indent (in points)
 
-	// 缩进设置
-	FirstLineCm float64 // 首行缩进（厘米，可以为负数表示悬挂缩进）
-	LeftCm      float64 // 左缩进（厘米）
-	RightCm     float64 // 右缩进（厘米）
+	// Indentation settings
+	FirstLineCm float64 // First line indent in centimeters (negative values create a hanging indent)
+	LeftCm      float64 // Left indent (in centimeters)
+	RightCm     float64 // Right indent (in centimeters)
 
-	// 分页与控制
-	KeepWithNext    bool  // 与下一段落保持在同一页
-	KeepLines       bool  // 段落中的所有行保持在同一页
-	PageBreakBefore bool  // 段前分页
-	WidowControl    bool  // 孤行控制
-	SnapToGrid      *bool // 是否对齐网格（设置为false可禁用网格对齐，使自定义行间距精确生效）
+	// Pagination and control
+	KeepWithNext    bool  // Keep with next paragraph on the same page
+	KeepLines       bool  // Keep all lines in the paragraph on the same page
+	PageBreakBefore bool  // Page break before paragraph
+	WidowControl    bool  // Widow/orphan control
+	SnapToGrid      *bool // Snap to grid (set to false to disable grid alignment, allowing custom line spacing to take effect)
 
-	// 大纲级别
-	OutlineLevel int // 大纲级别（0-8，0表示正文，1-8对应标题1-8）
+	// Outline level
+	OutlineLevel int // Outline level (0-8; 0 for body text, 1-8 for Heading1 through Heading8)
 }
 
-// SetParagraphFormat 使用配置一次性设置段落的所有格式属性。
+// SetParagraphFormat sets all paragraph format properties at once using a configuration.
 //
-// 此方法提供了一种便捷的方式来设置段落的所有格式属性，
-// 而不需要调用多个单独的设置方法。只有非零值的属性会被应用。
+// This method provides a convenient way to set all paragraph format properties
+// without calling multiple individual setter methods. Only non-zero properties are applied.
 //
-// 参数：
-//   - config: 段落格式配置，包含所有格式属性
+// Parameters:
+//   - config: paragraph format configuration containing all format properties
 //
-// 示例：
+// Example:
 //
-//	// 创建一个带完整格式的段落
-//	para := doc.AddParagraph("重要章节标题")
+//	// Create a paragraph with full formatting
+//	para := doc.AddParagraph("Important Chapter Title")
 //	para.SetParagraphFormat(&document.ParagraphFormatConfig{
 //		Alignment:       document.AlignCenter,
 //		Style:           "Heading1",
@@ -1529,8 +1594,8 @@ type ParagraphFormatConfig struct {
 //		OutlineLevel:    0,
 //	})
 //
-//	// 设置带缩进的正文段落
-//	para2 := doc.AddParagraph("正文内容...")
+//	// Set an indented body paragraph
+//	para2 := doc.AddParagraph("Body content...")
 //	para2.SetParagraphFormat(&document.ParagraphFormatConfig{
 //		Alignment:       document.AlignJustify,
 //		FirstLineCm:     0.5,
@@ -1544,17 +1609,17 @@ func (p *Paragraph) SetParagraphFormat(config *ParagraphFormatConfig) {
 		return
 	}
 
-	// 设置对齐方式
+	// Set alignment
 	if config.Alignment != "" {
 		p.SetAlignment(config.Alignment)
 	}
 
-	// 设置样式
+	// Set style
 	if config.Style != "" {
 		p.SetStyle(config.Style)
 	}
 
-	// 设置间距（如果有任何间距设置）
+	// Set spacing (if any spacing settings are provided)
 	if config.LineSpacing > 0 || config.BeforePara > 0 || config.AfterPara > 0 || config.FirstLineIndent > 0 {
 		p.SetSpacing(&SpacingConfig{
 			LineSpacing:     config.LineSpacing,
@@ -1564,68 +1629,68 @@ func (p *Paragraph) SetParagraphFormat(config *ParagraphFormatConfig) {
 		})
 	}
 
-	// 设置缩进（如果有任何缩进设置）
+	// Set indentation (if any indentation settings are provided)
 	if config.FirstLineCm != 0 || config.LeftCm != 0 || config.RightCm != 0 {
 		p.SetIndentation(config.FirstLineCm, config.LeftCm, config.RightCm)
 	}
 
-	// 设置分页和控制属性
+	// Set pagination and control properties
 	p.SetKeepWithNext(config.KeepWithNext)
 	p.SetKeepLines(config.KeepLines)
 	p.SetPageBreakBefore(config.PageBreakBefore)
 	p.SetWidowControl(config.WidowControl)
 
-	// 设置网格对齐
+	// Set grid alignment
 	if config.SnapToGrid != nil {
 		p.SetSnapToGrid(*config.SnapToGrid)
 	}
 
-	// 设置大纲级别
+	// Set outline level
 	if config.OutlineLevel >= 0 && config.OutlineLevel <= 8 {
 		p.SetOutlineLevel(config.OutlineLevel)
 	}
 
-	Debugf("应用段落格式配置: 对齐=%s, 样式=%s, 行距=%.1f, 段前=%d, 段后=%d",
+	DebugMsgf(MsgApplyingParagraphFormat,
 		config.Alignment, config.Style, config.LineSpacing, config.BeforePara, config.AfterPara)
 }
 
-// ParagraphBorderConfig 段落边框配置（区别于表格边框配置）
+// ParagraphBorderConfig represents paragraph border configuration (distinct from table border configuration)
 type ParagraphBorderConfig struct {
-	Style BorderStyle // 边框样式
-	Size  int         // 边框粗细（1/8磅为单位，默认值建议12，即1.5磅）
-	Color string      // 边框颜色（十六进制，如"000000"表示黑色）
-	Space int         // 边框与文本的间距（磅，默认值建议1）
+	Style BorderStyle // Border style
+	Size  int         // Border width (in 1/8 points; recommended default is 12, i.e. 1.5pt)
+	Color string      // Border color (hex, e.g. "000000" for black)
+	Space int         // Spacing between border and text (in points; recommended default is 1)
 }
 
-// SetBorder 设置段落的边框。
+// SetBorder sets the paragraph borders.
 //
-// 此方法用于为段落添加边框装饰，特别适用于实现Markdown分割线(---)的转换。
+// This method adds border decorations to a paragraph, particularly useful for rendering Markdown horizontal rules (---).
 //
-// 参数：
-//   - top: 上边框配置，传入nil表示不设置上边框
-//   - left: 左边框配置，传入nil表示不设置左边框
-//   - bottom: 下边框配置，传入nil表示不设置下边框
-//   - right: 右边框配置，传入nil表示不设置右边框
+// Parameters:
+//   - top: top border configuration; pass nil to skip the top border
+//   - left: left border configuration; pass nil to skip the left border
+//   - bottom: bottom border configuration; pass nil to skip the bottom border
+//   - right: right border configuration; pass nil to skip the right border
 //
-// 边框配置包含样式、粗细、颜色和间距等属性。
+// Border configuration includes style, width, color, and spacing properties.
 //
-// 示例：
+// Example:
 //
-//	// 设置分割线效果（仅底边框）
+//	// Set horizontal rule effect (bottom border only)
 //	para := doc.AddParagraph("")
 //	para.SetBorder(nil, nil, &document.ParagraphBorderConfig{
 //		Style: document.BorderStyleSingle,
-//		Size:  12,   // 1.5磅粗细
-//		Color: "000000", // 黑色
-//		Space: 1,    // 1磅间距
+//		Size:  12,       // 1.5pt width
+//		Color: "000000", // Black
+//		Space: 1,        // 1pt spacing
 //	}, nil)
 //
-//	// 设置完整边框
-//	para := doc.AddParagraph("带边框的段落")
+//	// Set full border
+//	para := doc.AddParagraph("Bordered paragraph")
 //	borderConfig := &document.ParagraphBorderConfig{
 //		Style: document.BorderStyleDouble,
 //		Size:  8,
-//		Color: "0000FF", // 蓝色
+//		Color: "0000FF", // Blue
 //		Space: 2,
 //	}
 //	para.SetBorder(borderConfig, borderConfig, borderConfig, borderConfig)
@@ -1634,18 +1699,18 @@ func (p *Paragraph) SetBorder(top, left, bottom, right *ParagraphBorderConfig) {
 		p.Properties = &ParagraphProperties{}
 	}
 
-	// 如果没有任何边框配置，清除边框
+	// If no border configuration is provided, clear borders
 	if top == nil && left == nil && bottom == nil && right == nil {
 		p.Properties.ParagraphBorder = nil
 		return
 	}
 
-	// 创建段落边框
+	// Create paragraph border
 	if p.Properties.ParagraphBorder == nil {
 		p.Properties.ParagraphBorder = &ParagraphBorder{}
 	}
 
-	// 设置上边框
+	// Set top border
 	if top != nil {
 		p.Properties.ParagraphBorder.Top = &ParagraphBorderLine{
 			Val:   string(top.Style),
@@ -1657,7 +1722,7 @@ func (p *Paragraph) SetBorder(top, left, bottom, right *ParagraphBorderConfig) {
 		p.Properties.ParagraphBorder.Top = nil
 	}
 
-	// 设置左边框
+	// Set left border
 	if left != nil {
 		p.Properties.ParagraphBorder.Left = &ParagraphBorderLine{
 			Val:   string(left.Style),
@@ -1669,7 +1734,7 @@ func (p *Paragraph) SetBorder(top, left, bottom, right *ParagraphBorderConfig) {
 		p.Properties.ParagraphBorder.Left = nil
 	}
 
-	// 设置下边框
+	// Set bottom border
 	if bottom != nil {
 		p.Properties.ParagraphBorder.Bottom = &ParagraphBorderLine{
 			Val:   string(bottom.Style),
@@ -1681,7 +1746,7 @@ func (p *Paragraph) SetBorder(top, left, bottom, right *ParagraphBorderConfig) {
 		p.Properties.ParagraphBorder.Bottom = nil
 	}
 
-	// 设置右边框
+	// Set right border
 	if right != nil {
 		p.Properties.ParagraphBorder.Right = &ParagraphBorderLine{
 			Val:   string(right.Style),
@@ -1693,26 +1758,26 @@ func (p *Paragraph) SetBorder(top, left, bottom, right *ParagraphBorderConfig) {
 		p.Properties.ParagraphBorder.Right = nil
 	}
 
-	Debugf("设置段落边框: 上=%v, 左=%v, 下=%v, 右=%v", top != nil, left != nil, bottom != nil, right != nil)
+	DebugMsgf(MsgSettingParagraphBorder, top != nil, left != nil, bottom != nil, right != nil)
 }
 
-// SetHorizontalRule 设置水平分割线。
+// SetHorizontalRule sets a horizontal rule.
 //
-// 此方法是SetBorder的简化版本，专门用于快速创建Markdown风格的分割线效果。
-// 只在段落底部添加一条水平线，适用于Markdown中的 --- 或 *** 语法。
+// This method is a simplified version of SetBorder, designed for quickly creating Markdown-style horizontal rules.
+// It adds a horizontal line only at the bottom of the paragraph, suitable for Markdown --- or *** syntax.
 //
-// 参数：
-//   - style: 边框样式，如BorderStyleSingle、BorderStyleDouble等
-//   - size: 边框粗细（1/8磅为单位，建议值12-18）
-//   - color: 边框颜色（十六进制，如"000000"）
+// Parameters:
+//   - style: border style, e.g. BorderStyleSingle, BorderStyleDouble
+//   - size: border width (in 1/8 points; recommended range 12-18)
+//   - color: border color (hex, e.g. "000000")
 //
-// 示例：
+// Example:
 //
-//	// 创建简单分割线
+//	// Create a simple horizontal rule
 //	para := doc.AddParagraph("")
 //	para.SetHorizontalRule(document.BorderStyleSingle, 12, "000000")
 //
-//	// 创建粗双线分割线
+//	// Create a thick double-line rule
 //	para := doc.AddParagraph("")
 //	para.SetHorizontalRule(document.BorderStyleDouble, 18, "808080")
 func (p *Paragraph) SetHorizontalRule(style BorderStyle, size int, color string) {
@@ -1720,23 +1785,23 @@ func (p *Paragraph) SetHorizontalRule(style BorderStyle, size int, color string)
 		Style: style,
 		Size:  size,
 		Color: color,
-		Space: 1, // 默认1磅间距
+		Space: 1, // Default 1pt spacing
 	}
 
 	p.SetBorder(nil, nil, borderConfig, nil)
 
-	Debugf("设置水平分割线: 样式=%s, 粗细=%d, 颜色=%s", style, size, color)
+	DebugMsgf(MsgSettingHorizontalRule, style, size, color)
 }
 
-// SetUnderline 设置段落中所有文本的下划线效果。
+// SetUnderline sets the underline effect for all text in the paragraph.
 //
-// 参数 underline 表示是否启用下划线。
-// 当设置为 true 时，将对段落中所有运行应用单线下划线效果。
-// 当设置为 false 时，将移除所有运行的下划线效果。
+// The underline parameter indicates whether to enable underline.
+// When set to true, a single underline is applied to all runs in the paragraph.
+// When set to false, underline is removed from all runs.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是下划线文本")
+//	para := doc.AddParagraph("This is underlined text")
 //	para.SetUnderline(true)
 func (p *Paragraph) SetUnderline(underline bool) {
 	for i := range p.Runs {
@@ -1749,18 +1814,18 @@ func (p *Paragraph) SetUnderline(underline bool) {
 			p.Runs[i].Properties.Underline = nil
 		}
 	}
-	Debugf("设置段落下划线: %v", underline)
+	DebugMsgf(MsgSettingParagraphUnderline, underline)
 }
 
-// SetBold 设置段落中所有文本的粗体效果。
+// SetBold sets the bold effect for all text in the paragraph.
 //
-// 参数 bold 表示是否启用粗体。
-// 当设置为 true 时，将对段落中所有运行应用粗体效果。
-// 当设置为 false 时，将移除所有运行的粗体效果。
+// The bold parameter indicates whether to enable bold.
+// When set to true, bold is applied to all runs in the paragraph.
+// When set to false, bold is removed from all runs.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是粗体文本")
+//	para := doc.AddParagraph("This is bold text")
 //	para.SetBold(true)
 func (p *Paragraph) SetBold(bold bool) {
 	for i := range p.Runs {
@@ -1775,18 +1840,18 @@ func (p *Paragraph) SetBold(bold bool) {
 			p.Runs[i].Properties.BoldCs = nil
 		}
 	}
-	Debugf("设置段落粗体: %v", bold)
+	DebugMsgf(MsgSettingParagraphBold, bold)
 }
 
-// SetItalic 设置段落中所有文本的斜体效果。
+// SetItalic sets the italic effect for all text in the paragraph.
 //
-// 参数 italic 表示是否启用斜体。
-// 当设置为 true 时，将对段落中所有运行应用斜体效果。
-// 当设置为 false 时，将移除所有运行的斜体效果。
+// The italic parameter indicates whether to enable italic.
+// When set to true, italic is applied to all runs in the paragraph.
+// When set to false, italic is removed from all runs.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是斜体文本")
+//	para := doc.AddParagraph("This is italic text")
 //	para.SetItalic(true)
 func (p *Paragraph) SetItalic(italic bool) {
 	for i := range p.Runs {
@@ -1801,18 +1866,18 @@ func (p *Paragraph) SetItalic(italic bool) {
 			p.Runs[i].Properties.ItalicCs = nil
 		}
 	}
-	Debugf("设置段落斜体: %v", italic)
+	DebugMsgf(MsgSettingParagraphItalic, italic)
 }
 
-// SetStrike 设置段落中所有文本的删除线效果。
+// SetStrike sets the strikethrough effect for all text in the paragraph.
 //
-// 参数 strike 表示是否启用删除线。
-// 当设置为 true 时，将对段落中所有运行应用删除线效果。
-// 当设置为 false 时，将移除所有运行的删除线效果。
+// The strike parameter indicates whether to enable strikethrough.
+// When set to true, strikethrough is applied to all runs in the paragraph.
+// When set to false, strikethrough is removed from all runs.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是删除线文本")
+//	para := doc.AddParagraph("This is strikethrough text")
 //	para.SetStrike(true)
 func (p *Paragraph) SetStrike(strike bool) {
 	for i := range p.Runs {
@@ -1825,20 +1890,20 @@ func (p *Paragraph) SetStrike(strike bool) {
 			p.Runs[i].Properties.Strike = nil
 		}
 	}
-	Debugf("设置段落删除线: %v", strike)
+	DebugMsgf(MsgSettingParagraphStrikethrough, strike)
 }
 
-// SetHighlight 设置段落中所有文本的高亮颜色。
+// SetHighlight sets the highlight color for all text in the paragraph.
 //
-// 参数 color 是高亮颜色名称，支持的颜色包括：
+// The color parameter is the highlight color name. Supported colors include:
 // "yellow", "green", "cyan", "magenta", "blue", "red", "darkBlue",
 // "darkCyan", "darkGreen", "darkMagenta", "darkRed", "darkYellow",
-// "darkGray", "lightGray", "black" 等。
-// 传入空字符串将移除高亮效果。
+// "darkGray", "lightGray", "black", etc.
+// Passing an empty string removes the highlight effect.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是高亮文本")
+//	para := doc.AddParagraph("This is highlighted text")
 //	para.SetHighlight("yellow")
 func (p *Paragraph) SetHighlight(color string) {
 	for i := range p.Runs {
@@ -1851,17 +1916,17 @@ func (p *Paragraph) SetHighlight(color string) {
 			p.Runs[i].Properties.Highlight = nil
 		}
 	}
-	Debugf("设置段落高亮: %s", color)
+	DebugMsgf(MsgSettingParagraphHighlight, color)
 }
 
-// SetFontFamily 设置段落中所有文本的字体。
+// SetFontFamily sets the font for all text in the paragraph.
 //
-// 参数 name 是字体名称，如 "Arial"、"Times New Roman"、"微软雅黑" 等。
+// The name parameter is the font name, e.g. "Arial", "Times New Roman", etc.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是自定义字体文本")
-//	para.SetFontFamily("微软雅黑")
+//	para := doc.AddParagraph("This is custom font text")
+//	para.SetFontFamily("Arial")
 func (p *Paragraph) SetFontFamily(name string) {
 	for i := range p.Runs {
 		if p.Runs[i].Properties == nil {
@@ -1878,17 +1943,17 @@ func (p *Paragraph) SetFontFamily(name string) {
 			p.Runs[i].Properties.FontFamily = nil
 		}
 	}
-	Debugf("设置段落字体: %s", name)
+	DebugMsgf(MsgSettingParagraphFont, name)
 }
 
-// SetFontSize 设置段落中所有文本的字体大小。
+// SetFontSize sets the font size for all text in the paragraph.
 //
-// 参数 size 是字体大小（磅），如 12、14、16 等。
-// 传入 0 或负数将移除字体大小设置。
+// The size parameter is the font size in points, e.g. 12, 14, 16.
+// Passing 0 or a negative number removes the font size setting.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是大号文本")
+//	para := doc.AddParagraph("This is large text")
 //	para.SetFontSize(16)
 func (p *Paragraph) SetFontSize(size int) {
 	for i := range p.Runs {
@@ -1896,7 +1961,7 @@ func (p *Paragraph) SetFontSize(size int) {
 			p.Runs[i].Properties = &RunProperties{}
 		}
 		if size > 0 {
-			// Word 使用半磅为单位，所以乘以2
+			// Word uses half-points, so multiply by 2
 			sizeStr := strconv.Itoa(size * 2)
 			p.Runs[i].Properties.FontSize = &FontSize{Val: sizeStr}
 			p.Runs[i].Properties.FontSizeCs = &FontSizeCs{Val: sizeStr}
@@ -1905,18 +1970,18 @@ func (p *Paragraph) SetFontSize(size int) {
 			p.Runs[i].Properties.FontSizeCs = nil
 		}
 	}
-	Debugf("设置段落字体大小: %d", size)
+	DebugMsgf(MsgSettingParagraphFontSize, size)
 }
 
-// SetColor 设置段落中所有文本的颜色。
+// SetColor sets the color for all text in the paragraph.
 //
-// 参数 color 是十六进制颜色值，如 "FF0000"（红色）、"0000FF"（蓝色）等。
-// 颜色值不需要 "#" 前缀，如果包含会自动移除。
-// 传入空字符串将移除颜色设置。
+// The color parameter is a hex color value, e.g. "FF0000" (red), "0000FF" (blue).
+// The "#" prefix is not required; if present, it is automatically removed.
+// Passing an empty string removes the color setting.
 //
-// 示例:
+// Example:
 //
-//	para := doc.AddParagraph("这是红色文本")
+//	para := doc.AddParagraph("This is red text")
 //	para.SetColor("FF0000")
 func (p *Paragraph) SetColor(color string) {
 	for i := range p.Runs {
@@ -1924,21 +1989,21 @@ func (p *Paragraph) SetColor(color string) {
 			p.Runs[i].Properties = &RunProperties{}
 		}
 		if color != "" {
-			// 移除可能存在的 # 前缀
+			// Remove possible # prefix
 			colorVal := strings.TrimPrefix(color, "#")
 			p.Runs[i].Properties.Color = &Color{Val: colorVal}
 		} else {
 			p.Runs[i].Properties.Color = nil
 		}
 	}
-	Debugf("设置段落颜色: %s", color)
+	DebugMsgf(MsgSettingParagraphColor, color)
 }
 
-// GetStyleManager 获取文档的样式管理器。
+// GetStyleManager returns the document's style manager.
 //
-// 返回文档的样式管理器，可用于访问和管理样式。
+// Returns the style manager, which can be used to access and manage styles.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
 //	styleManager := doc.GetStyleManager()
@@ -1947,12 +2012,12 @@ func (d *Document) GetStyleManager() *style.StyleManager {
 	return d.styleManager
 }
 
-// GetParts 获取文档部件映射
+// GetParts returns the document parts map.
 //
-// 返回包含文档所有部件的映射，主要用于测试和调试。
-// 键是部件名称，值是部件内容的字节数组。
+// Returns a map containing all document parts, primarily used for testing and debugging.
+// Keys are part names and values are byte arrays of part contents.
 //
-// 示例:
+// Example:
 //
 //	parts := doc.GetParts()
 //	settingsXML := parts["word/settings.xml"]
@@ -1960,9 +2025,9 @@ func (d *Document) GetParts() map[string][]byte {
 	return d.parts
 }
 
-// initializeStructure 初始化文档基础结构
+// initializeStructure initializes the basic document structure
 func (d *Document) initializeStructure() {
-	// 初始化 content types
+	// Initialize content types
 	d.contentTypes = &ContentTypes{
 		Xmlns: "http://schemas.openxmlformats.org/package/2006/content-types",
 		Defaults: []Default{
@@ -1975,7 +2040,7 @@ func (d *Document) initializeStructure() {
 		},
 	}
 
-	// 初始化主关系
+	// Initialize main relationships
 	d.relationships = &Relationships{
 		Xmlns: "http://schemas.openxmlformats.org/package/2006/relationships",
 		Relationships: []Relationship{
@@ -1987,23 +2052,23 @@ func (d *Document) initializeStructure() {
 		},
 	}
 
-	// 添加基础部件
+	// Add base parts
 	d.serializeContentTypes()
 	d.serializeRelationships()
 	d.serializeDocumentRelationships()
 }
 
-// parseDocument 解析文档内容
+// parseDocument parses the document content
 func (d *Document) parseDocument() error {
-	Debugf("开始解析文档内容")
+	DebugMsg(MsgParsingDocumentContent)
 
-	// 解析主文档
+	// Parse main document
 	docData, ok := d.parts["word/document.xml"]
 	if !ok {
 		return WrapError("parse_document", ErrDocumentNotFound)
 	}
 
-	// 首先解析基本结构
+	// First parse the basic structure
 	decoder := xml.NewDecoder(bytes.NewReader(docData))
 	for {
 		token, err := decoder.Token()
@@ -2017,7 +2082,7 @@ func (d *Document) parseDocument() error {
 		switch t := token.(type) {
 		case xml.StartElement:
 			if t.Name.Local == "document" && t.Name.Space == "http://schemas.openxmlformats.org/wordprocessingml/2006/main" {
-				// 开始解析文档
+				// Start parsing document
 				if err := d.parseDocumentElement(decoder); err != nil {
 					return err
 				}
@@ -2027,13 +2092,13 @@ func (d *Document) parseDocument() error {
 	}
 
 done:
-	Infof("解析完成，共 %d 个元素", len(d.Body.Elements))
+	InfoMsgf(MsgParsingComplete, len(d.Body.Elements))
 	return nil
 }
 
-// parseDocumentElement 解析文档元素
+// parseDocumentElement parses document elements
 func (d *Document) parseDocumentElement(decoder *xml.Decoder) error {
-	// 初始化Body
+	// Initialize Body
 	d.Body = &Body{
 		Elements: make([]interface{}, 0),
 	}
@@ -2051,7 +2116,7 @@ func (d *Document) parseDocumentElement(decoder *xml.Decoder) error {
 		case xml.StartElement:
 			switch {
 			case t.Name.Local == "body":
-				// 解析文档主体
+				// Parse document body
 				if err := d.parseBodyElement(decoder); err != nil {
 					return err
 				}
@@ -2066,7 +2131,7 @@ func (d *Document) parseDocumentElement(decoder *xml.Decoder) error {
 	return nil
 }
 
-// parseBodyElement 解析文档主体元素
+// parseBodyElement parses document body elements
 func (d *Document) parseBodyElement(decoder *xml.Decoder) error {
 	for {
 		token, err := decoder.Token()
@@ -2096,26 +2161,26 @@ func (d *Document) parseBodyElement(decoder *xml.Decoder) error {
 	return nil
 }
 
-// parseBodySubElement 解析文档主体的子元素
+// parseBodySubElement parses sub-elements of the document body
 func (d *Document) parseBodySubElement(decoder *xml.Decoder, startElement xml.StartElement) (interface{}, error) {
 	switch startElement.Name.Local {
 	case "p":
-		// 解析段落
+		// Parse paragraph
 		return d.parseParagraph(decoder, startElement)
 	case "tbl":
-		// 解析表格
+		// Parse table
 		return d.parseTable(decoder, startElement)
 	case "sectPr":
-		// 解析节属性
+		// Parse section properties
 		return d.parseSectionProperties(decoder, startElement)
 	default:
-		// 跳过未知元素
-		Debugf("跳过未知元素: %s", startElement.Name.Local)
+		// Skip unknown element
+		DebugMsgf(MsgSkippingUnknownElement, startElement.Name.Local)
 		return nil, d.skipElement(decoder, startElement.Name.Local)
 	}
 }
 
-// parseParagraph 解析段落
+// parseParagraph parses a paragraph
 func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartElement) (*Paragraph, error) {
 	paragraph := &Paragraph{
 		Runs: make([]Run, 0),
@@ -2131,12 +2196,12 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "pPr":
-				// 解析段落属性
+				// Parse paragraph properties
 				if err := d.parseParagraphProperties(decoder, paragraph); err != nil {
 					return nil, err
 				}
 			case "r":
-				// 解析运行
+				// Parse run
 				run, err := d.parseRun(decoder, t)
 				if err != nil {
 					return nil, err
@@ -2145,7 +2210,7 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 					paragraph.Runs = append(paragraph.Runs, *run)
 				}
 			default:
-				// 跳过其他元素
+				// Skip other elements
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
@@ -2158,7 +2223,7 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 	}
 }
 
-// parseParagraphProperties 解析段落属性
+// parseParagraphProperties parses paragraph properties
 func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Paragraph) error {
 	paragraph.Properties = &ParagraphProperties{}
 
@@ -2172,7 +2237,7 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "pStyle":
-				// 段落样式
+				// Paragraph style
 				val := getAttributeValue(t.Attr, "val")
 				if val != "" {
 					paragraph.Properties.ParagraphStyle = &ParagraphStyle{Val: val}
@@ -2181,7 +2246,7 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 					return err
 				}
 			case "spacing":
-				// 间距
+				// Spacing
 				spacing := &Spacing{}
 				spacing.Before = getAttributeValue(t.Attr, "before")
 				spacing.After = getAttributeValue(t.Attr, "after")
@@ -2192,7 +2257,7 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 					return err
 				}
 			case "jc":
-				// 对齐
+				// Alignment
 				val := getAttributeValue(t.Attr, "val")
 				if val != "" {
 					paragraph.Properties.Justification = &Justification{Val: val}
@@ -2201,7 +2266,7 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 					return err
 				}
 			case "ind":
-				// 缩进
+				// Indentation
 				indentation := &Indentation{}
 				indentation.FirstLine = getAttributeValue(t.Attr, "firstLine")
 				indentation.Left = getAttributeValue(t.Attr, "left")
@@ -2211,14 +2276,14 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 					return err
 				}
 			case "numPr":
-				// 编号属性
+				// Numbering properties
 				numPr, err := d.parseNumberingProperties(decoder)
 				if err != nil {
 					return err
 				}
 				paragraph.Properties.NumberingProperties = numPr
 			case "sectPr":
-				// 一些文档将节属性存储在段落属性中
+				// Some documents store section properties within paragraph properties
 				sectPr, err := d.parseSectionProperties(decoder, t)
 				if err != nil {
 					return err
@@ -2237,7 +2302,7 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 	}
 }
 
-// parseNumberingProperties 解析编号属性
+// parseNumberingProperties parses numbering properties
 func (d *Document) parseNumberingProperties(decoder *xml.Decoder) (*NumberingProperties, error) {
 	numPr := &NumberingProperties{}
 
@@ -2251,7 +2316,7 @@ func (d *Document) parseNumberingProperties(decoder *xml.Decoder) (*NumberingPro
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "ilvl":
-				// 编号级别
+				// Numbering level
 				val := getAttributeValue(t.Attr, "val")
 				if val != "" {
 					numPr.ILevel = &ILevel{Val: val}
@@ -2260,7 +2325,7 @@ func (d *Document) parseNumberingProperties(decoder *xml.Decoder) (*NumberingPro
 					return nil, err
 				}
 			case "numId":
-				// 编号ID
+				// Numbering ID
 				val := getAttributeValue(t.Attr, "val")
 				if val != "" {
 					numPr.NumID = &NumID{Val: val}
@@ -2281,7 +2346,7 @@ func (d *Document) parseNumberingProperties(decoder *xml.Decoder) (*NumberingPro
 	}
 }
 
-// parseRun 解析运行
+// parseRun parses a text run
 func (d *Document) parseRun(decoder *xml.Decoder, startElement xml.StartElement) (*Run, error) {
 	run := &Run{
 		Text: Text{},
@@ -2297,23 +2362,23 @@ func (d *Document) parseRun(decoder *xml.Decoder, startElement xml.StartElement)
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "rPr":
-				// 解析运行属性
+				// Parse run properties
 				if err := d.parseRunProperties(decoder, run); err != nil {
 					return nil, err
 				}
 			case "t":
-				// 解析文本
+				// Parse text
 				space := getAttributeValue(t.Attr, "space")
 				run.Text.Space = space
 
-				// 读取文本内容
+				// Read text content
 				content, err := d.readElementText(decoder, "t")
 				if err != nil {
 					return nil, err
 				}
 				run.Text.Content = content
 			case "drawing":
-				// 解析绘图元素（图片等）
+				// Parse drawing element (images, etc.)
 				drawing, err := d.parseDrawingElement(decoder, t)
 				if err != nil {
 					return nil, err
@@ -2332,7 +2397,7 @@ func (d *Document) parseRun(decoder *xml.Decoder, startElement xml.StartElement)
 	}
 }
 
-// parseRunProperties 解析运行属性
+// parseRunProperties parses run properties
 func (d *Document) parseRunProperties(decoder *xml.Decoder, run *Run) error {
 	run.Properties = &RunProperties{}
 
@@ -2438,7 +2503,7 @@ func (d *Document) parseRunProperties(decoder *xml.Decoder, run *Run) error {
 	}
 }
 
-// parseTable 解析表格
+// parseTable parses a table
 func (d *Document) parseTable(decoder *xml.Decoder, startElement xml.StartElement) (*Table, error) {
 	table := &Table{
 		Rows: make([]TableRow, 0),
@@ -2454,17 +2519,17 @@ func (d *Document) parseTable(decoder *xml.Decoder, startElement xml.StartElemen
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "tblPr":
-				// 解析表格属性
+				// Parse table properties
 				if err := d.parseTableProperties(decoder, table); err != nil {
 					return nil, err
 				}
 			case "tblGrid":
-				// 解析表格网格
+				// Parse table grid
 				if err := d.parseTableGrid(decoder, table); err != nil {
 					return nil, err
 				}
 			case "tr":
-				// 解析表格行
+				// Parse table row
 				row, err := d.parseTableRow(decoder, t)
 				if err != nil {
 					return nil, err
@@ -2485,7 +2550,7 @@ func (d *Document) parseTable(decoder *xml.Decoder, startElement xml.StartElemen
 	}
 }
 
-// parseTableProperties 解析表格属性
+// parseTableProperties parses table properties
 func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) error {
 	table.Properties = &TableProperties{}
 
@@ -2516,7 +2581,7 @@ func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) erro
 					return err
 				}
 			case "tblLook":
-				// 解析表格外观
+				// Parse table look
 				tableLook := &TableLook{
 					Val:      getAttributeValue(t.Attr, "val"),
 					FirstRow: getAttributeValue(t.Attr, "firstRow"),
@@ -2531,7 +2596,7 @@ func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) erro
 					return err
 				}
 			case "tblStyle":
-				// 解析表格样式
+				// Parse table style
 				val := getAttributeValue(t.Attr, "val")
 				if val != "" {
 					table.Properties.TableStyle = &TableStyle{Val: val}
@@ -2540,14 +2605,14 @@ func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) erro
 					return err
 				}
 			case "tblBorders":
-				// 解析表格边框
+				// Parse table borders
 				borders, err := d.parseTableBorders(decoder)
 				if err != nil {
 					return err
 				}
 				table.Properties.TableBorders = borders
 			case "shd":
-				// 解析表格底纹
+				// Parse table shading
 				shd := &TableShading{
 					Val:       getAttributeValue(t.Attr, "val"),
 					Color:     getAttributeValue(t.Attr, "color"),
@@ -2559,14 +2624,14 @@ func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) erro
 					return err
 				}
 			case "tblCellMar":
-				// 解析表格单元格边距
+				// Parse table cell margins
 				margins, err := d.parseTableCellMargins(decoder)
 				if err != nil {
 					return err
 				}
 				table.Properties.TableCellMar = margins
 			case "tblLayout":
-				// 解析表格布局
+				// Parse table layout
 				layoutType := getAttributeValue(t.Attr, "type")
 				if layoutType != "" {
 					table.Properties.TableLayout = &TableLayoutType{Type: layoutType}
@@ -2575,7 +2640,7 @@ func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) erro
 					return err
 				}
 			case "tblInd":
-				// 解析表格缩进
+				// Parse table indentation
 				w := getAttributeValue(t.Attr, "w")
 				indType := getAttributeValue(t.Attr, "type")
 				if w != "" || indType != "" {
@@ -2585,7 +2650,7 @@ func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) erro
 					return err
 				}
 			default:
-				// 跳过其他表格属性，可以根据需要扩展
+				// Skip other table properties; extend as needed
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return err
 				}
@@ -2598,7 +2663,7 @@ func (d *Document) parseTableProperties(decoder *xml.Decoder, table *Table) erro
 	}
 }
 
-// parseTableGrid 解析表格网格
+// parseTableGrid parses the table grid
 func (d *Document) parseTableGrid(decoder *xml.Decoder, table *Table) error {
 	table.Grid = &TableGrid{
 		Cols: make([]TableGridCol, 0),
@@ -2633,7 +2698,7 @@ func (d *Document) parseTableGrid(decoder *xml.Decoder, table *Table) error {
 	}
 }
 
-// parseTableRow 解析表格行
+// parseTableRow parses a table row
 func (d *Document) parseTableRow(decoder *xml.Decoder, startElement xml.StartElement) (*TableRow, error) {
 	row := &TableRow{
 		Cells: make([]TableCell, 0),
@@ -2649,14 +2714,14 @@ func (d *Document) parseTableRow(decoder *xml.Decoder, startElement xml.StartEle
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "trPr":
-				// 解析行属性
+				// Parse row properties
 				props, err := d.parseTableRowProperties(decoder)
 				if err != nil {
 					return nil, err
 				}
 				row.Properties = props
 			case "tc":
-				// 解析表格单元格
+				// Parse table cell
 				cell, err := d.parseTableCell(decoder, t)
 				if err != nil {
 					return nil, err
@@ -2677,7 +2742,7 @@ func (d *Document) parseTableRow(decoder *xml.Decoder, startElement xml.StartEle
 	}
 }
 
-// parseTableCell 解析表格单元格
+// parseTableCell parses a table cell
 func (d *Document) parseTableCell(decoder *xml.Decoder, startElement xml.StartElement) (*TableCell, error) {
 	cell := &TableCell{
 		Paragraphs: make([]Paragraph, 0),
@@ -2693,14 +2758,14 @@ func (d *Document) parseTableCell(decoder *xml.Decoder, startElement xml.StartEl
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "tcPr":
-				// 解析单元格属性
+				// Parse cell properties
 				props, err := d.parseTableCellProperties(decoder)
 				if err != nil {
 					return nil, err
 				}
 				cell.Properties = props
 			case "p":
-				// 解析段落
+				// Parse paragraph
 				para, err := d.parseParagraph(decoder, t)
 				if err != nil {
 					return nil, err
@@ -2721,7 +2786,7 @@ func (d *Document) parseTableCell(decoder *xml.Decoder, startElement xml.StartEl
 	}
 }
 
-// parseSectionProperties 解析节属性
+// parseSectionProperties parses section properties
 func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml.StartElement) (*SectionProperties, error) {
 	sectPr := &SectionProperties{
 		XmlnsR: getAttributeValue(startElement.Attr, "xmlns:r"),
@@ -2737,7 +2802,7 @@ func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "pgSz":
-				// 解析页面尺寸
+				// Parse page size
 				w := getAttributeValue(t.Attr, "w")
 				h := getAttributeValue(t.Attr, "h")
 				orient := getAttributeValue(t.Attr, "orient")
@@ -2748,7 +2813,7 @@ func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml
 					return nil, err
 				}
 			case "pgMar":
-				// 解析页面边距
+				// Parse page margins
 				margin := &PageMargin{}
 				margin.Top = getAttributeValue(t.Attr, "top")
 				margin.Right = getAttributeValue(t.Attr, "right")
@@ -2762,7 +2827,7 @@ func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml
 					return nil, err
 				}
 			case "cols":
-				// 解析分栏
+				// Parse columns
 				space := getAttributeValue(t.Attr, "space")
 				num := getAttributeValue(t.Attr, "num")
 				if space != "" || num != "" {
@@ -2772,7 +2837,7 @@ func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml
 					return nil, err
 				}
 			case "docGrid":
-				// 解析文档网格
+				// Parse document grid
 				docGridType := getAttributeValue(t.Attr, "type")
 				linePitch := getAttributeValue(t.Attr, "linePitch")
 				charSpace := getAttributeValue(t.Attr, "charSpace")
@@ -2821,7 +2886,7 @@ func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml
 					return nil, err
 				}
 			default:
-				// 跳过其他节属性
+				// Skip other section properties
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
@@ -2834,7 +2899,7 @@ func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml
 	}
 }
 
-// skipElement 跳过元素及其子元素
+// skipElement skips an element and its child elements
 func (d *Document) skipElement(decoder *xml.Decoder, elementName string) error {
 	depth := 1
 	for depth > 0 {
@@ -2853,7 +2918,7 @@ func (d *Document) skipElement(decoder *xml.Decoder, elementName string) error {
 	return nil
 }
 
-// readElementText 读取元素的文本内容
+// readElementText reads the text content of an element
 func (d *Document) readElementText(decoder *xml.Decoder, elementName string) (string, error) {
 	var content string
 	for {
@@ -2873,7 +2938,7 @@ func (d *Document) readElementText(decoder *xml.Decoder, elementName string) (st
 	}
 }
 
-// getAttributeValue 获取属性值
+// getAttributeValue gets an attribute value
 func getAttributeValue(attrs []xml.Attr, name string) string {
 	for _, attr := range attrs {
 		if attr.Name.Local == name {
@@ -2883,11 +2948,11 @@ func getAttributeValue(attrs []xml.Attr, name string) string {
 	return ""
 }
 
-// serializeDocument 序列化文档内容
+// serializeDocument serializes the document content
 func (d *Document) serializeDocument() error {
-	Debugf("开始序列化文档")
+	DebugMsg(MsgSerializingDocument)
 
-	// 创建文档结构
+	// Create document structure
 	type documentXML struct {
 		XMLName  xml.Name `xml:"w:document"`
 		Xmlns    string   `xml:"xmlns:w,attr"`
@@ -2909,35 +2974,35 @@ func (d *Document) serializeDocument() error {
 		Body:     d.Body,
 	}
 
-	// 序列化为XML
+	// Serialize to XML
 	data, err := xml.MarshalIndent(doc, "", "  ")
 	if err != nil {
-		Errorf("XML序列化失败: %v", err)
+		ErrorMsgf(MsgXMLSerializationFailed, err)
 		return WrapError("marshal_xml", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	d.parts["word/document.xml"] = append([]byte(xml.Header), data...)
 
-	Debugf("文档序列化完成")
+	DebugMsg(MsgDocumentSerializationComplete)
 	return nil
 }
 
-// serializeContentTypes 序列化内容类型
+// serializeContentTypes serializes content types
 func (d *Document) serializeContentTypes() {
 	data, _ := xml.MarshalIndent(d.contentTypes, "", "  ")
 	d.parts["[Content_Types].xml"] = append([]byte(xml.Header), data...)
 }
 
-// serializeRelationships 序列化关系
+// serializeRelationships serializes relationships
 func (d *Document) serializeRelationships() {
 	data, _ := xml.MarshalIndent(d.relationships, "", "  ")
 	d.parts["_rels/.rels"] = append([]byte(xml.Header), data...)
 }
 
-// serializeDocumentRelationships 序列化文档关系
+// serializeDocumentRelationships serializes document relationships
 func (d *Document) serializeDocumentRelationships() {
-	// 获取已存在的关系，从索引1开始（保留给styles.xml）
+	// Get existing relationships, starting from index 1 (reserved for styles.xml)
 	relationships := []Relationship{
 		{
 			ID:     "rId1",
@@ -2946,10 +3011,10 @@ func (d *Document) serializeDocumentRelationships() {
 		},
 	}
 
-	// 添加动态创建的文档级关系（如页眉、页脚等）
+	// Add dynamically created document-level relationships (headers, footers, etc.)
 	relationships = append(relationships, d.documentRelationships.Relationships...)
 
-	// 创建文档关系
+	// Create document relationships
 	docRels := &Relationships{
 		Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
 		Relationships: relationships,
@@ -2959,18 +3024,18 @@ func (d *Document) serializeDocumentRelationships() {
 	d.parts["word/_rels/document.xml.rels"] = append([]byte(xml.Header), data...)
 }
 
-// serializeStyles 序列化样式
+// serializeStyles serializes styles
 func (d *Document) serializeStyles() error {
-	Debugf("开始序列化样式")
+	DebugMsg(MsgSerializingStyles)
 
-	// 如果在克隆文档时已经保留了完整的 styles.xml（含 docDefaults 等信息），
-	// 这里直接跳过重新生成，避免丢失模板原有的默认段落/字符设置。
+	// If a complete styles.xml was preserved during document cloning (including docDefaults, etc.),
+	// skip regeneration to avoid losing the template's original default paragraph/character settings.
 	if existing, ok := d.parts["word/styles.xml"]; ok && len(existing) > 0 {
-		Debugf("检测到已有 styles.xml，跳过样式重建以保留模板默认样式")
+		DebugMsg(MsgExistingStylesDetected)
 		return nil
 	}
 
-	// 创建样式结构，包含完整的命名空间
+	// Create styles structure with full namespaces
 	type stylesXML struct {
 		XMLName     xml.Name       `xml:"w:styles"`
 		XmlnsW      string         `xml:"xmlns:w,attr"`
@@ -3002,102 +3067,102 @@ func (d *Document) serializeStyles() error {
 		Styles:      d.styleManager.GetAllStyles(),
 	}
 
-	// 序列化为XML
+	// Serialize to XML
 	data, err := xml.MarshalIndent(doc, "", "  ")
 	if err != nil {
-		Errorf("XML序列化失败: %v", err)
+		ErrorMsgf(MsgXMLSerializationFailed, err)
 		return WrapError("marshal_xml", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	d.parts["word/styles.xml"] = append([]byte(xml.Header), data...)
 
-	Debugf("样式序列化完成")
+	DebugMsg(MsgStyleSerializationComplete)
 	return nil
 }
 
-// parseContentTypes 解析内容类型文件
+// parseContentTypes parses the content types file
 func (d *Document) parseContentTypes() error {
-	Debugf("开始解析内容类型文件")
+	DebugMsg(MsgParsingContentTypes)
 
-	// 查找内容类型文件
+	// Find content types file
 	contentTypesData, ok := d.parts["[Content_Types].xml"]
 	if !ok {
-		return WrapError("parse_content_types", fmt.Errorf("内容类型文件不存在"))
+		return WrapError("parse_content_types", fmt.Errorf("content types file not found"))
 	}
 
-	// 解析XML
+	// Parse XML
 	var contentTypes ContentTypes
 	if err := xml.Unmarshal(contentTypesData, &contentTypes); err != nil {
 		return WrapError("parse_content_types", err)
 	}
 
 	d.contentTypes = &contentTypes
-	Debugf("内容类型解析完成")
+	DebugMsg(MsgContentTypesParsed)
 	return nil
 }
 
-// parseRelationships 解析关系文件
+// parseRelationships parses the relationships file
 func (d *Document) parseRelationships() error {
-	Debugf("开始解析关系文件")
+	DebugMsg(MsgParsingRelationships)
 
-	// 查找关系文件
+	// Find relationships file
 	relsData, ok := d.parts["_rels/.rels"]
 	if !ok {
-		return WrapError("parse_relationships", fmt.Errorf("关系文件不存在"))
+		return WrapError("parse_relationships", fmt.Errorf("relationships file not found"))
 	}
 
-	// 解析XML
+	// Parse XML
 	var relationships Relationships
 	if err := xml.Unmarshal(relsData, &relationships); err != nil {
 		return WrapError("parse_relationships", err)
 	}
 
 	d.relationships = &relationships
-	Debugf("关系解析完成")
+	DebugMsg(MsgRelationshipsParsed)
 	return nil
 }
 
-// parseStyles 解析样式文件
+// parseStyles parses the styles file
 func (d *Document) parseStyles() error {
-	Debugf("开始解析样式文件")
+	DebugMsg(MsgParsingStyles)
 
-	// 查找样式文件
+	// Find styles file
 	stylesData, ok := d.parts["word/styles.xml"]
 	if !ok {
-		return WrapError("parse_styles", fmt.Errorf("样式文件不存在"))
+		return WrapError("parse_styles", fmt.Errorf("styles file not found"))
 	}
 
-	// 使用样式管理器解析样式
+	// Parse styles using the style manager
 	if err := d.styleManager.LoadStylesFromDocument(stylesData); err != nil {
 		return WrapError("parse_styles", err)
 	}
 
-	Debugf("样式解析完成")
+	DebugMsg(MsgStylesParsed)
 	return nil
 }
 
-// parseDocumentRelationships 解析文档关系文件（word/_rels/document.xml.rels）
-// 该文件包含文档中图片、页眉、页脚等资源的关系
+// parseDocumentRelationships parses the document relationships file (word/_rels/document.xml.rels).
+// This file contains relationships for images, headers, footers, and other resources in the document.
 func (d *Document) parseDocumentRelationships() error {
-	Debugf("开始解析文档关系文件")
+	DebugMsg(MsgParsingDocumentRelationships)
 
-	// 查找文档关系文件
+	// Find document relationships file
 	docRelsData, ok := d.parts["word/_rels/document.xml.rels"]
 	if !ok {
-		// 文档可能没有关系文件（没有图片等资源），这不是错误
-		Debugf("文档关系文件不存在，文档可能不包含图片等资源")
+		// The document may not have a relationships file (no images or other resources); this is not an error
+		DebugMsg(MsgDocRelFileNotFound)
 		return nil
 	}
 
-	// 解析XML
+	// Parse XML
 	var relationships Relationships
 	if err := xml.Unmarshal(docRelsData, &relationships); err != nil {
 		return WrapError("parse_document_relationships", err)
 	}
 
-	// 保存解析的关系（不包括styles.xml，因为它在serializeDocumentRelationships中会自动添加）
-	// 过滤掉styles.xml的关系，因为它总是rId1并在保存时自动添加
+	// Save parsed relationships (excluding styles.xml, which is auto-added in serializeDocumentRelationships)
+	// Filter out styles.xml relationship since it is always rId1 and auto-added on save
 	filteredRels := make([]Relationship, 0)
 	for _, rel := range relationships.Relationships {
 		if rel.Type != "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" {
@@ -3106,21 +3171,21 @@ func (d *Document) parseDocumentRelationships() error {
 	}
 
 	d.documentRelationships.Relationships = filteredRels
-	Debugf("文档关系解析完成，共 %d 个关系", len(filteredRels))
+	DebugMsgf(MsgDocumentRelationshipsParsed, len(filteredRels))
 	return nil
 }
 
-// updateNextImageID 根据已有的图片关系更新nextImageID计数器
-// 确保新添加的图片ID不会与现有图片冲突
+// updateNextImageID updates the nextImageID counter based on existing image relationships.
+// This ensures newly added image IDs do not conflict with existing images.
 func (d *Document) updateNextImageID() {
 	maxImageID := -1
 
-	// 遍历所有parts，查找已存在的图片文件的最大ID
+	// Iterate through all parts to find the highest existing image file ID
 	for partName := range d.parts {
-		// 检查是否是图片文件（word/media/imageN.xxx）
+		// Check if this is an image file (word/media/imageN.xxx)
 		if len(partName) > 11 && partName[:11] == "word/media/" {
-			// 从文件名中提取图片ID（image0.png -> 0, image1.png -> 1等）
-			filename := partName[11:] // 去掉"word/media/"前缀
+			// Extract image ID from filename (image0.png -> 0, image1.png -> 1, etc.)
+			filename := partName[11:] // Remove "word/media/" prefix
 			var id int
 			if _, err := fmt.Sscanf(filename, "image%d.", &id); err == nil {
 				if id > maxImageID {
@@ -3130,38 +3195,38 @@ func (d *Document) updateNextImageID() {
 		}
 	}
 
-	// 设置nextImageID为最大图片ID + 1
-	// 如果没有现有图片，maxImageID为-1，nextImageID应该为0
+	// Set nextImageID to max image ID + 1
+	// If there are no existing images, maxImageID is -1, so nextImageID should be 0
 	d.nextImageID = maxImageID + 1
 
-	Debugf("更新图片ID计数器: nextImageID = %d", d.nextImageID)
+	DebugMsgf(MsgUpdatingImageIDCounter, d.nextImageID)
 }
 
-// ToBytes 将文档转换为字节数组
+// ToBytes converts the document to a byte array
 func (d *Document) ToBytes() ([]byte, error) {
 	buf := new(bytes.Buffer)
 	zipWriter := zip.NewWriter(buf)
 
-	// 序列化文档
+	// Serialize document
 	if err := d.serializeDocument(); err != nil {
 		return nil, err
 	}
 
-	// 序列化样式
+	// Serialize styles
 	if err := d.serializeStyles(); err != nil {
 		return nil, err
 	}
 
-	// 序列化内容类型
+	// Serialize content types
 	d.serializeContentTypes()
 
-	// 序列化关系
+	// Serialize relationships
 	d.serializeRelationships()
 
-	// 序列化文档关系
+	// Serialize document relationships
 	d.serializeDocumentRelationships()
 
-	// 写入所有部件
+	// Write all parts
 	for name, data := range d.parts {
 		writer, err := zipWriter.Create(name)
 		if err != nil {
@@ -3179,7 +3244,7 @@ func (d *Document) ToBytes() ([]byte, error) {
 	return buf.Bytes(), nil
 }
 
-// GetParagraphs 获取所有段落
+// GetParagraphs returns all paragraphs
 func (b *Body) GetParagraphs() []*Paragraph {
 	paragraphs := make([]*Paragraph, 0)
 	for _, element := range b.Elements {
@@ -3190,7 +3255,7 @@ func (b *Body) GetParagraphs() []*Paragraph {
 	return paragraphs
 }
 
-// GetTables 获取所有表格
+// GetTables returns all tables
 func (b *Body) GetTables() []*Table {
 	tables := make([]*Table, 0)
 	for _, element := range b.Elements {
@@ -3201,100 +3266,100 @@ func (b *Body) GetTables() []*Table {
 	return tables
 }
 
-// AddElement 添加元素到文档主体
+// AddElement adds an element to the document body
 func (b *Body) AddElement(element interface{}) {
 	b.Elements = append(b.Elements, element)
 }
 
-// RemoveParagraph 从文档中删除指定的段落。
+// RemoveParagraph removes the specified paragraph from the document.
 //
-// 参数 paragraph 是要删除的段落对象。
-// 如果段落不存在于文档中，此方法不会产生任何效果。
+// The paragraph parameter is the paragraph object to remove.
+// If the paragraph does not exist in the document, this method has no effect.
 //
-// 返回值表示是否成功删除段落。
+// Returns whether the paragraph was successfully removed.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
-//	para := doc.AddParagraph("要删除的段落")
+//	para := doc.AddParagraph("Paragraph to remove")
 //	doc.RemoveParagraph(para)
 func (d *Document) RemoveParagraph(paragraph *Paragraph) bool {
 	for i, element := range d.Body.Elements {
 		if p, ok := element.(*Paragraph); ok && p == paragraph {
-			// 删除元素
+			// Remove element
 			d.Body.Elements = append(d.Body.Elements[:i], d.Body.Elements[i+1:]...)
-			Debugf("删除段落: 索引 %d", i)
+			DebugMsgf(MsgDeletingElement, i)
 			return true
 		}
 	}
-	Debugf("警告：未找到要删除的段落")
+	DebugMsg(MsgParagraphToDeleteNotFound)
 	return false
 }
 
-// RemoveParagraphAt 根据索引删除段落。
+// RemoveParagraphAt removes a paragraph by index.
 //
-// 参数 index 是要删除的段落在所有段落中的索引（从0开始）。
-// 如果索引超出范围，此方法会返回错误。
+// The index parameter is the paragraph's index among all paragraphs (0-based).
+// If the index is out of range, this method returns false.
 //
-// 返回值表示是否成功删除段落。
+// Returns whether the paragraph was successfully removed.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
-//	doc.AddParagraph("第一段")
-//	doc.AddParagraph("第二段")
-//	doc.RemoveParagraphAt(0)  // 删除第一段
+//	doc.AddParagraph("First paragraph")
+//	doc.AddParagraph("Second paragraph")
+//	doc.RemoveParagraphAt(0)  // Remove the first paragraph
 func (d *Document) RemoveParagraphAt(index int) bool {
-	// 提前验证负数索引
+	// Validate negative index early
 	if index < 0 {
-		Debugf("错误：段落索引不能为负数: %d", index)
+		DebugMsgf(MsgParagraphIndexNegative, index)
 		return false
 	}
 
-	// 优化：单次遍历找到目标段落及其元素索引
+	// Optimization: single pass to find the target paragraph and its element index
 	paragraphCount := 0
 	for i, element := range d.Body.Elements {
 		if _, ok := element.(*Paragraph); ok {
 			if paragraphCount == index {
-				// 找到目标段落，删除它
+				// Found the target paragraph; remove it
 				d.Body.Elements = append(d.Body.Elements[:i], d.Body.Elements[i+1:]...)
-				Debugf("删除段落: 段落索引 %d, 元素索引 %d", index, i)
+				DebugMsgf(MsgDeletingElement, i)
 				return true
 			}
 			paragraphCount++
 		}
 	}
 
-	Debugf("错误：段落索引 %d 超出范围 [0, %d)", index, paragraphCount)
+	DebugMsgf(MsgParagraphIndexOutOfRange, index, paragraphCount)
 	return false
 }
 
-// RemoveElementAt 根据元素索引删除元素（包括段落、表格等）。
+// RemoveElementAt removes an element by index (including paragraphs, tables, etc.).
 //
-// 参数 index 是要删除的元素在文档主体中的索引（从0开始）。
-// 如果索引超出范围，此方法会返回错误。
+// The index parameter is the element's index in the document body (0-based).
+// If the index is out of range, this method returns false.
 //
-// 返回值表示是否成功删除元素。
+// Returns whether the element was successfully removed.
 //
-// 示例:
+// Example:
 //
 //	doc := document.New()
-//	doc.AddParagraph("段落")
+//	doc.AddParagraph("A paragraph")
 //	doc.AddTable(&document.TableConfig{Rows: 2, Cols: 2})
-//	doc.RemoveElementAt(0)  // 删除第一个元素（段落）
+//	doc.RemoveElementAt(0)  // Remove the first element (paragraph)
 func (d *Document) RemoveElementAt(index int) bool {
 	if index < 0 || index >= len(d.Body.Elements) {
-		Debugf("错误：元素索引 %d 超出范围 [0, %d)", index, len(d.Body.Elements))
+		DebugMsgf(MsgElementIndexOutOfRange, index, len(d.Body.Elements))
 		return false
 	}
 
-	// 删除元素
+	// Remove element
 	d.Body.Elements = append(d.Body.Elements[:index], d.Body.Elements[index+1:]...)
-	Debugf("删除元素: 索引 %d", index)
+	DebugMsgf(MsgDeletingElement, index)
 	return true
 }
 
-// parseTableBorders 解析表格边框
+// parseTableBorders parses table borders
 func (d *Document) parseTableBorders(decoder *xml.Decoder) (*TableBorders, error) {
 	borders := &TableBorders{}
 
@@ -3340,7 +3405,7 @@ func (d *Document) parseTableBorders(decoder *xml.Decoder) (*TableBorders, error
 	}
 }
 
-// parseTableCellMargins 解析表格单元格边距
+// parseTableCellMargins parses table cell margins
 func (d *Document) parseTableCellMargins(decoder *xml.Decoder) (*TableCellMargins, error) {
 	margins := &TableCellMargins{}
 
@@ -3379,7 +3444,7 @@ func (d *Document) parseTableCellMargins(decoder *xml.Decoder) (*TableCellMargin
 	}
 }
 
-// parseTableCellProperties 解析表格单元格属性
+// parseTableCellProperties parses table cell properties
 func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellProperties, error) {
 	props := &TableCellProperties{}
 
@@ -3393,7 +3458,7 @@ func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellPro
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "tcW":
-				// 解析单元格宽度
+				// Parse cell width
 				w := getAttributeValue(t.Attr, "w")
 				wType := getAttributeValue(t.Attr, "type")
 				if w != "" || wType != "" {
@@ -3403,7 +3468,7 @@ func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellPro
 					return nil, err
 				}
 			case "vAlign":
-				// 解析垂直对齐
+				// Parse vertical alignment
 				val := getAttributeValue(t.Attr, "val")
 				if val != "" {
 					props.VAlign = &VAlign{Val: val}
@@ -3412,7 +3477,7 @@ func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellPro
 					return nil, err
 				}
 			case "gridSpan":
-				// 解析网格跨度
+				// Parse grid span
 				val := getAttributeValue(t.Attr, "val")
 				if val != "" {
 					props.GridSpan = &GridSpan{Val: val}
@@ -3421,14 +3486,14 @@ func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellPro
 					return nil, err
 				}
 			case "vMerge":
-				// 解析垂直合并
+				// Parse vertical merge
 				val := getAttributeValue(t.Attr, "val")
 				props.VMerge = &VMerge{Val: val}
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
 			case "textDirection":
-				// 解析文字方向
+				// Parse text direction
 				val := getAttributeValue(t.Attr, "val")
 				if val != "" {
 					props.TextDirection = &TextDirection{Val: val}
@@ -3437,7 +3502,7 @@ func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellPro
 					return nil, err
 				}
 			case "shd":
-				// 解析单元格底纹
+				// Parse cell shading
 				shd := &TableCellShading{
 					Val:       getAttributeValue(t.Attr, "val"),
 					Color:     getAttributeValue(t.Attr, "color"),
@@ -3449,35 +3514,35 @@ func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellPro
 					return nil, err
 				}
 			case "tcBorders":
-				// 解析单元格边框
+				// Parse cell borders
 				borders, err := d.parseTableCellBorders(decoder)
 				if err != nil {
 					return nil, err
 				}
 				props.TcBorders = borders
 			case "tcMar":
-				// 解析单元格边距
+				// Parse cell margins
 				margins, err := d.parseTableCellMarginsCell(decoder)
 				if err != nil {
 					return nil, err
 				}
 				props.TcMar = margins
 			case "noWrap":
-				// 解析禁止换行
+				// Parse no-wrap
 				val := getAttributeValue(t.Attr, "val")
 				props.NoWrap = &NoWrap{Val: val}
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
 			case "hideMark":
-				// 解析隐藏标记
+				// Parse hide mark
 				val := getAttributeValue(t.Attr, "val")
 				props.HideMark = &HideMark{Val: val}
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
 			default:
-				// 跳过其他未处理的单元格属性
+				// Skip other unhandled cell properties
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
@@ -3490,7 +3555,7 @@ func (d *Document) parseTableCellProperties(decoder *xml.Decoder) (*TableCellPro
 	}
 }
 
-// parseTableCellBorders 解析表格单元格边框
+// parseTableCellBorders parses table cell borders
 func (d *Document) parseTableCellBorders(decoder *xml.Decoder) (*TableCellBorders, error) {
 	borders := &TableCellBorders{}
 
@@ -3540,7 +3605,7 @@ func (d *Document) parseTableCellBorders(decoder *xml.Decoder) (*TableCellBorder
 	}
 }
 
-// parseTableCellMarginsCell 解析表格单元格边距（单元格级别）
+// parseTableCellMarginsCell parses table cell margins (cell level)
 func (d *Document) parseTableCellMarginsCell(decoder *xml.Decoder) (*TableCellMarginsCell, error) {
 	margins := &TableCellMarginsCell{}
 
@@ -3579,7 +3644,7 @@ func (d *Document) parseTableCellMarginsCell(decoder *xml.Decoder) (*TableCellMa
 	}
 }
 
-// parseTableRowProperties 解析表格行属性
+// parseTableRowProperties parses table row properties
 func (d *Document) parseTableRowProperties(decoder *xml.Decoder) (*TableRowProperties, error) {
 	props := &TableRowProperties{}
 
@@ -3593,7 +3658,7 @@ func (d *Document) parseTableRowProperties(decoder *xml.Decoder) (*TableRowPrope
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "trHeight":
-				// 解析行高
+				// Parse row height
 				val := getAttributeValue(t.Attr, "val")
 				hRule := getAttributeValue(t.Attr, "hRule")
 				if val != "" || hRule != "" {
@@ -3603,21 +3668,21 @@ func (d *Document) parseTableRowProperties(decoder *xml.Decoder) (*TableRowPrope
 					return nil, err
 				}
 			case "cantSplit":
-				// 解析禁止跨页分割
+				// Parse prevent row from splitting across pages
 				val := getAttributeValue(t.Attr, "val")
 				props.CantSplit = &CantSplit{Val: val}
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
 			case "tblHeader":
-				// 解析标题行重复
+				// Parse repeat header row
 				val := getAttributeValue(t.Attr, "val")
 				props.TblHeader = &TblHeader{Val: val}
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
 			default:
-				// 跳过其他行属性
+				// Skip other row properties
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
@@ -3630,8 +3695,8 @@ func (d *Document) parseTableRowProperties(decoder *xml.Decoder) (*TableRowPrope
 	}
 }
 
-// parseDrawingElement 解析绘图元素（图片等）
-// 此方法用于从XML中解析完整的绘图元素结构
+// parseDrawingElement parses drawing elements (images, etc.).
+// This method parses the complete drawing element structure from XML.
 func (d *Document) parseDrawingElement(decoder *xml.Decoder, startElement xml.StartElement) (*DrawingElement, error) {
 	drawing := &DrawingElement{}
 
@@ -3645,14 +3710,14 @@ func (d *Document) parseDrawingElement(decoder *xml.Decoder, startElement xml.St
 		case xml.StartElement:
 			switch t.Name.Local {
 			case "inline":
-				// 解析嵌入式绘图
+				// Parse inline drawing
 				inline, err := d.parseInlineDrawing(decoder, t)
 				if err != nil {
 					return nil, err
 				}
 				drawing.Inline = inline
 			case "anchor":
-				// 解析浮动绘图
+				// Parse anchor (floating) drawing
 				anchor, err := d.parseAnchorDrawing(decoder, t)
 				if err != nil {
 					return nil, err
@@ -3671,11 +3736,11 @@ func (d *Document) parseDrawingElement(decoder *xml.Decoder, startElement xml.St
 	}
 }
 
-// parseInlineDrawing 解析嵌入式绘图
+// parseInlineDrawing parses an inline drawing
 func (d *Document) parseInlineDrawing(decoder *xml.Decoder, startElement xml.StartElement) (*InlineDrawing, error) {
 	inline := &InlineDrawing{}
 
-	// 解析属性
+	// Parse attributes
 	for _, attr := range startElement.Attr {
 		switch attr.Name.Local {
 		case "distT":
@@ -3749,11 +3814,11 @@ func (d *Document) parseInlineDrawing(decoder *xml.Decoder, startElement xml.Sta
 	}
 }
 
-// parseAnchorDrawing 解析浮动绘图
+// parseAnchorDrawing parses an anchor (floating) drawing
 func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.StartElement) (*AnchorDrawing, error) {
 	anchor := &AnchorDrawing{}
 
-	// 解析属性
+	// Parse attributes
 	for _, attr := range startElement.Attr {
 		switch attr.Name.Local {
 		case "distT":
@@ -3864,13 +3929,13 @@ func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.Sta
 	}
 }
 
-// parseDrawingGraphic 解析绘图图形元素
+// parseDrawingGraphic parses drawing graphic elements
 func (d *Document) parseDrawingGraphic(decoder *xml.Decoder, startElement xml.StartElement) (*DrawingGraphic, error) {
 	graphic := &DrawingGraphic{}
 
-	// 解析xmlns属性
+	// Parse xmlns attributes
 	for _, attr := range startElement.Attr {
-		// 检查xmlns属性（命名空间声明）
+		// Check xmlns attributes (namespace declarations)
 		if attr.Name.Space == "xmlns" || (attr.Name.Space == "" && strings.HasPrefix(attr.Name.Local, "xmlns")) {
 			if attr.Value == "http://schemas.openxmlformats.org/drawingml/2006/main" {
 				graphic.Xmlns = attr.Value
@@ -3906,11 +3971,11 @@ func (d *Document) parseDrawingGraphic(decoder *xml.Decoder, startElement xml.St
 	}
 }
 
-// parseGraphicData 解析图形数据元素
+// parseGraphicData parses graphic data elements
 func (d *Document) parseGraphicData(decoder *xml.Decoder, startElement xml.StartElement) (*GraphicData, error) {
 	graphicData := &GraphicData{}
 
-	// 解析属性
+	// Parse attributes
 	for _, attr := range startElement.Attr {
 		if attr.Name.Local == "uri" {
 			graphicData.Uri = attr.Value
@@ -3945,13 +4010,13 @@ func (d *Document) parseGraphicData(decoder *xml.Decoder, startElement xml.Start
 	}
 }
 
-// parsePicElement 解析图片元素
+// parsePicElement parses a picture element
 func (d *Document) parsePicElement(decoder *xml.Decoder, startElement xml.StartElement) (*PicElement, error) {
 	pic := &PicElement{}
 
-	// 解析xmlns属性
+	// Parse xmlns attributes
 	for _, attr := range startElement.Attr {
-		// 检查xmlns属性（命名空间声明）
+		// Check xmlns attributes (namespace declarations)
 		if attr.Name.Space == "xmlns" || (attr.Name.Space == "" && strings.HasPrefix(attr.Name.Local, "xmlns")) {
 			if attr.Value == "http://schemas.openxmlformats.org/drawingml/2006/picture" {
 				pic.Xmlns = attr.Value
@@ -3999,7 +4064,7 @@ func (d *Document) parsePicElement(decoder *xml.Decoder, startElement xml.StartE
 	}
 }
 
-// parseNvPicPr 解析非可视图片属性
+// parseNvPicPr parses non-visual picture properties
 func (d *Document) parseNvPicPr(decoder *xml.Decoder, startElement xml.StartElement) (*NvPicPr, error) {
 	nvPicPr := &NvPicPr{}
 
@@ -4032,7 +4097,7 @@ func (d *Document) parseNvPicPr(decoder *xml.Decoder, startElement xml.StartElem
 				}
 			case "cNvPicPr":
 				cNvPicPr := &CNvPicPr{}
-				// 解析picLocks如果存在
+				// Parse picLocks if present
 				nvPicPr.CNvPicPr = cNvPicPr
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
@@ -4050,7 +4115,7 @@ func (d *Document) parseNvPicPr(decoder *xml.Decoder, startElement xml.StartElem
 	}
 }
 
-// parseBlipFill 解析图片填充
+// parseBlipFill parses picture fill
 func (d *Document) parseBlipFill(decoder *xml.Decoder, startElement xml.StartElement) (*BlipFill, error) {
 	blipFill := &BlipFill{}
 
@@ -4092,7 +4157,7 @@ func (d *Document) parseBlipFill(decoder *xml.Decoder, startElement xml.StartEle
 	}
 }
 
-// parseSpPr 解析形状属性
+// parseSpPr parses shape properties
 func (d *Document) parseSpPr(decoder *xml.Decoder, startElement xml.StartElement) (*SpPr, error) {
 	spPr := &SpPr{}
 
@@ -4135,7 +4200,7 @@ func (d *Document) parseSpPr(decoder *xml.Decoder, startElement xml.StartElement
 	}
 }
 
-// parseXfrm 解析变换元素
+// parseXfrm parses transform elements
 func (d *Document) parseXfrm(decoder *xml.Decoder, startElement xml.StartElement) (*Xfrm, error) {
 	xfrm := &Xfrm{}
 

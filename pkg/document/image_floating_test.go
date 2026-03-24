@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-// TestFloatingImageLeftWithTightWrap 测试左浮动图片 + 紧密环绕
+// TestFloatingImageLeftWithTightWrap tests left-floating image + tight wrap
 func TestFloatingImageLeftWithTightWrap(t *testing.T) {
 	doc := New()
 
-	// 创建测试图片
+	// Create test image
 	imageData := createTestImageRGBA(100, 100)
 
 	config := &ImageConfig{
@@ -29,31 +29,31 @@ func TestFloatingImageLeftWithTightWrap(t *testing.T) {
 
 	_, err := doc.AddImageFromData(imageData, "test.png", ImageFormatPNG, 100, 100, config)
 	if err != nil {
-		t.Fatalf("添加左浮动图片失败: %v", err)
+		t.Fatalf("failed to add left-floating image: %v", err)
 	}
 
-	// 保存并验证
+	// Save and verify
 	filename := "test_float_left_tight.docx"
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 	defer os.Remove(filename)
 
-	// 重新打开文档验证
+	// Reopen document to verify
 	doc2, err := Open(filename)
 	if err != nil {
-		t.Fatalf("打开保存的文档失败: %v", err)
+		t.Fatalf("failed to open saved document: %v", err)
 	}
 
 	if len(doc2.Body.Elements) == 0 {
-		t.Fatal("文档中没有元素")
+		t.Fatal("document has no elements")
 	}
 
-	t.Logf("✓ 左浮动 + 紧密环绕图片测试通过")
+	t.Logf("left float + tight wrap image test passed")
 }
 
-// TestFloatingImageRightWithSquareWrap 测试右浮动图片 + 四周环绕
+// TestFloatingImageRightWithSquareWrap tests right-floating image + square wrap
 func TestFloatingImageRightWithSquareWrap(t *testing.T) {
 	doc := New()
 
@@ -72,30 +72,30 @@ func TestFloatingImageRightWithSquareWrap(t *testing.T) {
 
 	_, err := doc.AddImageFromData(imageData, "test.png", ImageFormatPNG, 100, 100, config)
 	if err != nil {
-		t.Fatalf("添加右浮动图片失败: %v", err)
+		t.Fatalf("failed to add right-floating image: %v", err)
 	}
 
 	filename := "test_float_right_square.docx"
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 	defer os.Remove(filename)
 
-	// 重新打开文档验证
+	// Reopen document to verify
 	doc2, err := Open(filename)
 	if err != nil {
-		t.Fatalf("打开保存的文档失败: %v", err)
+		t.Fatalf("failed to open saved document: %v", err)
 	}
 
 	if len(doc2.Body.Elements) == 0 {
-		t.Fatal("文档中没有元素")
+		t.Fatal("document has no elements")
 	}
 
-	t.Logf("✓ 右浮动 + 四周环绕图片测试通过")
+	t.Logf("right float + square wrap image test passed")
 }
 
-// TestFloatingImageWithTopAndBottomWrap 测试浮动图片 + 上下环绕
+// TestFloatingImageWithTopAndBottomWrap tests floating image + top and bottom wrap
 func TestFloatingImageWithTopAndBottomWrap(t *testing.T) {
 	doc := New()
 
@@ -114,30 +114,30 @@ func TestFloatingImageWithTopAndBottomWrap(t *testing.T) {
 
 	_, err := doc.AddImageFromData(imageData, "test.png", ImageFormatPNG, 100, 100, config)
 	if err != nil {
-		t.Fatalf("添加浮动图片失败: %v", err)
+		t.Fatalf("failed to add floating image: %v", err)
 	}
 
 	filename := "test_float_topbottom.docx"
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 	defer os.Remove(filename)
 
-	// 重新打开文档验证
+	// Reopen document to verify
 	doc2, err := Open(filename)
 	if err != nil {
-		t.Fatalf("打开保存的文档失败: %v", err)
+		t.Fatalf("failed to open saved document: %v", err)
 	}
 
 	if len(doc2.Body.Elements) == 0 {
-		t.Fatal("文档中没有元素")
+		t.Fatal("document has no elements")
 	}
 
-	t.Logf("✓ 浮动 + 上下环绕图片测试通过")
+	t.Logf("float + top and bottom wrap image test passed")
 }
 
-// TestFloatingImageWithNoWrap 测试浮动图片 + 无环绕
+// TestFloatingImageWithNoWrap tests floating image + no wrap
 func TestFloatingImageWithNoWrap(t *testing.T) {
 	doc := New()
 
@@ -156,39 +156,39 @@ func TestFloatingImageWithNoWrap(t *testing.T) {
 
 	_, err := doc.AddImageFromData(imageData, "test.png", ImageFormatPNG, 100, 100, config)
 	if err != nil {
-		t.Fatalf("添加浮动图片失败: %v", err)
+		t.Fatalf("failed to add floating image: %v", err)
 	}
 
 	filename := "test_float_nowrap.docx"
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 	defer os.Remove(filename)
 
-	// 重新打开文档验证
+	// Reopen document to verify
 	doc2, err := Open(filename)
 	if err != nil {
-		t.Fatalf("打开保存的文档失败: %v", err)
+		t.Fatalf("failed to open saved document: %v", err)
 	}
 
 	if len(doc2.Body.Elements) == 0 {
-		t.Fatal("文档中没有元素")
+		t.Fatal("document has no elements")
 	}
 
-	t.Logf("✓ 浮动 + 无环绕图片测试通过")
+	t.Logf("float + no wrap image test passed")
 }
 
-// TestMultipleFloatingImages 测试多个浮动图片
+// TestMultipleFloatingImages tests multiple floating images
 func TestMultipleFloatingImages(t *testing.T) {
 	doc := New()
 
-	// 添加文本段落
+	// Add text paragraph
 	doc.AddParagraph("这是一个包含多个浮动图片的文档测试。")
 
 	imageData := createTestImageRGBA(80, 80)
 
-	// 添加左浮动图片
+	// Add left-floating image
 	config1 := &ImageConfig{
 		Position: ImagePositionFloatLeft,
 		WrapText: ImageWrapSquare,
@@ -199,13 +199,13 @@ func TestMultipleFloatingImages(t *testing.T) {
 	}
 	_, err := doc.AddImageFromData(imageData, "test1.png", ImageFormatPNG, 80, 80, config1)
 	if err != nil {
-		t.Fatalf("添加第一个浮动图片失败: %v", err)
+		t.Fatalf("failed to add first floating image: %v", err)
 	}
 
-	// 添加更多文本
+	// Add more text
 	doc.AddParagraph("第一个图片已添加。")
 
-	// 添加右浮动图片
+	// Add right-floating image
 	config2 := &ImageConfig{
 		Position: ImagePositionFloatRight,
 		WrapText: ImageWrapTight,
@@ -216,7 +216,7 @@ func TestMultipleFloatingImages(t *testing.T) {
 	}
 	_, err = doc.AddImageFromData(imageData, "test2.png", ImageFormatPNG, 80, 80, config2)
 	if err != nil {
-		t.Fatalf("添加第二个浮动图片失败: %v", err)
+		t.Fatalf("failed to add second floating image: %v", err)
 	}
 
 	doc.AddParagraph("第二个图片也已添加。")
@@ -224,30 +224,30 @@ func TestMultipleFloatingImages(t *testing.T) {
 	filename := "test_multiple_float.docx"
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 	defer os.Remove(filename)
 
-	// 验证文档可以正常打开
+	// Verify document can be opened normally
 	doc2, err := Open(filename)
 	if err != nil {
-		t.Fatalf("打开保存的文档失败: %v", err)
+		t.Fatalf("failed to open saved document: %v", err)
 	}
 
-	// 应该有5个元素（3个文本段落 + 2个图片段落）
+	// Should have 5 elements (3 text paragraphs + 2 image paragraphs)
 	const expectedElements = 5 // 3 text paragraphs + 2 image paragraphs
 	if len(doc2.Body.Elements) != expectedElements {
-		t.Errorf("期望%d个元素（3个文本段落+2个图片段落），实际 %d 个", expectedElements, len(doc2.Body.Elements))
+		t.Errorf("expected %d elements (3 text paragraphs + 2 image paragraphs), got %d", expectedElements, len(doc2.Body.Elements))
 	}
 
-	t.Logf("✓ 多个浮动图片测试通过")
+	t.Logf("multiple floating images test passed")
 }
 
-// createTestImageRGBA 创建一个彩色测试图片
+// createTestImageRGBA creates a colorful test image
 func createTestImageRGBA(width, height int) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	// 创建渐变色彩
+	// Create gradient colors
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			r := uint8(x * 255 / width)
@@ -262,13 +262,13 @@ func createTestImageRGBA(width, height int) []byte {
 	return buf.Bytes()
 }
 
-// TestInlineImageNotAffected 确保嵌入式图片不受修复影响
+// TestInlineImageNotAffected ensures inline images are not affected by the fix
 func TestInlineImageNotAffected(t *testing.T) {
 	doc := New()
 
 	imageData := createTestImageRGBA(100, 100)
 
-	// 测试嵌入式图片（默认）
+	// Test inline image (default)
 	config := &ImageConfig{
 		Position:  ImagePositionInline,
 		Alignment: AlignCenter,
@@ -280,25 +280,25 @@ func TestInlineImageNotAffected(t *testing.T) {
 
 	_, err := doc.AddImageFromData(imageData, "test.png", ImageFormatPNG, 100, 100, config)
 	if err != nil {
-		t.Fatalf("添加嵌入式图片失败: %v", err)
+		t.Fatalf("failed to add inline image: %v", err)
 	}
 
 	filename := "test_inline_image.docx"
 	err = doc.Save(filename)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 	defer os.Remove(filename)
 
-	// 重新打开验证
+	// Reopen to verify
 	doc2, err := Open(filename)
 	if err != nil {
-		t.Fatalf("打开保存的文档失败: %v", err)
+		t.Fatalf("failed to open saved document: %v", err)
 	}
 
 	if len(doc2.Body.Elements) == 0 {
-		t.Fatal("文档中没有元素")
+		t.Fatal("document has no elements")
 	}
 
-	t.Logf("✓ 嵌入式图片未受影响测试通过")
+	t.Logf("inline image not affected test passed")
 }

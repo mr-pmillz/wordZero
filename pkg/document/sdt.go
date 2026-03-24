@@ -1,4 +1,4 @@
-// Package document 提供Word文档的SDT（Structured Document Tag）结构
+// Package document provides SDT (Structured Document Tag) structures for Word documents.
 package document
 
 import (
@@ -6,7 +6,7 @@ import (
 	"fmt"
 )
 
-// SDT 结构化文档标签，用于目录等特殊功能
+// SDT represents a structured document tag, used for features such as table of contents.
 type SDT struct {
 	XMLName    xml.Name       `xml:"w:sdt"`
 	Properties *SDTProperties `xml:"w:sdtPr"`
@@ -14,12 +14,12 @@ type SDT struct {
 	Content    *SDTContent    `xml:"w:sdtContent"`
 }
 
-// ElementType 返回SDT元素类型
+// ElementType returns the SDT element type.
 func (s *SDT) ElementType() string {
 	return "sdt"
 }
 
-// SDTProperties SDT属性
+// SDTProperties represents SDT properties.
 type SDTProperties struct {
 	XMLName     xml.Name        `xml:"w:sdtPr"`
 	RunPr       *RunProperties  `xml:"w:rPr,omitempty"`
@@ -29,84 +29,84 @@ type SDTProperties struct {
 	Placeholder *SDTPlaceholder `xml:"w:placeholder,omitempty"`
 }
 
-// SDTEndPr SDT结束属性
+// SDTEndPr represents SDT end properties.
 type SDTEndPr struct {
 	XMLName xml.Name       `xml:"w:sdtEndPr"`
 	RunPr   *RunProperties `xml:"w:rPr,omitempty"`
 }
 
-// SDTContent SDT内容
+// SDTContent represents SDT content.
 type SDTContent struct {
 	XMLName  xml.Name      `xml:"w:sdtContent"`
-	Elements []interface{} `xml:"-"` // 使用自定义序列化
+	Elements []interface{} `xml:"-"` // Uses custom serialization
 }
 
-// MarshalXML 自定义XML序列化
+// MarshalXML performs custom XML serialization.
 func (s *SDTContent) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	// 开始元素
+	// Start element
 	if err := e.EncodeToken(start); err != nil {
 		return err
 	}
 
-	// 序列化每个元素
+	// Serialize each element
 	for _, element := range s.Elements {
 		if err := e.Encode(element); err != nil {
 			return err
 		}
 	}
 
-	// 结束元素
+	// End element
 	return e.EncodeToken(start.End())
 }
 
-// SDTID SDT标识符
+// SDTID represents an SDT identifier.
 type SDTID struct {
 	XMLName xml.Name `xml:"w:id"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// SDTColor SDT颜色
+// SDTColor represents an SDT color.
 type SDTColor struct {
 	XMLName xml.Name `xml:"w15:color"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// DocPartObj 文档部件对象
+// DocPartObj represents a document part object.
 type DocPartObj struct {
 	XMLName        xml.Name        `xml:"w:docPartObj"`
 	DocPartGallery *DocPartGallery `xml:"w:docPartGallery,omitempty"`
 	DocPartUnique  *DocPartUnique  `xml:"w:docPartUnique,omitempty"`
 }
 
-// DocPartGallery 文档部件库
+// DocPartGallery represents a document part gallery.
 type DocPartGallery struct {
 	XMLName xml.Name `xml:"w:docPartGallery"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// DocPartUnique 文档部件唯一标识
+// DocPartUnique represents a document part unique identifier.
 type DocPartUnique struct {
 	XMLName xml.Name `xml:"w:docPartUnique"`
 }
 
-// SDTPlaceholder SDT占位符
+// SDTPlaceholder represents an SDT placeholder.
 type SDTPlaceholder struct {
 	XMLName xml.Name `xml:"w:placeholder"`
 	DocPart *DocPart `xml:"w:docPart,omitempty"`
 }
 
-// DocPart 文档部件
+// DocPart represents a document part.
 type DocPart struct {
 	XMLName xml.Name `xml:"w:docPart"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// Tab 制表符
+// Tab represents a tab character.
 type Tab struct {
 	XMLName xml.Name `xml:"w:tab"`
 }
 
-// CreateTOCSDT 创建目录SDT结构
+// CreateTOCSDT creates a table of contents SDT structure.
 func (d *Document) CreateTOCSDT(title string, maxLevel int) *SDT {
 	sdt := &SDT{
 		Properties: &SDTProperties{
@@ -131,7 +131,7 @@ func (d *Document) CreateTOCSDT(title string, maxLevel int) *SDT {
 		},
 	}
 
-	// 添加目录标题段落
+	// Add table of contents title paragraph
 	titlePara := &Paragraph{
 		Properties: &ParagraphProperties{
 			Spacing: &Spacing{
@@ -157,7 +157,7 @@ func (d *Document) CreateTOCSDT(title string, maxLevel int) *SDT {
 		},
 	}
 
-	// 添加书签开始 - 使用已有的BookmarkStart类型
+	// Add bookmark start - uses the existing BookmarkStart type
 	bookmarkStart := &BookmarkStart{
 		ID:   "0",
 		Name: "_Toc11693_WPSOffice_Type3",
@@ -168,12 +168,12 @@ func (d *Document) CreateTOCSDT(title string, maxLevel int) *SDT {
 	return sdt
 }
 
-// AddTOCEntry 向目录SDT添加条目
+// AddTOCEntry adds an entry to the table of contents SDT.
 func (sdt *SDT) AddTOCEntry(text string, level int, pageNum int, entryID string) {
-	// 确定目录样式ID (13=toc 1, 14=toc 2, 15=toc 3等)
+	// Determine TOC style ID (13=toc 1, 14=toc 2, 15=toc 3, etc.)
 	styleVal := fmt.Sprintf("%d", 12+level)
 
-	// 创建目录条目段落
+	// Create table of contents entry paragraph
 	entryPara := &Paragraph{
 		Properties: &ParagraphProperties{
 			ParagraphStyle: &ParagraphStyle{Val: styleVal},
@@ -190,7 +190,7 @@ func (sdt *SDT) AddTOCEntry(text string, level int, pageNum int, entryID string)
 		Runs: []Run{},
 	}
 
-	// 创建内嵌的SDT用于占位符文本
+	// Create nested SDT for placeholder text
 	placeholderSDT := &SDT{
 		Properties: &SDTProperties{
 			RunPr: &RunProperties{
@@ -218,10 +218,10 @@ func (sdt *SDT) AddTOCEntry(text string, level int, pageNum int, entryID string)
 		},
 	}
 
-	// 将占位符SDT添加到段落中
+	// Add placeholder SDT to the paragraph
 	sdt.Content.Elements = append(sdt.Content.Elements, placeholderSDT)
 
-	// 创建包含制表符和页码的文本Run
+	// Create text runs containing the tab and page number
 	tabRun := Run{
 		Text: Text{Content: "\t"},
 	}
@@ -232,11 +232,11 @@ func (sdt *SDT) AddTOCEntry(text string, level int, pageNum int, entryID string)
 
 	entryPara.Runs = append(entryPara.Runs, tabRun, pageRun)
 
-	// 添加段落到SDT内容中
+	// Add paragraph to SDT content
 	sdt.Content.Elements = append(sdt.Content.Elements, entryPara)
 }
 
-// generatePlaceholderGUID 生成占位符GUID
+// generatePlaceholderGUID generates a placeholder GUID.
 func generatePlaceholderGUID(level int) string {
 	guids := map[int]string{
 		1: "{b5fdec38-8301-4b26-9716-d8b31c00c718}",
@@ -247,12 +247,12 @@ func generatePlaceholderGUID(level int) string {
 	if guid, exists := guids[level]; exists {
 		return guid
 	}
-	return "{b5fdec38-8301-4b26-9716-d8b31c00c718}" // 默认使用1级
+	return "{b5fdec38-8301-4b26-9716-d8b31c00c718}" // Default to level 1
 }
 
-// FinalizeTOCSDT 完成目录SDT构建
+// FinalizeTOCSDT completes the table of contents SDT construction.
 func (sdt *SDT) FinalizeTOCSDT() {
-	// 添加书签结束 - 使用已有的BookmarkEnd类型
+	// Add bookmark end - uses the existing BookmarkEnd type
 	bookmarkEnd := &BookmarkEnd{
 		ID: "0",
 	}

@@ -9,11 +9,11 @@ import (
 	"testing"
 )
 
-// createCellTestImage 创建测试用的PNG图片数据
+// createCellTestImage creates PNG image data for testing
 func createCellTestImage(width, height int) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	// 填充红色背景
+	// Fill with red background
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			img.Set(x, y, color.RGBA{255, 100, 100, 255})
@@ -25,7 +25,7 @@ func createCellTestImage(width, height int) []byte {
 	return buf.Bytes()
 }
 
-// TestAddCellParagraph 测试向单元格添加段落
+// TestAddCellParagraph tests adding paragraphs to a cell
 func TestAddCellParagraph(t *testing.T) {
 	doc := New()
 
@@ -37,46 +37,46 @@ func TestAddCellParagraph(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试添加段落
+	// Test adding a paragraph
 	para, err := table.AddCellParagraph(0, 0, "第一段内容")
 	if err != nil {
-		t.Errorf("添加段落失败: %v", err)
+		t.Errorf("failed to add paragraph: %v", err)
 	}
 	if para == nil {
-		t.Error("返回的段落不应为空")
+		t.Error("returned paragraph should not be nil")
 	}
 
-	// 添加第二个段落
+	// Add a second paragraph
 	para2, err := table.AddCellParagraph(0, 0, "第二段内容")
 	if err != nil {
-		t.Errorf("添加第二段落失败: %v", err)
+		t.Errorf("failed to add second paragraph: %v", err)
 	}
 	if para2 == nil {
-		t.Error("返回的第二段落不应为空")
+		t.Error("returned second paragraph should not be nil")
 	}
 
-	// 验证段落数量
+	// Verify paragraph count
 	paragraphs, err := table.GetCellParagraphs(0, 0)
 	if err != nil {
-		t.Errorf("获取段落失败: %v", err)
+		t.Errorf("failed to get paragraphs: %v", err)
 	}
 
-	// 初始有一个空段落，加上两个新段落
+	// Initial empty paragraph plus two new paragraphs
 	if len(paragraphs) < 3 {
-		t.Errorf("期望至少3个段落，实际%d", len(paragraphs))
+		t.Errorf("expected at least 3 paragraphs, got %d", len(paragraphs))
 	}
 
-	// 测试无效索引
+	// Test invalid index
 	_, err = table.AddCellParagraph(10, 10, "无效")
 	if err == nil {
-		t.Error("期望无效索引失败，但成功了")
+		t.Error("expected invalid index to fail, but it succeeded")
 	}
 }
 
-// TestAddCellFormattedParagraph 测试向单元格添加格式化段落
+// TestAddCellFormattedParagraph tests adding formatted paragraphs to a cell
 func TestAddCellFormattedParagraph(t *testing.T) {
 	doc := New()
 
@@ -88,10 +88,10 @@ func TestAddCellFormattedParagraph(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试添加格式化段落
+	// Test adding a formatted paragraph
 	format := &TextFormat{
 		Bold:       true,
 		Italic:     true,
@@ -103,34 +103,34 @@ func TestAddCellFormattedParagraph(t *testing.T) {
 
 	para, err := table.AddCellFormattedParagraph(0, 0, "格式化内容", format)
 	if err != nil {
-		t.Errorf("添加格式化段落失败: %v", err)
+		t.Errorf("failed to add formatted paragraph: %v", err)
 	}
 	if para == nil {
-		t.Error("返回的段落不应为空")
+		t.Error("returned paragraph should not be nil")
 	}
 
-	// 验证格式
+	// Verify format
 	if len(para.Runs) == 0 {
-		t.Error("段落应包含至少一个Run")
+		t.Error("paragraph should contain at least one Run")
 	}
 
 	run := para.Runs[0]
 	if run.Properties == nil {
-		t.Error("Run应有属性")
+		t.Error("Run should have properties")
 	} else {
 		if run.Properties.Bold == nil {
-			t.Error("期望粗体属性")
+			t.Error("expected bold property")
 		}
 		if run.Properties.Italic == nil {
-			t.Error("期望斜体属性")
+			t.Error("expected italic property")
 		}
 		if run.Properties.Underline == nil {
-			t.Error("期望下划线属性")
+			t.Error("expected underline property")
 		}
 	}
 }
 
-// TestClearCellParagraphs 测试清空单元格段落
+// TestClearCellParagraphs tests clearing cell paragraphs
 func TestClearCellParagraphs(t *testing.T) {
 	doc := New()
 
@@ -146,41 +146,41 @@ func TestClearCellParagraphs(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 添加多个段落
+	// Add multiple paragraphs
 	table.AddCellParagraph(0, 0, "段落1")
 	table.AddCellParagraph(0, 0, "段落2")
 
-	// 清空段落
+	// Clear paragraphs
 	err = table.ClearCellParagraphs(0, 0)
 	if err != nil {
-		t.Errorf("清空段落失败: %v", err)
+		t.Errorf("failed to clear paragraphs: %v", err)
 	}
 
-	// 验证清空后只有一个空段落
+	// Verify only one empty paragraph remains after clearing
 	paragraphs, err := table.GetCellParagraphs(0, 0)
 	if err != nil {
-		t.Errorf("获取段落失败: %v", err)
+		t.Errorf("failed to get paragraphs: %v", err)
 	}
 
 	if len(paragraphs) != 1 {
-		t.Errorf("期望清空后只有1个段落，实际%d", len(paragraphs))
+		t.Errorf("expected 1 paragraph after clearing, got %d", len(paragraphs))
 	}
 
-	// 测试无效索引
+	// Test invalid index
 	err = table.ClearCellParagraphs(10, 10)
 	if err == nil {
-		t.Error("期望无效索引失败，但成功了")
+		t.Error("expected invalid index to fail, but it succeeded")
 	}
 }
 
-// TestAddNestedTable 测试向单元格添加嵌套表格
+// TestAddNestedTable tests adding nested tables to a cell
 func TestAddNestedTable(t *testing.T) {
 	doc := New()
 
-	// 创建主表格
+	// Create main table
 	mainConfig := &TableConfig{
 		Rows:  2,
 		Cols:  2,
@@ -189,10 +189,10 @@ func TestAddNestedTable(t *testing.T) {
 
 	mainTable, err := doc.CreateTable(mainConfig)
 	if err != nil {
-		t.Fatalf("创建主表格失败: %v", err)
+		t.Fatalf("failed to create main table: %v", err)
 	}
 
-	// 创建嵌套表格配置
+	// Create nested table config
 	nestedConfig := &TableConfig{
 		Rows:  2,
 		Cols:  3,
@@ -203,43 +203,43 @@ func TestAddNestedTable(t *testing.T) {
 		},
 	}
 
-	// 添加嵌套表格
+	// Add nested table
 	nestedTable, err := mainTable.AddNestedTable(0, 0, nestedConfig)
 	if err != nil {
-		t.Errorf("添加嵌套表格失败: %v", err)
+		t.Errorf("failed to add nested table: %v", err)
 	}
 	if nestedTable == nil {
-		t.Error("返回的嵌套表格不应为空")
+		t.Error("returned nested table should not be nil")
 	}
 
-	// 验证嵌套表格结构
+	// Verify nested table structure
 	if nestedTable.GetRowCount() != 2 {
-		t.Errorf("期望嵌套表格2行，实际%d", nestedTable.GetRowCount())
+		t.Errorf("expected nested table to have 2 rows, got %d", nestedTable.GetRowCount())
 	}
 	if nestedTable.GetColumnCount() != 3 {
-		t.Errorf("期望嵌套表格3列，实际%d", nestedTable.GetColumnCount())
+		t.Errorf("expected nested table to have 3 columns, got %d", nestedTable.GetColumnCount())
 	}
 
-	// 验证嵌套表格内容
+	// Verify nested table content
 	cellText, err := nestedTable.GetCellText(0, 0)
 	if err != nil {
-		t.Errorf("获取嵌套表格单元格内容失败: %v", err)
+		t.Errorf("failed to get nested table cell content: %v", err)
 	}
 	if cellText != "嵌套1" {
-		t.Errorf("期望嵌套表格内容'嵌套1'，实际'%s'", cellText)
+		t.Errorf("expected nested table content '嵌套1', got '%s'", cellText)
 	}
 
-	// 获取嵌套表格列表
+	// Get nested tables list
 	nestedTables, err := mainTable.GetNestedTables(0, 0)
 	if err != nil {
-		t.Errorf("获取嵌套表格列表失败: %v", err)
+		t.Errorf("failed to get nested tables list: %v", err)
 	}
 	if len(nestedTables) != 1 {
-		t.Errorf("期望1个嵌套表格，实际%d", len(nestedTables))
+		t.Errorf("expected 1 nested table, got %d", len(nestedTables))
 	}
 }
 
-// TestAddNestedTableInvalidConfig 测试嵌套表格的无效配置
+// TestAddNestedTableInvalidConfig tests nested table with invalid config
 func TestAddNestedTableInvalidConfig(t *testing.T) {
 	doc := New()
 
@@ -251,28 +251,28 @@ func TestAddNestedTableInvalidConfig(t *testing.T) {
 
 	mainTable, err := doc.CreateTable(mainConfig)
 	if err != nil {
-		t.Fatalf("创建主表格失败: %v", err)
+		t.Fatalf("failed to create main table: %v", err)
 	}
 
-	// 测试无效的行列数
+	// Test invalid row/column counts
 	_, err = mainTable.AddNestedTable(0, 0, &TableConfig{Rows: 0, Cols: 2, Width: 2000})
 	if err == nil {
-		t.Error("期望行数为0时失败，但成功了")
+		t.Error("expected 0 rows to fail, but it succeeded")
 	}
 
 	_, err = mainTable.AddNestedTable(0, 0, &TableConfig{Rows: 2, Cols: 0, Width: 2000})
 	if err == nil {
-		t.Error("期望列数为0时失败，但成功了")
+		t.Error("expected 0 columns to fail, but it succeeded")
 	}
 
-	// 测试无效的单元格索引
+	// Test invalid cell index
 	_, err = mainTable.AddNestedTable(10, 10, &TableConfig{Rows: 2, Cols: 2, Width: 2000})
 	if err == nil {
-		t.Error("期望无效索引失败，但成功了")
+		t.Error("expected invalid index to fail, but it succeeded")
 	}
 }
 
-// TestAddCellList 测试向单元格添加列表
+// TestAddCellList tests adding lists to a cell
 func TestAddCellList(t *testing.T) {
 	doc := New()
 
@@ -284,10 +284,10 @@ func TestAddCellList(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试添加无序列表
+	// Test adding an unordered list
 	bulletListConfig := &CellListConfig{
 		Type:         ListTypeBullet,
 		BulletSymbol: BulletTypeDot,
@@ -296,22 +296,22 @@ func TestAddCellList(t *testing.T) {
 
 	err = table.AddCellList(0, 0, bulletListConfig)
 	if err != nil {
-		t.Errorf("添加无序列表失败: %v", err)
+		t.Errorf("failed to add unordered list: %v", err)
 	}
 
-	// 验证列表项数量
+	// Verify list item count
 	paragraphs, err := table.GetCellParagraphs(0, 0)
 	if err != nil {
-		t.Errorf("获取段落失败: %v", err)
+		t.Errorf("failed to get paragraphs: %v", err)
 	}
 
-	// 初始有一个空段落，加上3个列表项
+	// Initial empty paragraph plus 3 list items
 	expectedCount := 1 + 3
 	if len(paragraphs) != expectedCount {
-		t.Errorf("期望%d个段落，实际%d", expectedCount, len(paragraphs))
+		t.Errorf("expected %d paragraphs, got %d", expectedCount, len(paragraphs))
 	}
 
-	// 测试添加有序列表
+	// Test adding an ordered list
 	numberListConfig := &CellListConfig{
 		Type:  ListTypeNumber,
 		Items: []string{"第一步", "第二步", "第三步"},
@@ -319,10 +319,10 @@ func TestAddCellList(t *testing.T) {
 
 	err = table.AddCellList(1, 0, numberListConfig)
 	if err != nil {
-		t.Errorf("添加有序列表失败: %v", err)
+		t.Errorf("failed to add ordered list: %v", err)
 	}
 
-	// 测试添加小写字母列表
+	// Test adding a lowercase letter list
 	letterListConfig := &CellListConfig{
 		Type:  ListTypeLowerLetter,
 		Items: []string{"选项a", "选项b"},
@@ -330,11 +330,11 @@ func TestAddCellList(t *testing.T) {
 
 	err = table.AddCellList(2, 0, letterListConfig)
 	if err != nil {
-		t.Errorf("添加字母列表失败: %v", err)
+		t.Errorf("failed to add letter list: %v", err)
 	}
 }
 
-// TestAddCellListInvalidConfig 测试列表的无效配置
+// TestAddCellListInvalidConfig tests list with invalid config
 func TestAddCellListInvalidConfig(t *testing.T) {
 	doc := New()
 
@@ -346,29 +346,29 @@ func TestAddCellListInvalidConfig(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试空配置
+	// Test nil config
 	err = table.AddCellList(0, 0, nil)
 	if err == nil {
-		t.Error("期望空配置失败，但成功了")
+		t.Error("expected nil config to fail, but it succeeded")
 	}
 
-	// 测试空列表项
+	// Test empty list items
 	err = table.AddCellList(0, 0, &CellListConfig{Type: ListTypeBullet, Items: []string{}})
 	if err == nil {
-		t.Error("期望空列表项失败，但成功了")
+		t.Error("expected empty list items to fail, but it succeeded")
 	}
 
-	// 测试无效索引
+	// Test invalid index
 	err = table.AddCellList(10, 10, &CellListConfig{Type: ListTypeBullet, Items: []string{"测试"}})
 	if err == nil {
-		t.Error("期望无效索引失败，但成功了")
+		t.Error("expected invalid index to fail, but it succeeded")
 	}
 }
 
-// TestAddCellImage 测试向单元格添加图片
+// TestAddCellImage tests adding images to a cell
 func TestAddCellImage(t *testing.T) {
 	doc := New()
 
@@ -380,35 +380,35 @@ func TestAddCellImage(t *testing.T) {
 
 	table, err := doc.AddTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 创建测试图片数据
+	// Create test image data
 	imageData := createCellTestImage(100, 100)
 
-	// 测试从数据添加图片
+	// Test adding image from data
 	imageInfo, err := doc.AddCellImageFromData(table, 0, 0, imageData, 30)
 	if err != nil {
-		t.Errorf("添加图片失败: %v", err)
+		t.Errorf("failed to add image: %v", err)
 	}
 	if imageInfo == nil {
-		t.Error("返回的图片信息不应为空")
+		t.Error("returned image info should not be nil")
 	}
 
-	// 验证图片ID不为空
+	// Verify image ID is not empty
 	if imageInfo.ID == "" {
-		t.Error("图片ID不应为空")
+		t.Error("image ID should not be empty")
 	}
 
-	// 验证关系ID不为空
+	// Verify relation ID is not empty
 	if imageInfo.RelationID == "" {
-		t.Error("关系ID不应为空")
+		t.Error("relation ID should not be empty")
 	}
 
-	// 验证单元格段落包含图片
+	// Verify cell paragraphs contain image
 	paragraphs, err := table.GetCellParagraphs(0, 0)
 	if err != nil {
-		t.Errorf("获取段落失败: %v", err)
+		t.Errorf("failed to get paragraphs: %v", err)
 	}
 
 	hasImage := false
@@ -422,11 +422,11 @@ func TestAddCellImage(t *testing.T) {
 	}
 
 	if !hasImage {
-		t.Error("单元格应包含图片")
+		t.Error("cell should contain an image")
 	}
 }
 
-// TestAddCellImageWithConfig 测试使用配置添加图片
+// TestAddCellImageWithConfig tests adding images with config
 func TestAddCellImageWithConfig(t *testing.T) {
 	doc := New()
 
@@ -438,13 +438,13 @@ func TestAddCellImageWithConfig(t *testing.T) {
 
 	table, err := doc.AddTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 创建测试图片数据
+	// Create test image data
 	imageData := createCellTestImage(200, 150)
 
-	// 使用完整配置添加图片
+	// Add image with full config
 	imageConfig := &CellImageConfig{
 		Data:            imageData,
 		Width:           50,
@@ -456,23 +456,23 @@ func TestAddCellImageWithConfig(t *testing.T) {
 
 	imageInfo, err := doc.AddCellImage(table, 0, 0, imageConfig)
 	if err != nil {
-		t.Errorf("添加图片失败: %v", err)
+		t.Errorf("failed to add image: %v", err)
 	}
 
-	// 验证图片配置
+	// Verify image config
 	if imageInfo.Config == nil {
-		t.Error("图片配置不应为空")
+		t.Error("image config should not be nil")
 	} else {
 		if imageInfo.Config.AltText != "测试图片" {
-			t.Errorf("期望替代文字'测试图片'，实际'%s'", imageInfo.Config.AltText)
+			t.Errorf("expected alt text '测试图片', got '%s'", imageInfo.Config.AltText)
 		}
 		if imageInfo.Config.Title != "单元格图片" {
-			t.Errorf("期望标题'单元格图片'，实际'%s'", imageInfo.Config.Title)
+			t.Errorf("expected title '单元格图片', got '%s'", imageInfo.Config.Title)
 		}
 	}
 }
 
-// TestAddCellImageInvalidCases 测试添加图片的无效情况
+// TestAddCellImageInvalidCases tests adding images with invalid cases
 func TestAddCellImageInvalidCases(t *testing.T) {
 	doc := New()
 
@@ -484,33 +484,33 @@ func TestAddCellImageInvalidCases(t *testing.T) {
 
 	table, err := doc.AddTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试空表格
+	// Test nil table
 	_, err = doc.AddCellImage(nil, 0, 0, &CellImageConfig{Data: createCellTestImage(100, 100)})
 	if err == nil {
-		t.Error("期望空表格失败，但成功了")
+		t.Error("expected nil table to fail, but it succeeded")
 	}
 
-	// 测试无效索引
+	// Test invalid index
 	_, err = doc.AddCellImage(table, 10, 10, &CellImageConfig{Data: createCellTestImage(100, 100)})
 	if err == nil {
-		t.Error("期望无效索引失败，但成功了")
+		t.Error("expected invalid index to fail, but it succeeded")
 	}
 
-	// 测试无数据配置
+	// Test config without data
 	_, err = doc.AddCellImage(table, 0, 0, &CellImageConfig{})
 	if err == nil {
-		t.Error("期望无数据配置失败，但成功了")
+		t.Error("expected config without data to fail, but it succeeded")
 	}
 }
 
-// TestComplexTableStructure 测试复杂表格结构
+// TestComplexTableStructure tests complex table structure
 func TestComplexTableStructure(t *testing.T) {
 	doc := New()
 
-	// 创建主表格
+	// Create main table
 	mainConfig := &TableConfig{
 		Rows:  3,
 		Cols:  3,
@@ -519,14 +519,14 @@ func TestComplexTableStructure(t *testing.T) {
 
 	table, err := doc.AddTable(mainConfig)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 第一个单元格：添加多个段落
+	// First cell: add multiple paragraphs
 	table.AddCellParagraph(0, 0, "第一段")
 	table.AddCellFormattedParagraph(0, 0, "格式化段落", &TextFormat{Bold: true})
 
-	// 第二个单元格：添加列表
+	// Second cell: add list
 	listConfig := &CellListConfig{
 		Type:         ListTypeBullet,
 		BulletSymbol: BulletTypeDot,
@@ -534,7 +534,7 @@ func TestComplexTableStructure(t *testing.T) {
 	}
 	table.AddCellList(0, 1, listConfig)
 
-	// 第三个单元格：添加嵌套表格
+	// Third cell: add nested table
 	nestedConfig := &TableConfig{
 		Rows:  2,
 		Cols:  2,
@@ -546,24 +546,24 @@ func TestComplexTableStructure(t *testing.T) {
 	}
 	table.AddNestedTable(0, 2, nestedConfig)
 
-	// 第四个单元格：添加图片
+	// Fourth cell: add image
 	imageData := createCellTestImage(50, 50)
 	doc.AddCellImageFromData(table, 1, 0, imageData, 20)
 
-	// 验证复杂结构
+	// Verify complex structure
 	paragraphs00, _ := table.GetCellParagraphs(0, 0)
-	if len(paragraphs00) < 3 { // 初始1个 + 添加2个
-		t.Errorf("单元格(0,0)应至少有3个段落，实际%d", len(paragraphs00))
+	if len(paragraphs00) < 3 { // initial 1 + added 2
+		t.Errorf("cell(0,0) should have at least 3 paragraphs, got %d", len(paragraphs00))
 	}
 
 	paragraphs01, _ := table.GetCellParagraphs(0, 1)
-	if len(paragraphs01) < 3 { // 初始1个 + 列表2项
-		t.Errorf("单元格(0,1)应至少有3个段落，实际%d", len(paragraphs01))
+	if len(paragraphs01) < 3 { // initial 1 + 2 list items
+		t.Errorf("cell(0,1) should have at least 3 paragraphs, got %d", len(paragraphs01))
 	}
 
 	nestedTables, _ := table.GetNestedTables(0, 2)
 	if len(nestedTables) != 1 {
-		t.Errorf("单元格(0,2)应有1个嵌套表格，实际%d", len(nestedTables))
+		t.Errorf("cell(0,2) should have 1 nested table, got %d", len(nestedTables))
 	}
 
 	paragraphs10, _ := table.GetCellParagraphs(1, 0)
@@ -577,15 +577,15 @@ func TestComplexTableStructure(t *testing.T) {
 		}
 	}
 	if !hasImage {
-		t.Error("单元格(1,0)应包含图片")
+		t.Error("cell(1,0) should contain an image")
 	}
 }
 
-// TestSaveComplexTable 测试保存复杂表格
+// TestSaveComplexTable tests saving a complex table
 func TestSaveComplexTable(t *testing.T) {
 	doc := New()
 
-	// 创建表格
+	// Create table
 	config := &TableConfig{
 		Rows:  3,
 		Cols:  2,
@@ -594,10 +594,10 @@ func TestSaveComplexTable(t *testing.T) {
 
 	table, err := doc.AddTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 添加复杂内容
+	// Add complex content
 	table.AddCellParagraph(0, 0, "复杂表格测试")
 	table.AddCellFormattedParagraph(0, 0, "粗体文本", &TextFormat{Bold: true})
 
@@ -618,11 +618,11 @@ func TestSaveComplexTable(t *testing.T) {
 	}
 	table.AddNestedTable(1, 0, nestedConfig)
 
-	// 添加图片
+	// Add image
 	imageData := createCellTestImage(80, 60)
 	doc.AddCellImageFromData(table, 1, 1, imageData, 25)
 
-	// 保存并验证
+	// Save and verify
 	outputDir := "test_output"
 	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
 		os.MkdirAll(outputDir, 0755)
@@ -631,19 +631,19 @@ func TestSaveComplexTable(t *testing.T) {
 	outputFile := outputDir + "/complex_table_test.docx"
 	err = doc.Save(outputFile)
 	if err != nil {
-		t.Errorf("保存文档失败: %v", err)
+		t.Errorf("failed to save document: %v", err)
 	}
 
-	// 验证文件存在
+	// Verify file exists
 	if _, err := os.Stat(outputFile); os.IsNotExist(err) {
-		t.Error("输出文件不存在")
+		t.Error("output file does not exist")
 	}
 
-	// 清理
+	// Cleanup
 	defer os.RemoveAll(outputDir)
 }
 
-// TestRomanNumerals 测试罗马数字转换
+// TestRomanNumerals tests Roman numeral conversion
 func TestRomanNumerals(t *testing.T) {
 	testCases := []struct {
 		num      int
@@ -671,21 +671,21 @@ func TestRomanNumerals(t *testing.T) {
 	for _, tc := range testCases {
 		result := toRomanUpper(tc.num)
 		if result != tc.expected {
-			t.Errorf("toRomanUpper(%d) = %s, 期望 %s", tc.num, result, tc.expected)
+			t.Errorf("toRomanUpper(%d) = %s, expected %s", tc.num, result, tc.expected)
 		}
 	}
 
-	// 测试边界情况
+	// Test edge cases
 	if toRomanUpper(0) != "0" {
-		t.Error("0应返回字符串'0'")
+		t.Error("0 should return string '0'")
 	}
 
 	if toRomanUpper(4000) != "4000" {
-		t.Error("4000应返回字符串'4000'")
+		t.Error("4000 should return string '4000'")
 	}
 }
 
-// TestAddCellListAllTypes 测试所有列表类型
+// TestAddCellListAllTypes tests all list types
 func TestAddCellListAllTypes(t *testing.T) {
 	doc := New()
 
@@ -697,20 +697,20 @@ func TestAddCellListAllTypes(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
 	testTypes := []struct {
 		listType ListType
 		name     string
 	}{
-		{ListTypeBullet, "无序列表"},
-		{ListTypeNumber, "数字列表"},
-		{ListTypeDecimal, "十进制列表"},
-		{ListTypeLowerLetter, "小写字母列表"},
-		{ListTypeUpperLetter, "大写字母列表"},
-		{ListTypeLowerRoman, "小写罗马列表"},
-		{ListTypeUpperRoman, "大写罗马列表"},
+		{ListTypeBullet, "bullet list"},
+		{ListTypeNumber, "number list"},
+		{ListTypeDecimal, "decimal list"},
+		{ListTypeLowerLetter, "lowercase letter list"},
+		{ListTypeUpperLetter, "uppercase letter list"},
+		{ListTypeLowerRoman, "lowercase Roman list"},
+		{ListTypeUpperRoman, "uppercase Roman list"},
 	}
 
 	for i, tc := range testTypes {
@@ -721,7 +721,7 @@ func TestAddCellListAllTypes(t *testing.T) {
 
 		err := table.AddCellList(i, 0, listConfig)
 		if err != nil {
-			t.Errorf("添加%s失败: %v", tc.name, err)
+			t.Errorf("failed to add %s: %v", tc.name, err)
 		}
 	}
 }

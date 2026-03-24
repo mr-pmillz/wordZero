@@ -9,16 +9,16 @@ import (
 	"testing"
 )
 
-// TestImagePersistenceAfterOpenAndSave 测试打开包含图片的文档并重新保存后，图片是否仍然存在
+// TestImagePersistenceAfterOpenAndSave tests that images persist after opening and re-saving a document
 func TestImagePersistenceAfterOpenAndSave(t *testing.T) {
-	// 步骤1: 创建一个包含图片的文档
+	// Step 1: Create a document containing an image
 	doc1 := New()
 	doc1.AddParagraph("测试文档 - 图片持久性测试")
 
-	// 创建测试图片
+	// Create test image
 	imageData := createTestImageForPersistence(100, 75, color.RGBA{255, 100, 100, 255})
 
-	// 添加图片（文件名会被自动转换为安全的image0.png）
+	// Add image (filename will be automatically converted to safe image0.png)
 	imageInfo, err := doc1.AddImageFromData(
 		imageData,
 		"test_image.png",
@@ -32,102 +32,102 @@ func TestImagePersistenceAfterOpenAndSave(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("添加图片失败: %v", err)
+		t.Fatalf("failed to add image: %v", err)
 	}
 
 	doc1.AddParagraph("图片下方的文字")
 
-	// 保存第一个文档
+	// Save the first document
 	testFile1 := "test_image_persistence_1.docx"
 	err = doc1.Save(testFile1)
 	if err != nil {
-		t.Fatalf("保存第一个文档失败: %v", err)
+		t.Fatalf("failed to save first document: %v", err)
 	}
 	defer os.Remove(testFile1)
 
-	// 验证第一个文档中包含图片数据（使用安全文件名image0.png）
+	// Verify the first document contains image data (using safe filename image0.png)
 	if _, exists := doc1.parts["word/media/image0.png"]; !exists {
-		t.Fatal("第一个文档中没有找到图片数据")
+		t.Fatal("image data not found in first document")
 	}
 
-	// 步骤2: 打开刚刚保存的文档
+	// Step 2: Open the saved document
 	doc2, err := Open(testFile1)
 	if err != nil {
-		t.Fatalf("打开文档失败: %v", err)
+		t.Fatalf("failed to open document: %v", err)
 	}
 
-	// 验证打开的文档包含图片数据
+	// Verify the opened document contains image data
 	if _, exists := doc2.parts["word/media/image0.png"]; !exists {
-		t.Fatal("打开的文档中没有找到图片数据")
+		t.Fatal("image data not found in opened document")
 	}
 
-	// 验证文档关系中包含图片关系
+	// Verify document relationships contain image relationship
 	foundImageRelationship := false
 	for _, rel := range doc2.documentRelationships.Relationships {
 		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
 			foundImageRelationship = true
-			t.Logf("找到图片关系: ID=%s, Target=%s", rel.ID, rel.Target)
+			t.Logf("found image relationship: ID=%s, Target=%s", rel.ID, rel.Target)
 			break
 		}
 	}
 	if !foundImageRelationship {
-		t.Fatal("打开的文档中没有找到图片关系")
+		t.Fatal("image relationship not found in opened document")
 	}
 
-	// 步骤3: 修改文档并保存为新文件
+	// Step 3: Modify document and save as new file
 	doc2.AddParagraph("这是新添加的段落")
 
 	testFile2 := "test_image_persistence_2.docx"
 	err = doc2.Save(testFile2)
 	if err != nil {
-		t.Fatalf("保存第二个文档失败: %v", err)
+		t.Fatalf("failed to save second document: %v", err)
 	}
 	defer os.Remove(testFile2)
 
-	// 步骤4: 打开第二个文档，验证图片是否仍然存在
+	// Step 4: Open the second document, verify image still exists
 	doc3, err := Open(testFile2)
 	if err != nil {
-		t.Fatalf("打开第二个文档失败: %v", err)
+		t.Fatalf("failed to open second document: %v", err)
 	}
 
-	// 验证图片数据仍然存在
+	// Verify image data still exists
 	if _, exists := doc3.parts["word/media/image0.png"]; !exists {
-		t.Fatal("【问题】第二个文档中没有找到图片数据 - 图片在保存后丢失！")
+		t.Fatal("[issue] image data not found in second document - image lost after save!")
 	}
 
-	// 验证图片关系仍然存在
+	// Verify image relationship still exists
 	foundImageRelationship = false
 	for _, rel := range doc3.documentRelationships.Relationships {
 		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
 			foundImageRelationship = true
-			t.Logf("第二个文档中找到图片关系: ID=%s, Target=%s", rel.ID, rel.Target)
+			t.Logf("found image relationship in second document: ID=%s, Target=%s", rel.ID, rel.Target)
 			break
 		}
 	}
 	if !foundImageRelationship {
-		t.Fatal("【问题】第二个文档中没有找到图片关系 - 图片关系在保存后丢失！")
+		t.Fatal("[issue] image relationship not found in second document - image relationship lost after save!")
 	}
 
-	// 验证图片数据完整性
+	// Verify image data integrity
 	originalImageData := doc1.parts["word/media/image0.png"]
 	finalImageData := doc3.parts["word/media/image0.png"]
 
 	if !bytes.Equal(originalImageData, finalImageData) {
-		t.Fatal("图片数据在保存和重新打开后发生了变化")
+		t.Fatal("image data changed after save and reopen")
 	}
 
-	t.Log("✓ 图片持久性测试通过：图片在修改文档并保存后仍然存在")
-	t.Logf("✓ 原始图片信息: ID=%s, 格式=%s, 尺寸=%dx%d",
+	t.Log("image persistence test passed: image still exists after modifying and saving document")
+	t.Logf("original image info: ID=%s, format=%s, dimensions=%dx%d",
 		imageInfo.ID, imageInfo.Format, imageInfo.Width, imageInfo.Height)
 }
 
-// TestAddImageToOpenedDocument 测试向已打开的文档添加新图片
+// TestAddImageToOpenedDocument tests adding new images to an opened document
 func TestAddImageToOpenedDocument(t *testing.T) {
-	// 步骤1: 创建包含一张图片的文档
+	// Step 1: Create a document containing one image
 	doc1 := New()
 	doc1.AddParagraph("原始文档")
 
-	// 添加第一张图片（红色）- 将被保存为image0.png
+	// Add first image (red) - will be saved as image0.png
 	imageData1 := createTestImageForPersistence(100, 75, color.RGBA{255, 0, 0, 255})
 	_, err := doc1.AddImageFromData(
 		imageData1,
@@ -140,26 +140,26 @@ func TestAddImageToOpenedDocument(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("添加第一张图片失败: %v", err)
+		t.Fatalf("failed to add first image: %v", err)
 	}
 
-	// 保存文档
+	// Save document
 	testFile1 := "test_add_image_to_opened_1.docx"
 	err = doc1.Save(testFile1)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 	defer os.Remove(testFile1)
 
-	// 步骤2: 打开文档并添加第二张图片
+	// Step 2: Open document and add second image
 	doc2, err := Open(testFile1)
 	if err != nil {
-		t.Fatalf("打开文档失败: %v", err)
+		t.Fatalf("failed to open document: %v", err)
 	}
 
 	doc2.AddParagraph("添加第二张图片")
 
-	// 添加第二张图片（蓝色）- 将被保存为image1.png
+	// Add second image (blue) - will be saved as image1.png
 	imageData2 := createTestImageForPersistence(100, 75, color.RGBA{0, 0, 255, 255})
 	_, err = doc2.AddImageFromData(
 		imageData2,
@@ -172,118 +172,118 @@ func TestAddImageToOpenedDocument(t *testing.T) {
 		},
 	)
 	if err != nil {
-		t.Fatalf("添加第二张图片失败: %v", err)
+		t.Fatalf("failed to add second image: %v", err)
 	}
 
-	// 保存文档
+	// Save document
 	testFile2 := "test_add_image_to_opened_2.docx"
 	err = doc2.Save(testFile2)
 	if err != nil {
-		t.Fatalf("保存包含两张图片的文档失败: %v", err)
+		t.Fatalf("failed to save document with two images: %v", err)
 	}
 	defer os.Remove(testFile2)
 
-	// 步骤3: 打开文档，验证两张图片都存在
+	// Step 3: Open document, verify both images exist
 	doc3, err := Open(testFile2)
 	if err != nil {
-		t.Fatalf("打开包含两张图片的文档失败: %v", err)
+		t.Fatalf("failed to open document with two images: %v", err)
 	}
 
-	// 验证两张图片数据都存在（现在使用安全文件名image0.png和image1.png）
+	// Verify both image data exist (now using safe filenames image0.png and image1.png)
 	if _, exists := doc3.parts["word/media/image0.png"]; !exists {
-		t.Fatal("【问题】第一张图片数据丢失")
+		t.Fatal("[issue] first image data lost")
 	}
 
 	if _, exists := doc3.parts["word/media/image1.png"]; !exists {
-		t.Fatal("【问题】第二张图片数据丢失")
+		t.Fatal("[issue] second image data lost")
 	}
 
-	// 验证图片关系数量
+	// Verify image relationship count
 	imageRelCount := 0
 	for _, rel := range doc3.documentRelationships.Relationships {
 		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
 			imageRelCount++
-			t.Logf("找到图片关系: ID=%s, Target=%s", rel.ID, rel.Target)
+			t.Logf("found image relationship: ID=%s, Target=%s", rel.ID, rel.Target)
 		}
 	}
 
 	if imageRelCount != 2 {
-		t.Fatalf("期望有2个图片关系，实际有 %d 个", imageRelCount)
+		t.Fatalf("expected 2 image relationships, got %d", imageRelCount)
 	}
 
-	t.Log("✓ 向已打开的文档添加图片测试通过：两张图片都正确保存")
+	t.Log("add image to opened document test passed: both images saved correctly")
 }
 
-// TestImageIDCounterAfterOpen 测试打开文档后图片ID计数器是否正确更新
+// TestImageIDCounterAfterOpen tests that the image ID counter is correctly updated after opening a document
 func TestImageIDCounterAfterOpen(t *testing.T) {
-	// 步骤1: 创建包含两张图片的文档
+	// Step 1: Create a document containing two images
 	doc1 := New()
 	doc1.AddParagraph("测试图片ID计数器")
 
-	// 添加两张图片（将被保存为image0.png和image1.png）
+	// Add two images (will be saved as image0.png and image1.png)
 	imageData := createTestImageForPersistence(50, 50, color.RGBA{255, 0, 0, 255})
 
 	_, err := doc1.AddImageFromData(imageData, "img1.png", ImageFormatPNG, 50, 50, nil)
 	if err != nil {
-		t.Fatalf("添加第一张图片失败: %v", err)
+		t.Fatalf("failed to add first image: %v", err)
 	}
 
 	_, err = doc1.AddImageFromData(imageData, "img2.png", ImageFormatPNG, 50, 50, nil)
 	if err != nil {
-		t.Fatalf("添加第二张图片失败: %v", err)
+		t.Fatalf("failed to add second image: %v", err)
 	}
 
-	// 保存文档
+	// Save document
 	testFile := "test_image_id_counter.docx"
 	err = doc1.Save(testFile)
 	if err != nil {
-		t.Fatalf("保存文档失败: %v", err)
+		t.Fatalf("failed to save document: %v", err)
 	}
 	defer os.Remove(testFile)
 
-	// 步骤2: 打开文档
+	// Step 2: Open document
 	doc2, err := Open(testFile)
 	if err != nil {
-		t.Fatalf("打开文档失败: %v", err)
+		t.Fatalf("failed to open document: %v", err)
 	}
 
-	// 验证nextImageID已正确更新
-	// doc1有两张图片，使用了rId2和rId3（rId1是styles.xml）
-	// 所以打开后nextImageID应该至少为2（最大rId为3）
+	// Verify nextImageID was correctly updated
+	// doc1 has two images, using rId2 and rId3 (rId1 is styles.xml)
+	// So after opening, nextImageID should be at least 2 (max rId is 3)
 	if doc2.nextImageID < 2 {
-		t.Fatalf("nextImageID未正确更新：期望 >= 2，实际 = %d", doc2.nextImageID)
+		t.Fatalf("nextImageID not correctly updated: expected >= 2, got = %d", doc2.nextImageID)
 	}
 
-	t.Logf("✓ 打开文档后nextImageID = %d（符合预期）", doc2.nextImageID)
+	t.Logf("nextImageID after opening document = %d (as expected)", doc2.nextImageID)
 
-	// 步骤3: 添加第三张图片
+	// Step 3: Add third image
 	_, err = doc2.AddImageFromData(imageData, "img3.png", ImageFormatPNG, 50, 50, nil)
 	if err != nil {
-		t.Fatalf("添加第三张图片失败: %v", err)
+		t.Fatalf("failed to add third image: %v", err)
 	}
 
-	// 保存并重新打开，验证所有三张图片都存在
+	// Save and reopen, verify all three images exist
 	testFile2 := "test_image_id_counter_2.docx"
 	err = doc2.Save(testFile2)
 	if err != nil {
-		t.Fatalf("保存包含三张图片的文档失败: %v", err)
+		t.Fatalf("failed to save document with three images: %v", err)
 	}
 	defer os.Remove(testFile2)
 
 	doc3, err := Open(testFile2)
 	if err != nil {
-		t.Fatalf("打开包含三张图片的文档失败: %v", err)
+		t.Fatalf("failed to open document with three images: %v", err)
 	}
 
-	// 验证三张图片都存在（使用安全文件名image0.png, image1.png, image2.png）
+	// Verify all three images exist (using safe filenames image0.png, image1.png, image2.png)
 	images := []string{"image0.png", "image1.png", "image2.png"}
 	for _, imgName := range images {
 		if _, exists := doc3.parts["word/media/"+imgName]; !exists {
-			t.Fatalf("【问题】图片 %s 丢失", imgName)
+			t.Fatalf("[issue] image %s lost", imgName)
 		}
 	}
 
-	// 验证图片关系数量
+	// Verify image relationship count
 	imageRelCount := 0
 	for _, rel := range doc3.documentRelationships.Relationships {
 		if rel.Type == "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" {
@@ -292,24 +292,24 @@ func TestImageIDCounterAfterOpen(t *testing.T) {
 	}
 
 	if imageRelCount != 3 {
-		t.Fatalf("期望有3个图片关系，实际有 %d 个", imageRelCount)
+		t.Fatalf("expected 3 image relationships, got %d", imageRelCount)
 	}
 
-	t.Log("✓ 图片ID计数器测试通过：所有图片ID都正确且无冲突")
+	t.Log("image ID counter test passed: all image IDs are correct with no conflicts")
 }
 
-// createTestImageForPersistence 创建用于持久性测试的图片
+// createTestImageForPersistence creates an image for persistence testing
 func createTestImageForPersistence(width, height int, bgColor color.RGBA) []byte {
 	img := image.NewRGBA(image.Rect(0, 0, width, height))
 
-	// 填充背景色
+	// Fill background color
 	for y := 0; y < height; y++ {
 		for x := 0; x < width; x++ {
 			img.Set(x, y, bgColor)
 		}
 	}
 
-	// 添加边框
+	// Add border
 	borderColor := color.RGBA{0, 0, 0, 255}
 	for x := 0; x < width; x++ {
 		img.Set(x, 0, borderColor)

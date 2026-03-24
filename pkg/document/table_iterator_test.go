@@ -5,9 +5,9 @@ import (
 	"testing"
 )
 
-// TestCellIterator 测试基本的单元格迭代器功能
+// TestCellIterator tests basic cell iterator functionality
 func TestCellIterator(t *testing.T) {
-	// 创建一个3x3的测试表格
+	// Create a 3x3 test table
 	doc := New()
 	config := &TableConfig{
 		Rows:  3,
@@ -22,22 +22,22 @@ func TestCellIterator(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试迭代器创建
+	// Test iterator creation
 	iterator := table.NewCellIterator()
 	if iterator == nil {
-		t.Fatal("创建迭代器失败")
+		t.Fatal("failed to create iterator")
 	}
 
-	// 测试Total方法
+	// Test Total method
 	expectedTotal := 9
 	if iterator.Total() != expectedTotal {
-		t.Errorf("Total()期望返回%d，实际返回%d", expectedTotal, iterator.Total())
+		t.Errorf("Total() expected %d, got %d", expectedTotal, iterator.Total())
 	}
 
-	// 测试迭代器遍历
+	// Test iterator traversal
 	cellCount := 0
 	expectedCells := []struct {
 		row  int
@@ -52,42 +52,42 @@ func TestCellIterator(t *testing.T) {
 	for iterator.HasNext() {
 		cellInfo, err := iterator.Next()
 		if err != nil {
-			t.Fatalf("迭代器Next()失败: %v", err)
+			t.Fatalf("iterator Next() failed: %v", err)
 		}
 
 		if cellCount >= len(expectedCells) {
-			t.Fatalf("迭代器返回了过多的单元格")
+			t.Fatalf("iterator returned too many cells")
 		}
 
 		expected := expectedCells[cellCount]
 		if cellInfo.Row != expected.row || cellInfo.Col != expected.col {
-			t.Errorf("单元格位置不匹配: 期望(%d,%d)，实际(%d,%d)",
+			t.Errorf("cell position mismatch: expected (%d,%d), got (%d,%d)",
 				expected.row, expected.col, cellInfo.Row, cellInfo.Col)
 		}
 
 		if cellInfo.Text != expected.text {
-			t.Errorf("单元格文本不匹配: 期望'%s'，实际'%s'",
+			t.Errorf("cell text mismatch: expected '%s', got '%s'",
 				expected.text, cellInfo.Text)
 		}
 
 		if cellInfo.Cell == nil {
-			t.Error("单元格引用为nil")
+			t.Error("cell reference is nil")
 		}
 
-		// 测试IsLast标记
+		// Test IsLast flag
 		if cellCount == len(expectedCells)-1 && !cellInfo.IsLast {
-			t.Error("最后一个单元格的IsLast标记应为true")
+			t.Error("last cell's IsLast flag should be true")
 		}
 
 		cellCount++
 	}
 
 	if cellCount != expectedTotal {
-		t.Errorf("迭代的单元格数量不匹配: 期望%d，实际%d", expectedTotal, cellCount)
+		t.Errorf("iterated cell count mismatch: expected %d, got %d", expectedTotal, cellCount)
 	}
 }
 
-// TestCellIteratorReset 测试迭代器重置功能
+// TestCellIteratorReset tests iterator reset functionality
 func TestCellIteratorReset(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -102,36 +102,36 @@ func TestCellIteratorReset(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 	iterator := table.NewCellIterator()
 
-	// 先迭代一些单元格
+	// Iterate some cells first
 	iterator.Next()
 	iterator.Next()
 
-	// 检查当前位置
+	// Check current position
 	row, col := iterator.Current()
 	if row != 1 || col != 0 {
-		t.Errorf("迭代器位置不正确: 期望(1,0)，实际(%d,%d)", row, col)
+		t.Errorf("iterator position incorrect: expected (1,0), got (%d,%d)", row, col)
 	}
 
-	// 重置迭代器
+	// Reset iterator
 	iterator.Reset()
 
-	// 检查重置后的位置
+	// Check position after reset
 	row, col = iterator.Current()
 	if row != 0 || col != 0 {
-		t.Errorf("重置后位置不正确: 期望(0,0)，实际(%d,%d)", row, col)
+		t.Errorf("position after reset incorrect: expected (0,0), got (%d,%d)", row, col)
 	}
 
-	// 确保能重新遍历
+	// Ensure it can iterate again
 	if !iterator.HasNext() {
-		t.Error("重置后应该有下一个单元格")
+		t.Error("should have next cell after reset")
 	}
 }
 
-// TestCellIteratorProgress 测试进度计算
+// TestCellIteratorProgress tests progress calculation
 func TestCellIteratorProgress(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -142,33 +142,33 @@ func TestCellIteratorProgress(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 	iterator := table.NewCellIterator()
 
-	// 初始进度应为0
+	// Initial progress should be 0
 	if iterator.Progress() != 0.0 {
-		t.Errorf("初始进度应为0.0，实际为%f", iterator.Progress())
+		t.Errorf("initial progress should be 0.0, got %f", iterator.Progress())
 	}
 
-	// 迭代一个单元格
+	// Iterate one cell
 	iterator.Next()
 	expectedProgress := 0.25 // 1/4
 	if iterator.Progress() != expectedProgress {
-		t.Errorf("迭代一个单元格后进度应为%f，实际为%f", expectedProgress, iterator.Progress())
+		t.Errorf("progress after one cell should be %f, got %f", expectedProgress, iterator.Progress())
 	}
 
-	// 迭代到最后
+	// Iterate to the end
 	for iterator.HasNext() {
 		iterator.Next()
 	}
 
 	if iterator.Progress() != 1.0 {
-		t.Errorf("完成迭代后进度应为1.0，实际为%f", iterator.Progress())
+		t.Errorf("progress after completion should be 1.0, got %f", iterator.Progress())
 	}
 }
 
-// TestTableForEach 测试ForEach方法
+// TestTableForEach tests the ForEach method
 func TestTableForEach(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -183,10 +183,10 @@ func TestTableForEach(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试ForEach遍历
+	// Test ForEach traversal
 	var visitedCells []string
 	err = table.ForEach(func(row, col int, cell *TableCell, text string) error {
 		visitedCells = append(visitedCells, fmt.Sprintf("%d-%d:%s", row, col, text))
@@ -194,7 +194,7 @@ func TestTableForEach(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Fatalf("ForEach执行失败: %v", err)
+		t.Fatalf("ForEach execution failed: %v", err)
 	}
 
 	expectedCells := []string{
@@ -203,17 +203,17 @@ func TestTableForEach(t *testing.T) {
 	}
 
 	if len(visitedCells) != len(expectedCells) {
-		t.Errorf("访问的单元格数量不匹配: 期望%d，实际%d", len(expectedCells), len(visitedCells))
+		t.Errorf("visited cell count mismatch: expected %d, got %d", len(expectedCells), len(visitedCells))
 	}
 
 	for i, expected := range expectedCells {
 		if i < len(visitedCells) && visitedCells[i] != expected {
-			t.Errorf("单元格访问顺序不正确: 期望'%s'，实际'%s'", expected, visitedCells[i])
+			t.Errorf("cell visit order incorrect: expected '%s', got '%s'", expected, visitedCells[i])
 		}
 	}
 }
 
-// TestForEachInRow 测试按行遍历
+// TestForEachInRow tests row traversal
 func TestForEachInRow(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -229,10 +229,10 @@ func TestForEachInRow(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试遍历第2行（索引1）
+	// Test traversing row 2 (index 1)
 	var visitedCells []string
 	err = table.ForEachInRow(1, func(col int, cell *TableCell, text string) error {
 		visitedCells = append(visitedCells, fmt.Sprintf("%d:%s", col, text))
@@ -240,30 +240,30 @@ func TestForEachInRow(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Fatalf("ForEachInRow执行失败: %v", err)
+		t.Fatalf("ForEachInRow execution failed: %v", err)
 	}
 
 	expectedCells := []string{"0:A2", "1:B2", "2:C2"}
 	if len(visitedCells) != len(expectedCells) {
-		t.Errorf("访问的单元格数量不匹配: 期望%d，实际%d", len(expectedCells), len(visitedCells))
+		t.Errorf("visited cell count mismatch: expected %d, got %d", len(expectedCells), len(visitedCells))
 	}
 
 	for i, expected := range expectedCells {
 		if i < len(visitedCells) && visitedCells[i] != expected {
-			t.Errorf("单元格访问顺序不正确: 期望'%s'，实际'%s'", expected, visitedCells[i])
+			t.Errorf("cell visit order incorrect: expected '%s', got '%s'", expected, visitedCells[i])
 		}
 	}
 
-	// 测试无效行索引
+	// Test invalid row index
 	err = table.ForEachInRow(5, func(col int, cell *TableCell, text string) error {
 		return nil
 	})
 	if err == nil {
-		t.Error("应该返回无效行索引错误")
+		t.Error("should return invalid row index error")
 	}
 }
 
-// TestForEachInColumn 测试按列遍历
+// TestForEachInColumn tests column traversal
 func TestForEachInColumn(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -279,10 +279,10 @@ func TestForEachInColumn(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试遍历第2列（索引1）
+	// Test traversing column 2 (index 1)
 	var visitedCells []string
 	err = table.ForEachInColumn(1, func(row int, cell *TableCell, text string) error {
 		visitedCells = append(visitedCells, fmt.Sprintf("%d:%s", row, text))
@@ -290,30 +290,30 @@ func TestForEachInColumn(t *testing.T) {
 	})
 
 	if err != nil {
-		t.Fatalf("ForEachInColumn执行失败: %v", err)
+		t.Fatalf("ForEachInColumn execution failed: %v", err)
 	}
 
 	expectedCells := []string{"0:B1", "1:B2", "2:B3"}
 	if len(visitedCells) != len(expectedCells) {
-		t.Errorf("访问的单元格数量不匹配: 期望%d，实际%d", len(expectedCells), len(visitedCells))
+		t.Errorf("visited cell count mismatch: expected %d, got %d", len(expectedCells), len(visitedCells))
 	}
 
 	for i, expected := range expectedCells {
 		if i < len(visitedCells) && visitedCells[i] != expected {
-			t.Errorf("单元格访问顺序不正确: 期望'%s'，实际'%s'", expected, visitedCells[i])
+			t.Errorf("cell visit order incorrect: expected '%s', got '%s'", expected, visitedCells[i])
 		}
 	}
 
-	// 测试无效列索引
+	// Test invalid column index
 	err = table.ForEachInColumn(5, func(row int, cell *TableCell, text string) error {
 		return nil
 	})
 	if err == nil {
-		t.Error("应该返回无效列索引错误")
+		t.Error("should return invalid column index error")
 	}
 }
 
-// TestGetCellRange 测试获取单元格范围
+// TestGetCellRange tests getting a cell range
 func TestGetCellRange(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -330,13 +330,13 @@ func TestGetCellRange(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试获取2x2范围 (1,1) 到 (2,2)
+	// Test getting 2x2 range (1,1) to (2,2)
 	cells, err := table.GetCellRange(1, 1, 2, 2)
 	if err != nil {
-		t.Fatalf("GetCellRange执行失败: %v", err)
+		t.Fatalf("GetCellRange execution failed: %v", err)
 	}
 
 	expectedCells := []struct {
@@ -349,36 +349,36 @@ func TestGetCellRange(t *testing.T) {
 	}
 
 	if len(cells) != len(expectedCells) {
-		t.Errorf("返回的单元格数量不匹配: 期望%d，实际%d", len(expectedCells), len(cells))
+		t.Errorf("returned cell count mismatch: expected %d, got %d", len(expectedCells), len(cells))
 	}
 
 	for i, expected := range expectedCells {
 		if i < len(cells) {
 			cell := cells[i]
 			if cell.Row != expected.row || cell.Col != expected.col {
-				t.Errorf("单元格位置不匹配: 期望(%d,%d)，实际(%d,%d)",
+				t.Errorf("cell position mismatch: expected (%d,%d), got (%d,%d)",
 					expected.row, expected.col, cell.Row, cell.Col)
 			}
 			if cell.Text != expected.text {
-				t.Errorf("单元格文本不匹配: 期望'%s'，实际'%s'",
+				t.Errorf("cell text mismatch: expected '%s', got '%s'",
 					expected.text, cell.Text)
 			}
 		}
 	}
 
-	// 测试无效范围
-	_, err = table.GetCellRange(2, 2, 1, 1) // 开始位置大于结束位置
+	// Test invalid range
+	_, err = table.GetCellRange(2, 2, 1, 1) // start position greater than end position
 	if err == nil {
-		t.Error("应该返回无效范围错误")
+		t.Error("should return invalid range error")
 	}
 
-	_, err = table.GetCellRange(0, 0, 10, 10) // 超出表格范围
+	_, err = table.GetCellRange(0, 0, 10, 10) // exceeds table bounds
 	if err == nil {
-		t.Error("应该返回超出范围错误")
+		t.Error("should return out of bounds error")
 	}
 }
 
-// TestFindCells 测试查找单元格功能
+// TestFindCells tests cell search functionality
 func TestFindCells(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -394,38 +394,38 @@ func TestFindCells(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 查找包含"apple"的单元格
+	// Find cells containing "apple"
 	cells, err := table.FindCells(func(row, col int, cell *TableCell, text string) bool {
 		return text == "apple"
 	})
 
 	if err != nil {
-		t.Fatalf("FindCells执行失败: %v", err)
+		t.Fatalf("FindCells execution failed: %v", err)
 	}
 
 	expectedPositions := [][2]int{{0, 0}, {1, 1}, {2, 2}}
 	if len(cells) != len(expectedPositions) {
-		t.Errorf("找到的单元格数量不匹配: 期望%d，实际%d", len(expectedPositions), len(cells))
+		t.Errorf("found cell count mismatch: expected %d, got %d", len(expectedPositions), len(cells))
 	}
 
 	for i, expected := range expectedPositions {
 		if i < len(cells) {
 			cell := cells[i]
 			if cell.Row != expected[0] || cell.Col != expected[1] {
-				t.Errorf("找到的单元格位置不正确: 期望(%d,%d)，实际(%d,%d)",
+				t.Errorf("found cell position incorrect: expected (%d,%d), got (%d,%d)",
 					expected[0], expected[1], cell.Row, cell.Col)
 			}
 			if cell.Text != "apple" {
-				t.Errorf("找到的单元格文本不正确: 期望'apple'，实际'%s'", cell.Text)
+				t.Errorf("found cell text incorrect: expected 'apple', got '%s'", cell.Text)
 			}
 		}
 	}
 }
 
-// TestFindCellsByText 测试按文本查找单元格
+// TestFindCellsByText tests finding cells by text
 func TestFindCellsByText(t *testing.T) {
 	doc := New()
 	config := &TableConfig{
@@ -440,37 +440,37 @@ func TestFindCellsByText(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 精确匹配
+	// Exact match
 	cells, err := table.FindCellsByText("test", true)
 	if err != nil {
-		t.Fatalf("FindCellsByText执行失败: %v", err)
+		t.Fatalf("FindCellsByText execution failed: %v", err)
 	}
 
-	expectedCount := 2 // (0,0) 和 (1,2)
+	expectedCount := 2 // (0,0) and (1,2)
 	if len(cells) != expectedCount {
-		t.Errorf("精确匹配找到的单元格数量不匹配: 期望%d，实际%d", expectedCount, len(cells))
+		t.Errorf("exact match found cell count mismatch: expected %d, got %d", expectedCount, len(cells))
 	}
 
-	// 模糊匹配
+	// Fuzzy match
 	cells, err = table.FindCellsByText("test", false)
 	if err != nil {
-		t.Fatalf("FindCellsByText执行失败: %v", err)
+		t.Fatalf("FindCellsByText execution failed: %v", err)
 	}
 
-	expectedCount = 5 // 所有包含"test"的单元格
+	expectedCount = 5 // all cells containing "test"
 	if len(cells) != expectedCount {
-		t.Errorf("模糊匹配找到的单元格数量不匹配: 期望%d，实际%d", expectedCount, len(cells))
+		t.Errorf("fuzzy match found cell count mismatch: expected %d, got %d", expectedCount, len(cells))
 	}
 }
 
-// TestEmptyTable 测试空表格的迭代器
+// TestEmptyTable tests iterator on an empty table
 func TestEmptyTable(t *testing.T) {
 	doc := New()
 
-	// 创建一个空表格（实际上最小1x1）
+	// Create an empty table (minimum is 1x1)
 	config := &TableConfig{
 		Rows:  1,
 		Cols:  1,
@@ -479,15 +479,15 @@ func TestEmptyTable(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 	iterator := table.NewCellIterator()
 
 	if iterator.Total() != 1 {
-		t.Errorf("空表格的总单元格数应为1，实际为%d", iterator.Total())
+		t.Errorf("empty table total cell count should be 1, got %d", iterator.Total())
 	}
 
 	if !iterator.HasNext() {
-		t.Error("1x1表格应该有一个单元格")
+		t.Error("1x1 table should have one cell")
 	}
 }

@@ -1,4 +1,4 @@
-// Package document 模板功能实现
+// Package document implements template functionality.
 package document
 
 import (
@@ -12,79 +12,79 @@ import (
 	"sync"
 )
 
-// 模板相关错误
+// Template-related errors
 var (
-	// ErrTemplateNotFound 模板未找到
+	// ErrTemplateNotFound indicates the template was not found.
 	ErrTemplateNotFound = NewDocumentError("template_not_found", fmt.Errorf("template not found"), "")
 
-	// ErrTemplateSyntaxError 模板语法错误
+	// ErrTemplateSyntaxError indicates a template syntax error.
 	ErrTemplateSyntaxError = NewDocumentError("template_syntax_error", fmt.Errorf("template syntax error"), "")
 
-	// ErrTemplateRenderError 模板渲染错误
+	// ErrTemplateRenderError indicates a template rendering error.
 	ErrTemplateRenderError = NewDocumentError("template_render_error", fmt.Errorf("template render error"), "")
 
-	// ErrInvalidTemplateData 无效模板数据
+	// ErrInvalidTemplateData indicates invalid template data.
 	ErrInvalidTemplateData = NewDocumentError("invalid_template_data", fmt.Errorf("invalid template data"), "")
 
-	// ErrBlockNotFound 块未找到
+	// ErrBlockNotFound indicates the block was not found.
 	ErrBlockNotFound = NewDocumentError("block_not_found", fmt.Errorf("block not found"), "")
 
-	// ErrInvalidBlockDefinition 无效块定义
+	// ErrInvalidBlockDefinition indicates an invalid block definition.
 	ErrInvalidBlockDefinition = NewDocumentError("invalid_block_definition", fmt.Errorf("invalid block definition"), "")
 )
 
-// 预编译正则表达式用于页眉页脚变量替换
+// Pre-compiled regex for header/footer variable substitution
 var headerFooterVarPattern = regexp.MustCompile(`\{\{(\w+)\}\}`)
 
-// TemplateEngine 模板引擎
+// TemplateEngine manages template loading, caching, and rendering.
 type TemplateEngine struct {
-	cache    map[string]*Template // 模板缓存
-	mutex    sync.RWMutex         // 读写锁
-	basePath string               // 基础路径
+	cache    map[string]*Template // template cache
+	mutex    sync.RWMutex         // read-write lock
+	basePath string               // base path
 }
 
-// Template 模板结构
+// Template represents a parsed template.
 type Template struct {
-	Name          string                    // 模板名称
-	Content       string                    // 模板内容
-	BaseDoc       *Document                 // 基础文档
-	Variables     map[string]string         // 模板变量
-	Blocks        []*TemplateBlock          // 模板块列表
-	Parent        *Template                 // 父模板（用于继承）
-	DefinedBlocks map[string]*TemplateBlock // 定义的块映射
+	Name          string                    // template name
+	Content       string                    // template content
+	BaseDoc       *Document                 // base document
+	Variables     map[string]string         // template variables
+	Blocks        []*TemplateBlock          // template block list
+	Parent        *Template                 // parent template (for inheritance)
+	DefinedBlocks map[string]*TemplateBlock // defined block map
 }
 
-// TemplateBlock 模板块
+// TemplateBlock represents a block within a template.
 type TemplateBlock struct {
-	Type           string                 // 块类型：variable, if, each, inherit, block, image
-	Name           string                 // 块名称（block类型使用）
-	Content        string                 // 块内容
-	Condition      string                 // 条件（if块使用）
-	Variable       string                 // 变量名（each块使用）
-	Children       []*TemplateBlock       // 子块
-	Data           map[string]interface{} // 块数据
-	DefaultContent string                 // 默认内容（用于可选重写）
-	IsOverridden   bool                   // 是否被重写
+	Type           string                 // block type: variable, if, each, inherit, block, image
+	Name           string                 // block name (used by block type)
+	Content        string                 // block content
+	Condition      string                 // condition (used by if block)
+	Variable       string                 // variable name (used by each block)
+	Children       []*TemplateBlock       // child blocks
+	Data           map[string]interface{} // block data
+	DefaultContent string                 // default content (for optional override)
+	IsOverridden   bool                   // whether it has been overridden
 }
 
-// TemplateData 模板数据
+// TemplateData holds the data used to render a template.
 type TemplateData struct {
-	Variables  map[string]interface{}        // 变量数据
-	Lists      map[string][]interface{}      // 列表数据
-	Conditions map[string]bool               // 条件数据
-	Images     map[string]*TemplateImageData // 图片数据
+	Variables  map[string]interface{}        // variable data
+	Lists      map[string][]interface{}      // list data
+	Conditions map[string]bool               // condition data
+	Images     map[string]*TemplateImageData // image data
 }
 
-// TemplateImageData 模板图片数据
+// TemplateImageData holds image data for template rendering.
 type TemplateImageData struct {
-	FilePath string       // 图片文件路径
-	Data     []byte       // 图片二进制数据（优先使用）
-	Config   *ImageConfig // 图片配置（大小、位置、样式等）
-	AltText  string       // 图片替代文字
-	Title    string       // 图片标题
+	FilePath string       // image file path
+	Data     []byte       // image binary data (takes precedence)
+	Config   *ImageConfig // image config (size, position, style, etc.)
+	AltText  string       // image alt text
+	Title    string       // image title
 }
 
-// NewTemplateEngine 创建新的模板引擎
+// NewTemplateEngine creates a new template engine.
 func NewTemplateEngine() *TemplateEngine {
 	return &TemplateEngine{
 		cache: make(map[string]*Template),
@@ -92,14 +92,14 @@ func NewTemplateEngine() *TemplateEngine {
 	}
 }
 
-// SetBasePath 设置模板基础路径
+// SetBasePath sets the base path for templates.
 func (te *TemplateEngine) SetBasePath(path string) {
 	te.mutex.Lock()
 	defer te.mutex.Unlock()
 	te.basePath = path
 }
 
-// LoadTemplate 从字符串加载模板
+// LoadTemplate loads a template from a string.
 func (te *TemplateEngine) LoadTemplate(name, content string) (*Template, error) {
 	te.mutex.Lock()
 	defer te.mutex.Unlock()
@@ -112,23 +112,23 @@ func (te *TemplateEngine) LoadTemplate(name, content string) (*Template, error) 
 		DefinedBlocks: make(map[string]*TemplateBlock),
 	}
 
-	// 解析模板内容
+	// Parse template content
 	if err := te.parseTemplate(template); err != nil {
 		return nil, WrapErrorWithContext("load_template", err, name)
 	}
 
-	// 缓存模板
+	// Cache template
 	te.cache[name] = template
 
 	return template, nil
 }
 
-// LoadTemplateFromDocument 从现有文档创建模板
+// LoadTemplateFromDocument creates a template from an existing document.
 func (te *TemplateEngine) LoadTemplateFromDocument(name string, doc *Document) (*Template, error) {
 	te.mutex.Lock()
 	defer te.mutex.Unlock()
 
-	// 从文档中提取模板内容
+	// Extract template content from document
 	content, err := te.extractTemplateContentFromDocument(doc)
 	if err != nil {
 		return nil, WrapErrorWithContext("load_template_from_document", err, name)
@@ -143,18 +143,18 @@ func (te *TemplateEngine) LoadTemplateFromDocument(name string, doc *Document) (
 		DefinedBlocks: make(map[string]*TemplateBlock),
 	}
 
-	// 解析模板内容
+	// Parse template content
 	if err := te.parseTemplate(template); err != nil {
 		return nil, WrapErrorWithContext("load_template_from_document", err, name)
 	}
 
-	// 缓存模板
+	// Cache template
 	te.cache[name] = template
 
 	return template, nil
 }
 
-// GetTemplate 获取缓存的模板
+// GetTemplate retrieves a cached template by name.
 func (te *TemplateEngine) GetTemplate(name string) (*Template, error) {
 	te.mutex.RLock()
 	defer te.mutex.RUnlock()
@@ -166,7 +166,7 @@ func (te *TemplateEngine) GetTemplate(name string) (*Template, error) {
 	return nil, WrapErrorWithContext("get_template", ErrTemplateNotFound.Cause, name)
 }
 
-// getTemplateInternal 获取缓存的模板（内部方法，不加锁）
+// getTemplateInternal retrieves a cached template (internal method, no locking).
 func (te *TemplateEngine) getTemplateInternal(name string) (*Template, error) {
 	if template, exists := te.cache[name]; exists {
 		return template, nil
@@ -175,25 +175,25 @@ func (te *TemplateEngine) getTemplateInternal(name string) (*Template, error) {
 	return nil, WrapErrorWithContext("get_template", ErrTemplateNotFound.Cause, name)
 }
 
-// ClearCache 清空模板缓存
+// ClearCache clears the template cache.
 func (te *TemplateEngine) ClearCache() {
 	te.mutex.Lock()
 	defer te.mutex.Unlock()
 	te.cache = make(map[string]*Template)
 }
 
-// RemoveTemplate 移除指定模板
+// RemoveTemplate removes a template by name.
 func (te *TemplateEngine) RemoveTemplate(name string) {
 	te.mutex.Lock()
 	defer te.mutex.Unlock()
 	delete(te.cache, name)
 }
 
-// parseTemplate 解析模板内容
+// parseTemplate parses the template content.
 func (te *TemplateEngine) parseTemplate(template *Template) error {
 	content := template.Content
 
-	// 解析变量: {{变量名}}
+	// Parse variables: {{variableName}}
 	varPattern := regexp.MustCompile(`\{\{(\w+)\}\}`)
 	varMatches := varPattern.FindAllStringSubmatch(content, -1)
 	for _, match := range varMatches {
@@ -203,7 +203,7 @@ func (te *TemplateEngine) parseTemplate(template *Template) error {
 		}
 	}
 
-	// 解析块定义: {{#block "blockName"}}...{{/block}}
+	// Parse block definitions: {{#block "blockName"}}...{{/block}}
 	blockPattern := regexp.MustCompile(`(?s)\{\{#block\s+"([^"]+)"\}\}(.*?)\{\{/block\}\}`)
 	blockMatches := blockPattern.FindAllStringSubmatch(content, -1)
 	for _, match := range blockMatches {
@@ -224,7 +224,7 @@ func (te *TemplateEngine) parseTemplate(template *Template) error {
 		}
 	}
 
-	// 解析条件语句: {{#if 条件}}...{{/if}} (修复：添加 (?s) 标志以匹配换行符)
+	// Parse conditional statements: {{#if condition}}...{{/if}} (fix: add (?s) flag to match newlines)
 	ifPattern := regexp.MustCompile(`(?s)\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}`)
 	ifMatches := ifPattern.FindAllStringSubmatch(content, -1)
 	for _, match := range ifMatches {
@@ -243,7 +243,7 @@ func (te *TemplateEngine) parseTemplate(template *Template) error {
 		}
 	}
 
-	// 解析循环语句: {{#each 列表}}...{{/each}} (修复：添加 (?s) 标志以匹配换行符)
+	// Parse loop statements: {{#each list}}...{{/each}} (fix: add (?s) flag to match newlines)
 	eachPattern := regexp.MustCompile(`(?s)\{\{#each\s+(\w+)\}\}(.*?)\{\{/each\}\}`)
 	eachMatches := eachPattern.FindAllStringSubmatch(content, -1)
 	for _, match := range eachMatches {
@@ -262,7 +262,7 @@ func (te *TemplateEngine) parseTemplate(template *Template) error {
 		}
 	}
 
-	// 解析图片占位符: {{#image imageName}}
+	// Parse image placeholders: {{#image imageName}}
 	imagePattern := regexp.MustCompile(`\{\{#image\s+(\w+)\}\}`)
 	imageMatches := imagePattern.FindAllStringSubmatch(content, -1)
 	for _, match := range imageMatches {
@@ -272,7 +272,7 @@ func (te *TemplateEngine) parseTemplate(template *Template) error {
 			block := &TemplateBlock{
 				Type:     "image",
 				Name:     imageName,
-				Content:  match[0], // 保存完整的占位符文本
+				Content:  match[0], // save the full placeholder text
 				Children: make([]*TemplateBlock, 0),
 			}
 
@@ -280,7 +280,7 @@ func (te *TemplateEngine) parseTemplate(template *Template) error {
 		}
 	}
 
-	// 解析继承: {{extends "base_template"}}
+	// Parse inheritance: {{extends "base_template"}}
 	extendsPattern := regexp.MustCompile(`\{\{extends\s+"([^"]+)"\}\}`)
 	extendsMatches := extendsPattern.FindStringSubmatch(content)
 	if len(extendsMatches) >= 2 {
@@ -288,7 +288,7 @@ func (te *TemplateEngine) parseTemplate(template *Template) error {
 		baseTemplate, err := te.getTemplateInternal(baseName)
 		if err == nil {
 			template.Parent = baseTemplate
-			// 处理块重写
+			// Process block overrides
 			te.processBlockOverrides(template, baseTemplate)
 		}
 	}
@@ -296,52 +296,52 @@ func (te *TemplateEngine) parseTemplate(template *Template) error {
 	return nil
 }
 
-// processBlockOverrides 处理块重写
+// processBlockOverrides processes block overrides between child and parent templates.
 func (te *TemplateEngine) processBlockOverrides(childTemplate, parentTemplate *Template) {
-	// 遍历子模板的块定义，检查是否重写父模板的块
+	// Iterate over child template block definitions and check for parent block overrides
 	for blockName, childBlock := range childTemplate.DefinedBlocks {
 		if parentBlock, exists := parentTemplate.DefinedBlocks[blockName]; exists {
-			// 标记父模板块被重写
+			// Mark parent block as overridden
 			parentBlock.IsOverridden = true
 			parentBlock.Content = childBlock.Content
 		}
 	}
 
-	// 递归处理父模板的父模板
+	// Recursively process grandparent templates
 	if parentTemplate.Parent != nil {
 		te.processBlockOverrides(childTemplate, parentTemplate.Parent)
 	}
 }
 
-// RenderToDocument 渲染模板到新文档
+// RenderToDocument renders a template to a new document.
 func (te *TemplateEngine) RenderToDocument(templateName string, data *TemplateData) (*Document, error) {
 	template, err := te.GetTemplate(templateName)
 	if err != nil {
 		return nil, WrapErrorWithContext("render_to_document", err, templateName)
 	}
 
-	// 创建新文档
+	// Create new document
 	var doc *Document
 	if template.BaseDoc != nil {
-		// 基于基础文档创建
+		// Create based on base document
 		doc = te.cloneDocument(template.BaseDoc)
 	} else {
-		// 创建新文档
+		// Create new document
 		doc = New()
 	}
 
-	// 渲染模板内容
+	// Render template content
 	renderedContent, err := te.renderTemplate(template, data)
 	if err != nil {
 		return nil, WrapErrorWithContext("render_to_document", err, templateName)
 	}
 
-	// 将渲染内容应用到文档
+	// Apply rendered content to document
 	if err := te.applyRenderedContentToDocument(doc, renderedContent); err != nil {
 		return nil, WrapErrorWithContext("render_to_document", err, templateName)
 	}
 
-	// 处理图片占位符
+	// Process image placeholders
 	if err := te.processImagePlaceholders(doc, data); err != nil {
 		return nil, WrapErrorWithContext("render_to_document", err, templateName)
 	}
@@ -349,63 +349,63 @@ func (te *TemplateEngine) RenderToDocument(templateName string, data *TemplateDa
 	return doc, nil
 }
 
-// renderTemplate 渲染模板
+// renderTemplate renders a template with the given data.
 func (te *TemplateEngine) renderTemplate(template *Template, data *TemplateData) (string, error) {
 	var content string
 
-	// 处理继承：如果有父模板，使用父模板作为基础
+	// Handle inheritance: if there is a parent template, use it as the base
 	if template.Parent != nil {
-		// 渲染父模板作为基础内容
+		// Render parent template as the base content
 		parentContent, err := te.renderTemplate(template.Parent, data)
 		if err != nil {
 			return "", err
 		}
 		content = parentContent
 
-		// 应用子模板的块重写到父模板内容中
+		// Apply child template block overrides to parent template content
 		content = te.applyBlockOverrides(content, template)
 	} else {
-		// 没有父模板，直接使用当前模板内容
+		// No parent template, use current template content directly
 		content = template.Content
 	}
 
-	// 渲染块定义
+	// Render block definitions
 	content = te.renderBlocks(content, template, data)
 
-	// 渲染变量
+	// Render variables
 	content = te.renderVariables(content, data.Variables)
 
-	// 渲染循环语句（先处理循环，循环内部会处理条件语句）
+	// Render loop statements (process loops first; conditions inside loops are handled internally)
 	content = te.renderLoops(content, data.Lists)
 
-	// 渲染条件语句（处理非循环内的条件语句）
+	// Render conditional statements (handle conditions outside loops)
 	content = te.renderConditionals(content, data.Conditions)
 
-	// 渲染图片占位符
+	// Render image placeholders
 	content = te.renderImages(content, data.Images)
 
 	return content, nil
 }
 
-// applyBlockOverrides 将子模板的块重写应用到父模板内容中
+// applyBlockOverrides applies child template block overrides to parent template content.
 func (te *TemplateEngine) applyBlockOverrides(content string, template *Template) string {
-	// 将子模板的块内容替换父模板中对应的块占位符
+	// Replace parent template block placeholders with child template block content
 	blockPattern := regexp.MustCompile(`(?s)\{\{#block\s+"([^"]+)"\}\}.*?\{\{/block\}\}`)
 
 	return blockPattern.ReplaceAllStringFunc(content, func(match string) string {
 		matches := blockPattern.FindStringSubmatch(match)
 		if len(matches) >= 2 {
 			blockName := matches[1]
-			// 如果子模板中定义了这个块，使用子模板的内容
+			// If this block is defined in the child template, use the child's content
 			if childBlock, exists := template.DefinedBlocks[blockName]; exists {
 				return childBlock.Content
 			}
 		}
-		return match // 保持原样
+		return match // keep as is
 	})
 }
 
-// renderBlocks 渲染块定义
+// renderBlocks renders block definitions.
 func (te *TemplateEngine) renderBlocks(content string, template *Template, data *TemplateData) string {
 	blockPattern := regexp.MustCompile(`(?s)\{\{#block\s+"([^"]+)"\}\}(.*?)\{\{/block\}\}`)
 
@@ -415,23 +415,23 @@ func (te *TemplateEngine) renderBlocks(content string, template *Template, data 
 			blockName := matches[1]
 			blockContent := matches[2]
 
-			// 检查是否有定义的块
+			// Check if a block is defined
 			if block, exists := template.DefinedBlocks[blockName]; exists {
-				// 如果块被重写，使用重写的内容，否则使用默认内容
+				// If the block is overridden, use the overridden content; otherwise use default
 				if block.IsOverridden {
 					return block.Content
 				}
 				return block.DefaultContent
 			}
 
-			// 如果没有定义块，使用原始内容
+			// If no block is defined, use the original content
 			return blockContent
 		}
 		return match
 	})
 }
 
-// renderVariables 渲染变量
+// renderVariables renders variable placeholders.
 func (te *TemplateEngine) renderVariables(content string, variables map[string]interface{}) string {
 	varPattern := regexp.MustCompile(`\{\{(\w+)\}\}`)
 
@@ -440,11 +440,11 @@ func (te *TemplateEngine) renderVariables(content string, variables map[string]i
 		if value, exists := variables[varName]; exists {
 			return te.interfaceToString(value)
 		}
-		return match // 保持原样
+		return match // keep as is
 	})
 }
 
-// renderConditionals 渲染条件语句（支持if-else语法）
+// renderConditionals renders conditional statements (supports if-else syntax).
 func (te *TemplateEngine) renderConditionals(content string, conditions map[string]bool) string {
 	ifElsePattern := regexp.MustCompile(`(?s)\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}`)
 
@@ -454,12 +454,12 @@ func (te *TemplateEngine) renderConditionals(content string, conditions map[stri
 			condition := matches[1]
 			blockContent := matches[2]
 
-			// 检查是否有else部分
+			// Check if there is an else clause
 			elsePattern := regexp.MustCompile(`(?s)(.*?)\{\{else\}\}(.*?)`)
 			elseMatches := elsePattern.FindStringSubmatch(blockContent)
 
 			if len(elseMatches) >= 3 {
-				// 有else部分
+				// Has else clause
 				ifContent := elseMatches[1]
 				elseContent := elseMatches[2]
 
@@ -469,34 +469,34 @@ func (te *TemplateEngine) renderConditionals(content string, conditions map[stri
 					return elseContent
 				}
 			} else {
-				// 没有else部分，按原逻辑处理
+				// No else clause, handle with original logic
 				if condValue, exists := conditions[condition]; exists && condValue {
 					return blockContent
 				}
 			}
 		}
-		return "" // 条件不满足，返回空字符串
+		return "" // condition not met, return empty string
 	})
 }
 
-// renderLoops 渲染循环语句
+// renderLoops renders loop statements.
 func (te *TemplateEngine) renderLoops(content string, lists map[string][]interface{}) string {
-	// 使用栈式方法正确处理嵌套循环
+	// Use a stack-based approach to correctly handle nested loops
 	return te.renderLoopsNested(content, lists, 0)
 }
 
-// renderLoopsNested 使用递归方式处理嵌套循环
+// renderLoopsNested handles nested loops using recursion.
 func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]interface{}, depth int) string {
-	// 查找第一个 {{#each}} 标记
+	// Find the first {{#each}} tag
 	eachStartPattern := regexp.MustCompile(`\{\{#each\s+(\w+)\}\}`)
 	startMatch := eachStartPattern.FindStringIndex(content)
 
 	if startMatch == nil {
-		// 没有找到循环，直接返回
+		// No loop found, return as is
 		return content
 	}
 
-	// 找到了循环开始标记，现在需要找到匹配的结束标记
+	// Found loop start tag, now find the matching end tag
 	startPos := startMatch[0]
 	listVarMatch := eachStartPattern.FindStringSubmatch(content[startPos:])
 	if len(listVarMatch) < 2 {
@@ -504,34 +504,34 @@ func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]i
 	}
 
 	listVar := listVarMatch[1]
-	blockStart := startMatch[1] // {{#each xxx}} 之后的位置
+	blockStart := startMatch[1] // position after {{#each xxx}}
 
-	// 使用栈来找到匹配的 {{/each}}
+	// Use a stack to find the matching {{/each}}
 	depth_counter := 1
 	pos := blockStart
 	blockEnd := -1
 
 	for pos < len(content) {
-		// 查找下一个 {{#each}} 或 {{/each}}
+		// Find the next {{#each}} or {{/each}}
 		nextEach := eachStartPattern.FindStringIndex(content[pos:])
 		endPattern := regexp.MustCompile(`\{\{/each\}\}`)
 		nextEnd := endPattern.FindStringIndex(content[pos:])
 
 		if nextEnd == nil {
-			// 没有找到结束标记，语法错误
+			// No end tag found, syntax error
 			break
 		}
 
-		// 确定下一个是开始还是结束
+		// Determine whether the next match is a start or end tag
 		if nextEach != nil && nextEach[0] < nextEnd[0] {
-			// 下一个是嵌套的开始标记
+			// Next is a nested start tag
 			depth_counter++
 			pos = pos + nextEach[1]
 		} else {
-			// 下一个是结束标记
+			// Next is an end tag
 			depth_counter--
 			if depth_counter == 0 {
-				// 找到了匹配的结束标记
+				// Found the matching end tag
 				blockEnd = pos + nextEnd[0]
 				break
 			}
@@ -540,55 +540,55 @@ func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]i
 	}
 
 	if blockEnd == -1 {
-		// 没有找到匹配的结束标记
+		// No matching end tag found
 		return content
 	}
 
-	// 提取循环块内容
+	// Extract loop block content
 	blockContent := content[blockStart:blockEnd]
 
-	// 处理循环
+	// Process loop
 	var result strings.Builder
 
-	// 添加循环之前的内容
+	// Add content before the loop
 	result.WriteString(content[:startPos])
 
-	// 渲染循环
+	// Render loop
 	if listData, exists := lists[listVar]; exists {
 		for i, item := range listData {
-			// 创建循环上下文变量
+			// Create loop context variables
 			loopContent := strings.ReplaceAll(blockContent, "{{this}}", te.interfaceToString(item))
 			loopContent = strings.ReplaceAll(loopContent, "{{@index}}", strconv.Itoa(i))
 			loopContent = strings.ReplaceAll(loopContent, "{{@first}}", strconv.FormatBool(i == 0))
 			loopContent = strings.ReplaceAll(loopContent, "{{@last}}", strconv.FormatBool(i == len(listData)-1))
 
-			// 如果item是map，处理属性访问
+			// If item is a map, handle property access
 			if itemMap, ok := item.(map[string]interface{}); ok {
-				// 首先处理嵌套的循环（在替换变量之前）
-				// 为嵌套循环创建新的lists map，包含当前项的列表数据
+				// Process nested loops first (before replacing variables)
+				// Create a new lists map for nested loops containing the current item's list data
 				nestedLists := make(map[string][]interface{})
 				for key, value := range itemMap {
-					// 检查值是否是列表类型
+					// Check if the value is a list type
 					if listValue, ok := value.([]interface{}); ok {
 						nestedLists[key] = listValue
 					}
 				}
 
-				// 如果有嵌套列表，递归处理嵌套循环
+				// If there are nested lists, recursively process nested loops
 				if len(nestedLists) > 0 {
 					loopContent = te.renderLoopsNested(loopContent, nestedLists, depth+1)
 				}
 
-				// 然后替换普通变量
+				// Then replace regular variables
 				for key, value := range itemMap {
 					placeholder := fmt.Sprintf("{{%s}}", key)
-					// 只替换非列表类型的值
+					// Only replace non-list type values
 					if _, isList := value.([]interface{}); !isList {
 						loopContent = strings.ReplaceAll(loopContent, placeholder, te.interfaceToString(value))
 					}
 				}
 
-				// 处理循环内部的条件语句
+				// Process conditional statements inside the loop
 				loopContent = te.renderLoopConditionals(loopContent, itemMap)
 			}
 
@@ -596,7 +596,7 @@ func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]i
 		}
 	}
 
-	// 添加循环之后的内容，并递归处理剩余内容中的其他循环
+	// Add content after the loop, and recursively process remaining loops
 	remainingContent := content[blockEnd+len("{{/each}}"):]
 	remainingContent = te.renderLoopsNested(remainingContent, lists, depth)
 	result.WriteString(remainingContent)
@@ -604,7 +604,7 @@ func (te *TemplateEngine) renderLoopsNested(content string, lists map[string][]i
 	return result.String()
 }
 
-// renderLoopConditionals 渲染循环内部的条件语句（支持if-else语法）
+// renderLoopConditionals renders conditional statements inside loops (supports if-else syntax).
 func (te *TemplateEngine) renderLoopConditionals(content string, itemData map[string]interface{}) string {
 	ifElsePattern := regexp.MustCompile(`(?s)\{\{#if\s+(\w+)\}\}(.*?)\{\{/if\}\}`)
 
@@ -614,7 +614,7 @@ func (te *TemplateEngine) renderLoopConditionals(content string, itemData map[st
 			condition := matches[1]
 			blockContent := matches[2]
 
-			// 检查是否有else部分
+			// Check if there is an else clause
 			elsePattern := regexp.MustCompile(`(?s)(.*?)\{\{else\}\}(.*?)`)
 			elseMatches := elsePattern.FindStringSubmatch(blockContent)
 
@@ -622,18 +622,18 @@ func (te *TemplateEngine) renderLoopConditionals(content string, itemData map[st
 			hasElse := false
 
 			if len(elseMatches) >= 3 {
-				// 有else部分
+				// Has else clause
 				ifContent = elseMatches[1]
 				elseContent = elseMatches[2]
 				hasElse = true
 			} else {
-				// 没有else部分
+				// No else clause
 				ifContent = blockContent
 			}
 
-			// 检查条件是否在当前循环项的数据中
+			// Check if the condition exists in the current loop item's data
 			if condValue, exists := itemData[condition]; exists {
-				// 转换为布尔值
+				// Convert to boolean
 				conditionMet := false
 				switch v := condValue.(type) {
 				case bool:
@@ -647,7 +647,7 @@ func (te *TemplateEngine) renderLoopConditionals(content string, itemData map[st
 				case float64:
 					conditionMet = v != 0.0
 				default:
-					// 对于其他类型，如果不为nil就认为是true
+					// For other types, consider non-nil as true
 					conditionMet = v != nil
 				}
 
@@ -657,15 +657,15 @@ func (te *TemplateEngine) renderLoopConditionals(content string, itemData map[st
 					return elseContent
 				}
 			} else if hasElse {
-				// 条件不存在，返回else部分
+				// Condition not found, return else content
 				return elseContent
 			}
 		}
-		return "" // 条件不满足且没有else，返回空字符串
+		return "" // condition not met and no else clause, return empty string
 	})
 }
 
-// interfaceToString 将interface{}转换为字符串
+// interfaceToString converts an interface{} value to a string.
 func (te *TemplateEngine) interfaceToString(value interface{}) string {
 	if value == nil {
 		return ""
@@ -687,26 +687,26 @@ func (te *TemplateEngine) interfaceToString(value interface{}) string {
 	}
 }
 
-// ValidateTemplate 验证模板语法
+// ValidateTemplate validates template syntax.
 func (te *TemplateEngine) ValidateTemplate(template *Template) error {
 	content := template.Content
 
-	// 检查括号配对
+	// Check bracket pairing
 	if err := te.validateBrackets(content); err != nil {
 		return WrapErrorWithContext("validate_template", err, template.Name)
 	}
 
-	// 检查块语句配对
+	// Check block statement pairing
 	if err := te.validateBlockStatements(content); err != nil {
 		return WrapErrorWithContext("validate_template", err, template.Name)
 	}
 
-	// 检查if语句配对
+	// Check if statement pairing
 	if err := te.validateIfStatements(content); err != nil {
 		return WrapErrorWithContext("validate_template", err, template.Name)
 	}
 
-	// 检查each语句配对
+	// Check each statement pairing
 	if err := te.validateEachStatements(content); err != nil {
 		return WrapErrorWithContext("validate_template", err, template.Name)
 	}
@@ -714,7 +714,7 @@ func (te *TemplateEngine) ValidateTemplate(template *Template) error {
 	return nil
 }
 
-// validateBrackets 验证括号配对
+// validateBrackets validates bracket pairing.
 func (te *TemplateEngine) validateBrackets(content string) error {
 	openCount := strings.Count(content, "{{")
 	closeCount := strings.Count(content, "}}")
@@ -726,7 +726,7 @@ func (te *TemplateEngine) validateBrackets(content string) error {
 	return nil
 }
 
-// validateBlockStatements 验证块语句配对
+// validateBlockStatements validates block statement pairing.
 func (te *TemplateEngine) validateBlockStatements(content string) error {
 	blockCount := len(regexp.MustCompile(`\{\{#block\s+"[^"]+"\}\}`).FindAllString(content, -1))
 	endblockCount := len(regexp.MustCompile(`\{\{/block\}\}`).FindAllString(content, -1))
@@ -738,7 +738,7 @@ func (te *TemplateEngine) validateBlockStatements(content string) error {
 	return nil
 }
 
-// validateIfStatements 验证if语句配对
+// validateIfStatements validates if statement pairing.
 func (te *TemplateEngine) validateIfStatements(content string) error {
 	ifCount := len(regexp.MustCompile(`\{\{#if\s+\w+\}\}`).FindAllString(content, -1))
 	endifCount := len(regexp.MustCompile(`\{\{/if\}\}`).FindAllString(content, -1))
@@ -750,7 +750,7 @@ func (te *TemplateEngine) validateIfStatements(content string) error {
 	return nil
 }
 
-// validateEachStatements 验证each语句配对
+// validateEachStatements validates each statement pairing.
 func (te *TemplateEngine) validateEachStatements(content string) error {
 	eachCount := len(regexp.MustCompile(`\{\{#each\s+\w+\}\}`).FindAllString(content, -1))
 	endeachCount := len(regexp.MustCompile(`\{\{/each\}\}`).FindAllString(content, -1))
@@ -762,50 +762,50 @@ func (te *TemplateEngine) validateEachStatements(content string) error {
 	return nil
 }
 
-// documentToTemplateString 将文档转换为模板字符串
+// documentToTemplateString converts a document to a template string.
 func (te *TemplateEngine) documentToTemplateString(doc *Document) (string, error) {
-	// 这里不再转换为纯字符串，而是保持原始文档结构
-	// 实际上我们应该直接在原文档上进行变量替换
-	return "", nil // 将在新的方法中处理
+	// No longer convert to a plain string; instead preserve the original document structure.
+	// Variable substitution should be performed directly on the original document.
+	return "", nil // handled in a separate method
 }
 
-// extractTemplateContentFromDocument 从文档中提取模板内容
+// extractTemplateContentFromDocument extracts template content from a document.
 func (te *TemplateEngine) extractTemplateContentFromDocument(doc *Document) (string, error) {
 	var contentBuilder strings.Builder
 
-	// 遍历文档元素，提取文本内容
+	// Iterate over document elements and extract text content
 	for _, element := range doc.Body.Elements {
 		switch elem := element.(type) {
 		case *Paragraph:
-			// 提取段落中的文本
+			// Extract text from paragraph
 			for _, run := range elem.Runs {
 				contentBuilder.WriteString(run.Text.Content)
 			}
 			contentBuilder.WriteString("\n")
 
 		case *Table:
-			// 暂时跳过表格，专注于段落中的模板语法
-			// 表格中的模板语法将在RenderTemplateToDocument中处理
+			// Skip tables for now, focus on template syntax in paragraphs.
+			// Template syntax in tables is handled in RenderTemplateToDocument.
 			continue
 		}
 	}
 
-	// 提取页眉页脚中的模板内容
+	// Extract template content from headers and footers
 	te.extractHeaderFooterContent(doc, &contentBuilder)
 
 	return contentBuilder.String(), nil
 }
 
-// extractHeaderFooterContent 从页眉页脚中提取模板内容
+// extractHeaderFooterContent extracts template content from headers and footers.
 func (te *TemplateEngine) extractHeaderFooterContent(doc *Document, contentBuilder *strings.Builder) {
 	if doc.parts == nil {
 		return
 	}
 
-	// 遍历所有部件，查找页眉页脚文件
+	// Iterate over all parts to find header and footer files
 	for partName, partData := range doc.parts {
 		if strings.HasPrefix(partName, "word/header") || strings.HasPrefix(partName, "word/footer") {
-			// 解析页眉/页脚XML并提取文本
+			// Parse header/footer XML and extract text
 			text := te.extractTextFromHeaderFooterXML(partData)
 			if text != "" {
 				contentBuilder.WriteString(text)
@@ -815,12 +815,12 @@ func (te *TemplateEngine) extractHeaderFooterContent(doc *Document, contentBuild
 	}
 }
 
-// extractTextFromHeaderFooterXML 从页眉/页脚XML中提取文本内容
+// extractTextFromHeaderFooterXML extracts text content from header/footer XML.
 func (te *TemplateEngine) extractTextFromHeaderFooterXML(xmlData []byte) string {
 	var contentBuilder strings.Builder
 
-	// 使用正则表达式提取<w:t>标签中的文本内容
-	// 这是一个简化的解析方法，适用于提取模板变量
+	// Use regex to extract text content from <w:t> tags.
+	// This is a simplified parsing approach suitable for extracting template variables.
 	textPattern := regexp.MustCompile(`<w:t[^>]*>([^<]*)</w:t>`)
 	matches := textPattern.FindAllSubmatch(xmlData, -1)
 
@@ -833,12 +833,12 @@ func (te *TemplateEngine) extractTextFromHeaderFooterXML(xmlData []byte) string 
 	return contentBuilder.String()
 }
 
-// cloneDocument 深度复制文档所有元素和属性
+// cloneDocument deep copies all document elements and properties.
 func (te *TemplateEngine) cloneDocument(source *Document) *Document {
-	// 创建新文档
+	// Create new document
 	doc := New()
 
-	// 深拷贝文档元素
+	// Deep copy document elements
 	for _, element := range source.Body.Elements {
 		switch elem := element.(type) {
 		case *Paragraph:
@@ -854,25 +854,26 @@ func (te *TemplateEngine) cloneDocument(source *Document) *Document {
 			doc.Body.Elements = append(doc.Body.Elements, clonedSectPr)
 
 		default:
-			// 其他类型暂时直接复制引用
+			// Other types: copy reference for now
 			doc.Body.Elements = append(doc.Body.Elements, element)
 		}
 	}
 
-	// 深拷贝样式管理器，确保模板渲染时的样式与原模板一致
+	// Deep copy style manager to ensure rendered styles match the original template
 	if source.styleManager != nil {
 		doc.styleManager = source.styleManager.Clone()
-		// 不再强制修改 Normal 样式的段落行距，避免覆盖模板自身的默认行距/段后设置。
-		// 如需统一行距，请在模板中显式设置，而非由代码层面硬编码。
+		// No longer force-modify the Normal style paragraph line spacing to avoid overriding
+		// the template's own default line spacing/after-paragraph settings.
+		// To unify line spacing, set it explicitly in the template rather than hardcoding in code.
 	}
 
-	// 复制所有文档部件，确保完整保留原文档结构
+	// Copy all document parts to fully preserve the original document structure
 	if doc.parts == nil {
 		doc.parts = make(map[string][]byte)
 	}
 	te.cloneAllDocumentParts(source, doc)
 
-	// 复制文档关系（包含页眉页脚引用）
+	// Copy document relationships (including header/footer references)
 	if source.documentRelationships != nil {
 		doc.documentRelationships = &Relationships{
 			Xmlns:         source.documentRelationships.Xmlns,
@@ -881,7 +882,7 @@ func (te *TemplateEngine) cloneDocument(source *Document) *Document {
 		copy(doc.documentRelationships.Relationships, source.documentRelationships.Relationships)
 	}
 
-	// 复制内容类型
+	// Copy content types
 	if source.contentTypes != nil {
 		doc.contentTypes = &ContentTypes{
 			Xmlns:     source.contentTypes.Xmlns,
@@ -892,31 +893,31 @@ func (te *TemplateEngine) cloneDocument(source *Document) *Document {
 		copy(doc.contentTypes.Overrides, source.contentTypes.Overrides)
 	}
 
-	// 复制图片ID计数器
+	// Copy image ID counter
 	doc.nextImageID = source.nextImageID
 
 	return doc
 }
 
-// cloneAllDocumentParts 复制所有文档部件，确保完整保留原文档结构
+// cloneAllDocumentParts copies all document parts to fully preserve the original document structure.
 func (te *TemplateEngine) cloneAllDocumentParts(source, dest *Document) {
 	if source.parts == nil {
 		return
 	}
 
 	for partName, partData := range source.parts {
-		// 跳过 word/document.xml 因为它会在保存时重新生成
+		// Skip word/document.xml because it will be regenerated on save
 		if partName == "word/document.xml" {
 			continue
 		}
 
-		// 复制部件数据
+		// Copy part data
 		dest.parts[partName] = make([]byte, len(partData))
 		copy(dest.parts[partName], partData)
 	}
 }
 
-// cloneSectionProperties 深度复制节属性
+// cloneSectionProperties deep copies section properties.
 func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *SectionProperties {
 	if source == nil {
 		return nil
@@ -926,7 +927,7 @@ func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *Sec
 		XmlnsR: source.XmlnsR,
 	}
 
-	// 复制页面尺寸
+	// Copy page size
 	if source.PageSize != nil {
 		sectPr.PageSize = &PageSizeXML{
 			W:      source.PageSize.W,
@@ -935,7 +936,7 @@ func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *Sec
 		}
 	}
 
-	// 复制页面边距
+	// Copy page margins
 	if source.PageMargins != nil {
 		sectPr.PageMargins = &PageMargin{
 			Top:    source.PageMargins.Top,
@@ -948,7 +949,7 @@ func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *Sec
 		}
 	}
 
-	// 复制分栏设置
+	// Copy column settings
 	if source.Columns != nil {
 		sectPr.Columns = &Columns{
 			Space: source.Columns.Space,
@@ -956,7 +957,7 @@ func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *Sec
 		}
 	}
 
-	// 复制页眉引用
+	// Copy header references
 	if source.HeaderReferences != nil {
 		sectPr.HeaderReferences = make([]*HeaderFooterReference, len(source.HeaderReferences))
 		for i, ref := range source.HeaderReferences {
@@ -967,7 +968,7 @@ func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *Sec
 		}
 	}
 
-	// 复制页脚引用
+	// Copy footer references
 	if source.FooterReferences != nil {
 		sectPr.FooterReferences = make([]*FooterReference, len(source.FooterReferences))
 		for i, ref := range source.FooterReferences {
@@ -978,19 +979,19 @@ func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *Sec
 		}
 	}
 
-	// 复制首页不同设置
+	// Copy title page (different first page) setting
 	if source.TitlePage != nil {
 		sectPr.TitlePage = &TitlePage{}
 	}
 
-	// 复制页码类型
+	// Copy page number type
 	if source.PageNumType != nil {
 		sectPr.PageNumType = &PageNumType{
 			Fmt: source.PageNumType.Fmt,
 		}
 	}
 
-	// 复制文档网格
+	// Copy document grid
 	if source.DocGrid != nil {
 		sectPr.DocGrid = &DocGrid{
 			Type:      source.DocGrid.Type,
@@ -1002,19 +1003,19 @@ func (te *TemplateEngine) cloneSectionProperties(source *SectionProperties) *Sec
 	return sectPr
 }
 
-// cloneHeaderFooterParts 复制页眉页脚部件 (保留以兼容旧代码，现在由cloneAllDocumentParts处理)
+// cloneHeaderFooterParts copies header/footer parts (kept for backward compatibility; now handled by cloneAllDocumentParts).
 func (te *TemplateEngine) cloneHeaderFooterParts(source, dest *Document) {
 	if source.parts == nil {
 		return
 	}
 
 	for partName, partData := range source.parts {
-		// 复制页眉文件
+		// Copy header files
 		if strings.HasPrefix(partName, "word/header") {
 			dest.parts[partName] = make([]byte, len(partData))
 			copy(dest.parts[partName], partData)
 		}
-		// 复制页脚文件
+		// Copy footer files
 		if strings.HasPrefix(partName, "word/footer") {
 			dest.parts[partName] = make([]byte, len(partData))
 			copy(dest.parts[partName], partData)
@@ -1022,7 +1023,7 @@ func (te *TemplateEngine) cloneHeaderFooterParts(source, dest *Document) {
 	}
 }
 
-// cloneParagraph 深度复制段落
+// cloneParagraph deep copies a paragraph.
 func (te *TemplateEngine) cloneParagraph(source *Paragraph) *Paragraph {
 	newPara := &Paragraph{
 		Properties: te.cloneParagraphProperties(source.Properties),
@@ -1036,7 +1037,7 @@ func (te *TemplateEngine) cloneParagraph(source *Paragraph) *Paragraph {
 	return newPara
 }
 
-// cloneParagraphProperties 深度复制段落属性
+// cloneParagraphProperties deep copies paragraph properties.
 func (te *TemplateEngine) cloneParagraphProperties(source *ParagraphProperties) *ParagraphProperties {
 	if source == nil {
 		return nil
@@ -1044,14 +1045,14 @@ func (te *TemplateEngine) cloneParagraphProperties(source *ParagraphProperties) 
 
 	props := &ParagraphProperties{}
 
-	// 复制段落样式
+	// Copy paragraph style
 	if source.ParagraphStyle != nil {
 		props.ParagraphStyle = &ParagraphStyle{
 			Val: source.ParagraphStyle.Val,
 		}
 	}
 
-	// 复制编号属性
+	// Copy numbering properties
 	if source.NumberingProperties != nil {
 		props.NumberingProperties = &NumberingProperties{}
 		if source.NumberingProperties.ILevel != nil {
@@ -1062,7 +1063,7 @@ func (te *TemplateEngine) cloneParagraphProperties(source *ParagraphProperties) 
 		}
 	}
 
-	// 复制间距
+	// Copy spacing
 	if source.Spacing != nil {
 		props.Spacing = &Spacing{
 			Before:   source.Spacing.Before,
@@ -1072,14 +1073,14 @@ func (te *TemplateEngine) cloneParagraphProperties(source *ParagraphProperties) 
 		}
 	}
 
-	// 复制对齐方式
+	// Copy justification
 	if source.Justification != nil {
 		props.Justification = &Justification{
 			Val: source.Justification.Val,
 		}
 	}
 
-	// 复制缩进
+	// Copy indentation
 	if source.Indentation != nil {
 		props.Indentation = &Indentation{
 			FirstLine: source.Indentation.FirstLine,
@@ -1088,7 +1089,7 @@ func (te *TemplateEngine) cloneParagraphProperties(source *ParagraphProperties) 
 		}
 	}
 
-	// 复制制表符
+	// Copy tabs
 	if source.Tabs != nil {
 		props.Tabs = &Tabs{
 			Tabs: make([]TabDef, len(source.Tabs.Tabs)),
@@ -1105,25 +1106,25 @@ func (te *TemplateEngine) cloneParagraphProperties(source *ParagraphProperties) 
 	return props
 }
 
-// cloneRun 深度复制文本运行
+// cloneRun deep copies a text run.
 func (te *TemplateEngine) cloneRun(source *Run) Run {
 	newRun := Run{
 		Properties: te.cloneRunProperties(source.Properties),
 		Text:       Text{Content: source.Text.Content, Space: source.Text.Space},
 	}
 
-	// 复制图像（如果有）
+	// Copy drawing (if present)
 	if source.Drawing != nil {
-		// 暂时保持简单复制，图像的深度复制比较复杂
+		// Keep a simple copy for now; deep copying drawings is complex
 		newRun.Drawing = source.Drawing
 	}
 
-	// 复制域字符（如果有）
+	// Copy field char (if present)
 	if source.FieldChar != nil {
 		newRun.FieldChar = source.FieldChar
 	}
 
-	// 复制指令文本（如果有）
+	// Copy instruction text (if present)
 	if source.InstrText != nil {
 		newRun.InstrText = source.InstrText
 	}
@@ -1131,7 +1132,7 @@ func (te *TemplateEngine) cloneRun(source *Run) Run {
 	return newRun
 }
 
-// cloneRunProperties 深度复制文本运行属性
+// cloneRunProperties deep copies run properties.
 func (te *TemplateEngine) cloneRunProperties(source *RunProperties) *RunProperties {
 	if source == nil {
 		return nil
@@ -1139,67 +1140,67 @@ func (te *TemplateEngine) cloneRunProperties(source *RunProperties) *RunProperti
 
 	props := &RunProperties{}
 
-	// 复制粗体
+	// Copy bold
 	if source.Bold != nil {
 		props.Bold = &Bold{}
 	}
 
-	// 复制复杂脚本粗体
+	// Copy complex script bold
 	if source.BoldCs != nil {
 		props.BoldCs = &BoldCs{}
 	}
 
-	// 复制斜体
+	// Copy italic
 	if source.Italic != nil {
 		props.Italic = &Italic{}
 	}
 
-	// 复制复杂脚本斜体
+	// Copy complex script italic
 	if source.ItalicCs != nil {
 		props.ItalicCs = &ItalicCs{}
 	}
 
-	// 复制下划线
+	// Copy underline
 	if source.Underline != nil {
 		props.Underline = &Underline{
 			Val: source.Underline.Val,
 		}
 	}
 
-	// 复制删除线
+	// Copy strikethrough
 	if source.Strike != nil {
 		props.Strike = &Strike{}
 	}
 
-	// 复制字体大小
+	// Copy font size
 	if source.FontSize != nil {
 		props.FontSize = &FontSize{
 			Val: source.FontSize.Val,
 		}
 	}
 
-	// 复制复杂脚本字体大小
+	// Copy complex script font size
 	if source.FontSizeCs != nil {
 		props.FontSizeCs = &FontSizeCs{
 			Val: source.FontSizeCs.Val,
 		}
 	}
 
-	// 复制颜色
+	// Copy color
 	if source.Color != nil {
 		props.Color = &Color{
 			Val: source.Color.Val,
 		}
 	}
 
-	// 复制背景色
+	// Copy highlight
 	if source.Highlight != nil {
 		props.Highlight = &Highlight{
 			Val: source.Highlight.Val,
 		}
 	}
 
-	// 完整复制字体族属性，包括所有字体设置
+	// Copy font family properties including all font settings
 	if source.FontFamily != nil {
 		props.FontFamily = &FontFamily{
 			ASCII:    source.FontFamily.ASCII,
@@ -1213,7 +1214,7 @@ func (te *TemplateEngine) cloneRunProperties(source *RunProperties) *RunProperti
 	return props
 }
 
-// cloneTable 深度复制表格
+// cloneTable deep copies a table.
 func (te *TemplateEngine) cloneTable(source *Table) *Table {
 	newTable := &Table{
 		Properties: te.cloneTableProperties(source.Properties),
@@ -1228,16 +1229,16 @@ func (te *TemplateEngine) cloneTable(source *Table) *Table {
 	return newTable
 }
 
-// cloneTableProperties 深度复制表格属性
+// cloneTableProperties deep copies table properties.
 func (te *TemplateEngine) cloneTableProperties(source *TableProperties) *TableProperties {
 	if source == nil {
-		Debug("克隆表格属性: 源属性为空")
+		Debug("cloneTableProperties: source properties are nil")
 		return nil
 	}
 
 	props := &TableProperties{}
 
-	// 复制表格宽度
+	// Copy table width
 	if source.TableW != nil {
 		props.TableW = &TableWidth{
 			W:    source.TableW.W,
@@ -1245,14 +1246,14 @@ func (te *TemplateEngine) cloneTableProperties(source *TableProperties) *TablePr
 		}
 	}
 
-	// 复制表格对齐
+	// Copy table alignment
 	if source.TableJc != nil {
 		props.TableJc = &TableJc{
 			Val: source.TableJc.Val,
 		}
 	}
 
-	// 复制表格外观
+	// Copy table look
 	if source.TableLook != nil {
 		props.TableLook = &TableLook{
 			Val:      source.TableLook.Val,
@@ -1265,19 +1266,19 @@ func (te *TemplateEngine) cloneTableProperties(source *TableProperties) *TablePr
 		}
 	}
 
-	// 复制表格样式
+	// Copy table style
 	if source.TableStyle != nil {
 		props.TableStyle = &TableStyle{
 			Val: source.TableStyle.Val,
 		}
 	}
 
-	// 复制表格边框
+	// Copy table borders
 	if source.TableBorders != nil {
 		props.TableBorders = te.cloneTableBorders(source.TableBorders)
 	}
 
-	// 复制表格底纹
+	// Copy table shading
 	if source.Shd != nil {
 		props.Shd = &TableShading{
 			Val:       source.Shd.Val,
@@ -1287,19 +1288,19 @@ func (te *TemplateEngine) cloneTableProperties(source *TableProperties) *TablePr
 		}
 	}
 
-	// 复制表格单元格边距
+	// Copy table cell margins
 	if source.TableCellMar != nil {
 		props.TableCellMar = te.cloneTableCellMargins(source.TableCellMar)
 	}
 
-	// 复制表格布局
+	// Copy table layout
 	if source.TableLayout != nil {
 		props.TableLayout = &TableLayoutType{
 			Type: source.TableLayout.Type,
 		}
 	}
 
-	// 复制表格缩进
+	// Copy table indentation
 	if source.TableInd != nil {
 		props.TableInd = &TableIndentation{
 			W:    source.TableInd.W,
@@ -1310,7 +1311,7 @@ func (te *TemplateEngine) cloneTableProperties(source *TableProperties) *TablePr
 	return props
 }
 
-// cloneTableBorders 深度复制表格边框
+// cloneTableBorders deep copies table borders.
 func (te *TemplateEngine) cloneTableBorders(source *TableBorders) *TableBorders {
 	if source == nil {
 		return nil
@@ -1381,7 +1382,7 @@ func (te *TemplateEngine) cloneTableBorders(source *TableBorders) *TableBorders 
 	return borders
 }
 
-// cloneTableCellMargins 深度复制表格单元格边距
+// cloneTableCellMargins deep copies table cell margins.
 func (te *TemplateEngine) cloneTableCellMargins(source *TableCellMargins) *TableCellMargins {
 	if source == nil {
 		return nil
@@ -1420,7 +1421,7 @@ func (te *TemplateEngine) cloneTableCellMargins(source *TableCellMargins) *Table
 	return margins
 }
 
-// cloneTableGrid 深度复制表格网格
+// cloneTableGrid deep copies a table grid.
 func (te *TemplateEngine) cloneTableGrid(source *TableGrid) *TableGrid {
 	if source == nil {
 		return nil
@@ -1439,7 +1440,7 @@ func (te *TemplateEngine) cloneTableGrid(source *TableGrid) *TableGrid {
 	return grid
 }
 
-// cloneTableCellMarginsCell 深度复制表格单元格边距（单元格级别）
+// cloneTableCellMarginsCell deep copies table cell margins (cell level).
 func (te *TemplateEngine) cloneTableCellMarginsCell(source *TableCellMarginsCell) *TableCellMarginsCell {
 	if source == nil {
 		return nil
@@ -1478,7 +1479,7 @@ func (te *TemplateEngine) cloneTableCellMarginsCell(source *TableCellMarginsCell
 	return margins
 }
 
-// cloneTableCellBorders 深度复制表格单元格边框
+// cloneTableCellBorders deep copies table cell borders.
 func (te *TemplateEngine) cloneTableCellBorders(source *TableCellBorders) *TableCellBorders {
 	if source == nil {
 		return nil
@@ -1569,7 +1570,7 @@ func (te *TemplateEngine) cloneTableCellBorders(source *TableCellBorders) *Table
 	return borders
 }
 
-// cloneTableRow 深度复制表格行
+// cloneTableRow deep copies a table row.
 func (te *TemplateEngine) cloneTableRow(source *TableRow) *TableRow {
 	newRow := &TableRow{
 		Properties: te.cloneTableRowProperties(source.Properties),
@@ -1583,7 +1584,7 @@ func (te *TemplateEngine) cloneTableRow(source *TableRow) *TableRow {
 	return newRow
 }
 
-// cloneTableRowProperties 深度复制表格行属性
+// cloneTableRowProperties deep copies table row properties.
 func (te *TemplateEngine) cloneTableRowProperties(source *TableRowProperties) *TableRowProperties {
 	if source == nil {
 		return nil
@@ -1591,7 +1592,7 @@ func (te *TemplateEngine) cloneTableRowProperties(source *TableRowProperties) *T
 
 	props := &TableRowProperties{}
 
-	// 复制行高
+	// Copy row height
 	if source.TableRowH != nil {
 		props.TableRowH = &TableRowH{
 			Val:   source.TableRowH.Val,
@@ -1599,14 +1600,14 @@ func (te *TemplateEngine) cloneTableRowProperties(source *TableRowProperties) *T
 		}
 	}
 
-	// 复制禁止跨页分割
+	// Copy can't split across pages
 	if source.CantSplit != nil {
 		props.CantSplit = &CantSplit{
 			Val: source.CantSplit.Val,
 		}
 	}
 
-	// 复制标题行重复
+	// Copy header row repeat
 	if source.TblHeader != nil {
 		props.TblHeader = &TblHeader{
 			Val: source.TblHeader.Val,
@@ -1616,19 +1617,19 @@ func (te *TemplateEngine) cloneTableRowProperties(source *TableRowProperties) *T
 	return props
 }
 
-// cloneTableCell 深度复制表格单元格
+// cloneTableCell deep copies a table cell.
 func (te *TemplateEngine) cloneTableCell(source *TableCell) TableCell {
 	newCell := TableCell{
 		Properties: te.cloneTableCellProperties(source.Properties),
 		Paragraphs: make([]Paragraph, len(source.Paragraphs)),
-		Tables:     make([]Table, len(source.Tables)), // 复制嵌套表格
+		Tables:     make([]Table, len(source.Tables)), // copy nested tables
 	}
 
 	for i, para := range source.Paragraphs {
 		newCell.Paragraphs[i] = *te.cloneParagraph(&para)
 	}
 
-	// 深度复制嵌套表格
+	// Deep copy nested tables
 	for i, table := range source.Tables {
 		newCell.Tables[i] = *te.cloneTable(&table)
 	}
@@ -1636,7 +1637,7 @@ func (te *TemplateEngine) cloneTableCell(source *TableCell) TableCell {
 	return newCell
 }
 
-// cloneTableCellProperties 深度复制表格单元格属性
+// cloneTableCellProperties deep copies table cell properties.
 func (te *TemplateEngine) cloneTableCellProperties(source *TableCellProperties) *TableCellProperties {
 	if source == nil {
 		return nil
@@ -1644,7 +1645,7 @@ func (te *TemplateEngine) cloneTableCellProperties(source *TableCellProperties) 
 
 	props := &TableCellProperties{}
 
-	// 复制单元格宽度
+	// Copy cell width
 	if source.TableCellW != nil {
 		props.TableCellW = &TableCellW{
 			W:    source.TableCellW.W,
@@ -1652,17 +1653,17 @@ func (te *TemplateEngine) cloneTableCellProperties(source *TableCellProperties) 
 		}
 	}
 
-	// 复制单元格边距
+	// Copy cell margins
 	if source.TcMar != nil {
 		props.TcMar = te.cloneTableCellMarginsCell(source.TcMar)
 	}
 
-	// 复制单元格边框
+	// Copy cell borders
 	if source.TcBorders != nil {
 		props.TcBorders = te.cloneTableCellBorders(source.TcBorders)
 	}
 
-	// 复制单元格底纹
+	// Copy cell shading
 	if source.Shd != nil {
 		props.Shd = &TableCellShading{
 			Val:       source.Shd.Val,
@@ -1672,42 +1673,42 @@ func (te *TemplateEngine) cloneTableCellProperties(source *TableCellProperties) 
 		}
 	}
 
-	// 复制单元格垂直对齐
+	// Copy cell vertical alignment
 	if source.VAlign != nil {
 		props.VAlign = &VAlign{
 			Val: source.VAlign.Val,
 		}
 	}
 
-	// 复制网格跨度
+	// Copy grid span
 	if source.GridSpan != nil {
 		props.GridSpan = &GridSpan{
 			Val: source.GridSpan.Val,
 		}
 	}
 
-	// 复制垂直合并
+	// Copy vertical merge
 	if source.VMerge != nil {
 		props.VMerge = &VMerge{
 			Val: source.VMerge.Val,
 		}
 	}
 
-	// 复制文字方向
+	// Copy text direction
 	if source.TextDirection != nil {
 		props.TextDirection = &TextDirection{
 			Val: source.TextDirection.Val,
 		}
 	}
 
-	// 复制禁止换行
+	// Copy no-wrap
 	if source.NoWrap != nil {
 		props.NoWrap = &NoWrap{
 			Val: source.NoWrap.Val,
 		}
 	}
 
-	// 复制隐藏标记
+	// Copy hide mark
 	if source.HideMark != nil {
 		props.HideMark = &HideMark{
 			Val: source.HideMark.Val,
@@ -1717,18 +1718,18 @@ func (te *TemplateEngine) cloneTableCellProperties(source *TableCellProperties) 
 	return props
 }
 
-// applyRenderedContentToDocument 将渲染内容应用到文档
+// applyRenderedContentToDocument applies rendered content to a document.
 func (te *TemplateEngine) applyRenderedContentToDocument(doc *Document, content string) error {
-	// 如果内容为空，直接返回
+	// If content is empty, return immediately
 	if strings.TrimSpace(content) == "" {
 		return nil
 	}
 
-	// 将内容按行分割并创建段落
+	// Split content by lines and create paragraphs
 	lines := strings.Split(content, "\n")
 
 	for _, line := range lines {
-		// 创建新段落，即使是空行也要创建（保持格式）
+		// Create a new paragraph even for empty lines (to preserve formatting)
 		para := &Paragraph{
 			Properties: &ParagraphProperties{
 				ParagraphStyle: &ParagraphStyle{Val: "Normal"},
@@ -1736,7 +1737,7 @@ func (te *TemplateEngine) applyRenderedContentToDocument(doc *Document, content 
 			Runs: []Run{},
 		}
 
-		// 如果行不为空，添加文本内容
+		// If the line is not empty, add text content
 		if strings.TrimSpace(line) != "" {
 			run := Run{
 				Text: Text{Content: line},
@@ -1751,7 +1752,7 @@ func (te *TemplateEngine) applyRenderedContentToDocument(doc *Document, content 
 			}
 			para.Runs = append(para.Runs, run)
 		} else {
-			// 空行也需要一个空的Run来保持段落结构
+			// Empty lines still need an empty Run to maintain paragraph structure
 			run := Run{
 				Text: Text{Content: ""},
 				Properties: &RunProperties{
@@ -1766,25 +1767,25 @@ func (te *TemplateEngine) applyRenderedContentToDocument(doc *Document, content 
 			para.Runs = append(para.Runs, run)
 		}
 
-		// 将段落添加到文档
+		// Add paragraph to document
 		doc.Body.Elements = append(doc.Body.Elements, para)
 	}
 
 	return nil
 }
 
-// RenderTemplateToDocument 渲染模板到新文档（新的主要方法）
+// RenderTemplateToDocument renders a template to a new document (primary method).
 func (te *TemplateEngine) RenderTemplateToDocument(templateName string, data *TemplateData) (*Document, error) {
 	template, err := te.GetTemplate(templateName)
 	if err != nil {
 		return nil, WrapErrorWithContext("render_template_to_document", err, templateName)
 	}
 
-	// 如果有基础文档，克隆它并在其上进行变量替换
+	// If there is a base document, clone it and perform variable substitution on it
 	if template.BaseDoc != nil {
 		doc := te.cloneDocument(template.BaseDoc)
 
-		// 在文档结构中直接进行变量替换
+		// Perform variable substitution directly in the document structure
 		err := te.replaceVariablesInDocument(doc, data)
 		if err != nil {
 			return nil, WrapErrorWithContext("render_template_to_document", err, templateName)
@@ -1793,13 +1794,13 @@ func (te *TemplateEngine) RenderTemplateToDocument(templateName string, data *Te
 		return doc, nil
 	}
 
-	// 如果没有基础文档，使用原有的方式
+	// If there is no base document, use the original approach
 	return te.RenderToDocument(templateName, data)
 }
 
-// replaceVariablesInDocument 在文档结构中直接替换变量
+// replaceVariablesInDocument replaces variables directly in the document structure.
 func (te *TemplateEngine) replaceVariablesInDocument(doc *Document, data *TemplateData) error {
-	// 首先处理文档级别的循环（跨段落）
+	// Process document-level loops (across paragraphs) first
 	err := te.processDocumentLevelLoops(doc, data)
 	if err != nil {
 		return err
@@ -1808,14 +1809,14 @@ func (te *TemplateEngine) replaceVariablesInDocument(doc *Document, data *Templa
 	for _, element := range doc.Body.Elements {
 		switch elem := element.(type) {
 		case *Paragraph:
-			// 处理段落中的变量替换
+			// Replace variables in paragraph
 			err := te.replaceVariablesInParagraph(elem, data)
 			if err != nil {
 				return err
 			}
 
 		case *Table:
-			// 处理表格中的变量替换和模板语法
+			// Replace variables and process template syntax in table
 			err := te.replaceVariablesInTable(elem, data)
 			if err != nil {
 				return err
@@ -1823,13 +1824,13 @@ func (te *TemplateEngine) replaceVariablesInDocument(doc *Document, data *Templa
 		}
 	}
 
-	// 处理页眉页脚中的变量替换
+	// Replace variables in headers and footers
 	err = te.replaceVariablesInHeadersFooters(doc, data)
 	if err != nil {
 		return err
 	}
 
-	// 处理图片占位符
+	// Process image placeholders
 	err = te.processImagePlaceholders(doc, data)
 	if err != nil {
 		return err
@@ -1838,26 +1839,26 @@ func (te *TemplateEngine) replaceVariablesInDocument(doc *Document, data *Templa
 	return nil
 }
 
-// replaceVariablesInHeadersFooters 在页眉页脚中替换变量
+// replaceVariablesInHeadersFooters replaces variables in headers and footers.
 func (te *TemplateEngine) replaceVariablesInHeadersFooters(doc *Document, data *TemplateData) error {
 	if doc.parts == nil {
 		return nil
 	}
 
 	for partName, partData := range doc.parts {
-		// 处理页眉文件
+		// Process header files
 		if strings.HasPrefix(partName, "word/header") && strings.HasSuffix(partName, ".xml") {
 			newData, err := te.replaceVariablesInXMLPart(partData, data)
 			if err != nil {
-				return fmt.Errorf("处理页眉变量替换失败 %s: %v", partName, err)
+				return fmt.Errorf("failed to replace variables in header %s: %v", partName, err)
 			}
 			doc.parts[partName] = newData
 		}
-		// 处理页脚文件
+		// Process footer files
 		if strings.HasPrefix(partName, "word/footer") && strings.HasSuffix(partName, ".xml") {
 			newData, err := te.replaceVariablesInXMLPart(partData, data)
 			if err != nil {
-				return fmt.Errorf("处理页脚变量替换失败 %s: %v", partName, err)
+				return fmt.Errorf("failed to replace variables in footer %s: %v", partName, err)
 			}
 			doc.parts[partName] = newData
 		}
@@ -1866,11 +1867,11 @@ func (te *TemplateEngine) replaceVariablesInHeadersFooters(doc *Document, data *
 	return nil
 }
 
-// replaceVariablesInXMLPart 在XML部件中替换变量
+// replaceVariablesInXMLPart replaces variables in an XML part.
 func (te *TemplateEngine) replaceVariablesInXMLPart(xmlData []byte, data *TemplateData) ([]byte, error) {
 	content := string(xmlData)
 
-	// 替换变量: {{变量名}} - 使用预编译的正则表达式
+	// Replace variables: {{variableName}} - using pre-compiled regex
 	content = headerFooterVarPattern.ReplaceAllStringFunc(content, func(match string) string {
 		matches := headerFooterVarPattern.FindStringSubmatch(match)
 		if len(matches) < 2 {
@@ -1878,19 +1879,19 @@ func (te *TemplateEngine) replaceVariablesInXMLPart(xmlData []byte, data *Templa
 		}
 		varName := matches[1]
 		if value, exists := data.Variables[varName]; exists {
-			// 对XML内容进行转义
+			// Escape XML content
 			return te.escapeXMLContent(te.interfaceToString(value))
 		}
-		return match // 保持原样
+		return match // keep as is
 	})
 
-	// 替换条件语句
+	// Replace conditional statements
 	content = te.renderConditionals(content, data.Conditions)
 
 	return []byte(content), nil
 }
 
-// escapeXMLContent 转义XML特殊字符
+// escapeXMLContent escapes XML special characters.
 func (te *TemplateEngine) escapeXMLContent(s string) string {
 	s = strings.ReplaceAll(s, "&", "&amp;")
 	s = strings.ReplaceAll(s, "<", "&lt;")
@@ -1900,7 +1901,7 @@ func (te *TemplateEngine) escapeXMLContent(s string) string {
 	return s
 }
 
-// processDocumentLevelLoops 处理文档级别的循环（跨段落）
+// processDocumentLevelLoops processes document-level loops (across paragraphs).
 func (te *TemplateEngine) processDocumentLevelLoops(doc *Document, data *TemplateData) error {
 	elements := doc.Body.Elements
 	newElements := make([]interface{}, 0)
@@ -1909,26 +1910,26 @@ func (te *TemplateEngine) processDocumentLevelLoops(doc *Document, data *Templat
 	for i < len(elements) {
 		element := elements[i]
 
-		// 检查当前元素是否包含循环开始标记
+		// Check if the current element contains a loop start tag
 		if para, ok := element.(*Paragraph); ok {
-			// 获取段落的完整文本
+			// Get the paragraph's full text
 			fullText := ""
 			for _, run := range para.Runs {
 				fullText += run.Text.Content
 			}
 
-			// 检查是否包含循环开始标记
+			// Check if it contains a loop start tag
 			eachPattern := regexp.MustCompile(`\{\{#each\s+(\w+)\}\}`)
 			matches := eachPattern.FindStringSubmatch(fullText)
 
 			if len(matches) > 1 {
 				listVarName := matches[1]
 
-				// 找到循环结束位置
+				// Find loop end position
 				loopEndIndex := -1
 				templateElements := make([]interface{}, 0)
 
-				// 收集循环模板元素（从当前位置到结束标记）
+				// Collect loop template elements (from current position to end tag)
 				for j := i; j < len(elements); j++ {
 					templateElements = append(templateElements, elements[j])
 
@@ -1946,42 +1947,42 @@ func (te *TemplateEngine) processDocumentLevelLoops(doc *Document, data *Templat
 				}
 
 				if loopEndIndex >= 0 {
-					// 处理循环
+					// Process loop
 					if listData, exists := data.Lists[listVarName]; exists {
-						// 为每个数据项生成元素
+						// Generate elements for each data item
 						for _, item := range listData {
 							if itemMap, ok := item.(map[string]interface{}); ok {
-								// 复制模板元素并替换变量
+								// Clone template elements and replace variables
 								for _, templateElement := range templateElements {
 									if templatePara, ok := templateElement.(*Paragraph); ok {
 										newPara := te.cloneParagraph(templatePara)
 
-										// 处理段落文本
+										// Process paragraph text
 										fullText := ""
 										for _, run := range newPara.Runs {
 											fullText += run.Text.Content
 										}
 
-										// 移除循环标记
+										// Remove loop tags
 										content := fullText
 										content = regexp.MustCompile(`\{\{#each\s+\w+\}\}`).ReplaceAllString(content, "")
 										content = regexp.MustCompile(`\{\{/each\}\}`).ReplaceAllString(content, "")
 
-										// 替换变量
+										// Replace variables
 										for key, value := range itemMap {
 											placeholder := fmt.Sprintf("{{%s}}", key)
 											content = strings.ReplaceAll(content, placeholder, te.interfaceToString(value))
 										}
 
-										// 如果内容不为空，创建新段落
+										// If content is not empty, create a new paragraph
 										if strings.TrimSpace(content) != "" {
-											// 保留原始段落的样式，不强制设置粗体 (Fix for Issue #88)
+											// Preserve the original paragraph style, do not force bold (Fix for Issue #88)
 											if len(newPara.Runs) > 0 {
-												// 保留原始Run的属性
+												// Preserve the original Run's properties
 												newPara.Runs[0].Text.Content = content
 												newPara.Runs = newPara.Runs[:1]
 											} else {
-												// 如果没有原始Run，创建一个不带样式的新Run
+												// If there is no original Run, create a new unstyled Run
 												newPara.Runs = []Run{{
 													Text: Text{Content: content},
 												}}
@@ -1994,26 +1995,26 @@ func (te *TemplateEngine) processDocumentLevelLoops(doc *Document, data *Templat
 						}
 					}
 
-					// 跳过循环模板元素
+					// Skip loop template elements
 					i = loopEndIndex + 1
 					continue
 				}
 			}
 		}
 
-		// 不是循环元素，直接添加
+		// Not a loop element, add directly
 		newElements = append(newElements, element)
 		i++
 	}
 
-	// 更新文档元素
+	// Update document elements
 	doc.Body.Elements = newElements
 	return nil
 }
 
-// replaceVariablesInParagraph 在段落中替换变量（改进版本，更好地保持样式）
+// replaceVariablesInParagraph replaces variables in a paragraph (improved version with better style preservation).
 func (te *TemplateEngine) replaceVariablesInParagraph(para *Paragraph, data *TemplateData) error {
-	// 首先识别所有变量占位符的位置
+	// First identify all variable placeholder positions
 	fullText := ""
 	runInfos := make([]struct {
 		startIndex int
@@ -2039,15 +2040,15 @@ func (te *TemplateEngine) replaceVariablesInParagraph(para *Paragraph, data *Tem
 		}
 	}
 
-	// 如果没有文本内容，直接返回
+	// If there is no text content, return immediately
 	if fullText == "" {
 		return nil
 	}
 
-	// 先处理循环语句（包括非表格循环）
+	// Process loop statements first (including non-table loops)
 	processedText, hasLoopChanges := te.processNonTableLoops(fullText, data)
 	if hasLoopChanges {
-		// 重新构建段落
+		// Rebuild paragraph
 		para.Runs = []Run{{
 			Text: Text{Content: processedText},
 			Properties: &RunProperties{
@@ -2062,10 +2063,10 @@ func (te *TemplateEngine) replaceVariablesInParagraph(para *Paragraph, data *Tem
 		fullText = processedText
 	}
 
-	// 使用新的逐个变量替换方法
+	// Use the new sequential variable replacement method
 	newRuns, hasVarChanges := te.replaceVariablesSequentially(runInfos, fullText, data)
 
-	// 如果有变化，更新段落的Run
+	// If there are changes, update the paragraph's Runs
 	if hasVarChanges || hasLoopChanges {
 		para.Runs = newRuns
 	}
@@ -2073,7 +2074,7 @@ func (te *TemplateEngine) replaceVariablesInParagraph(para *Paragraph, data *Tem
 	return nil
 }
 
-// processNonTableLoops 处理非表格循环
+// processNonTableLoops processes non-table loops.
 func (te *TemplateEngine) processNonTableLoops(content string, data *TemplateData) (string, bool) {
 	eachPattern := regexp.MustCompile(`(?s)\{\{#each\s+(\w+)\}\}(.*?)\{\{/each\}\}`)
 	matches := eachPattern.FindAllStringSubmatchIndex(content, -1)
@@ -2087,17 +2088,17 @@ func (te *TemplateEngine) processNonTableLoops(content string, data *TemplateDat
 	hasChanges := false
 
 	for _, match := range matches {
-		// 找到变量名和块内容
+		// Extract variable name and block content
 		fullMatch := content[match[0]:match[1]]
 		submatch := eachPattern.FindStringSubmatch(fullMatch)
 		if len(submatch) >= 3 {
 			listVar := submatch[1]
 			blockContent := submatch[2]
 
-			// 添加循环前的内容
+			// Add content before the loop
 			result.WriteString(content[lastEnd:match[0]])
 
-			// 处理循环
+			// Process loop
 			if listData, exists := data.Lists[listVar]; exists {
 				for _, item := range listData {
 					if itemMap, ok := item.(map[string]interface{}); ok {
@@ -2116,7 +2117,7 @@ func (te *TemplateEngine) processNonTableLoops(content string, data *TemplateDat
 		}
 	}
 
-	// 添加剩余内容
+	// Add remaining content
 	if lastEnd < len(content) {
 		result.WriteString(content[lastEnd:])
 	}
@@ -2124,19 +2125,19 @@ func (te *TemplateEngine) processNonTableLoops(content string, data *TemplateDat
 	return result.String(), hasChanges
 }
 
-// replaceVariablesSequentially 逐个替换变量，保持样式
+// replaceVariablesSequentially replaces variables one by one while preserving styles.
 func (te *TemplateEngine) replaceVariablesSequentially(originalRunInfos []struct {
 	startIndex int
 	endIndex   int
 	run        *Run
 }, originalText string, data *TemplateData) ([]Run, bool) {
 
-	// 找到所有变量位置
+	// Find all variable positions
 	varPattern := regexp.MustCompile(`\{\{(\w+)\}\}`)
 	varMatches := varPattern.FindAllStringSubmatchIndex(originalText, -1)
 
 	if len(varMatches) == 0 {
-		// 没有变量，检查条件语句
+		// No variables, check conditional statements
 		return te.processConditionals(originalRunInfos, originalText, data)
 	}
 
@@ -2150,19 +2151,19 @@ func (te *TemplateEngine) replaceVariablesSequentially(originalRunInfos []struct
 		varNameStart := varMatch[2]
 		varNameEnd := varMatch[3]
 
-		// 添加变量前的文本（保持原样式）
+		// Add text before the variable (preserving original style)
 		if varStart > currentPos {
 			beforeText := originalText[currentPos:varStart]
 			beforeRuns := te.extractRunsForSegment(originalRunInfos, currentPos, varStart, beforeText)
 			newRuns = append(newRuns, beforeRuns...)
 		}
 
-		// 处理变量替换
+		// Process variable replacement
 		varName := originalText[varNameStart:varNameEnd]
 		if value, exists := data.Variables[varName]; exists {
 			replacementText := te.interfaceToString(value)
 
-			// 为变量选择合适的样式（使用覆盖变量位置的Run样式）
+			// Select appropriate style for the variable (use the Run style covering the variable position)
 			varRun := te.findRunForPosition(originalRunInfos, varStart)
 			if varRun != nil {
 				newRun := te.cloneRun(varRun)
@@ -2171,7 +2172,7 @@ func (te *TemplateEngine) replaceVariablesSequentially(originalRunInfos []struct
 				hasChanges = true
 			}
 		} else {
-			// 变量不存在，保持原始占位符
+			// Variable not found, keep original placeholder
 			varText := originalText[varStart:varEnd]
 			varRun := te.findRunForPosition(originalRunInfos, varStart)
 			if varRun != nil {
@@ -2184,19 +2185,19 @@ func (te *TemplateEngine) replaceVariablesSequentially(originalRunInfos []struct
 		currentPos = varEnd
 	}
 
-	// 添加最后剩余的文本
+	// Add the remaining text at the end
 	if currentPos < len(originalText) {
 		afterText := originalText[currentPos:]
 		afterRuns := te.extractRunsForSegment(originalRunInfos, currentPos, len(originalText), afterText)
 		newRuns = append(newRuns, afterRuns...)
 	}
 
-	// 如果没有找到任何变量但文本发生了变化，处理条件语句
+	// If no variables were found but text changed, process conditional statements
 	if !hasChanges {
 		return te.processConditionals(originalRunInfos, originalText, data)
 	}
 
-	// 对结果处理条件语句（但要保持每个Run的独立性）
+	// Process conditional statements on the result (while keeping each Run independent)
 	if hasChanges {
 		finalRuns := te.processConditionalsPreservingRuns(newRuns, data)
 		return finalRuns, true
@@ -2205,7 +2206,7 @@ func (te *TemplateEngine) replaceVariablesSequentially(originalRunInfos []struct
 	return newRuns, hasChanges
 }
 
-// processConditionalsPreservingRuns 处理条件语句但保持Run的独立性
+// processConditionalsPreservingRuns processes conditional statements while preserving Run independence.
 func (te *TemplateEngine) processConditionalsPreservingRuns(runs []Run, data *TemplateData) []Run {
 	finalRuns := make([]Run, 0)
 
@@ -2213,13 +2214,13 @@ func (te *TemplateEngine) processConditionalsPreservingRuns(runs []Run, data *Te
 		originalContent := run.Text.Content
 		processedContent := te.renderConditionals(originalContent, data.Conditions)
 
-		// 如果内容发生变化，更新这个Run
+		// If content changed, update this Run
 		if processedContent != originalContent {
-			newRun := run // 复制Run结构
+			newRun := run // copy Run struct
 			newRun.Text.Content = processedContent
 			finalRuns = append(finalRuns, newRun)
 		} else {
-			// 内容没有变化，保持原样
+			// Content unchanged, keep as is
 			finalRuns = append(finalRuns, run)
 		}
 	}
@@ -2227,7 +2228,7 @@ func (te *TemplateEngine) processConditionalsPreservingRuns(runs []Run, data *Te
 	return finalRuns
 }
 
-// processConditionals 处理条件语句
+// processConditionals processes conditional statements.
 func (te *TemplateEngine) processConditionals(originalRunInfos []struct {
 	startIndex int
 	endIndex   int
@@ -2237,7 +2238,7 @@ func (te *TemplateEngine) processConditionals(originalRunInfos []struct {
 	processedText := te.renderConditionals(originalText, data.Conditions)
 
 	if processedText == originalText {
-		// 没有变化，返回原始Runs
+		// No changes, return original Runs
 		newRuns := make([]Run, len(originalRunInfos))
 		for i, runInfo := range originalRunInfos {
 			newRuns[i] = te.cloneRun(runInfo.run)
@@ -2245,20 +2246,20 @@ func (te *TemplateEngine) processConditionals(originalRunInfos []struct {
 		return newRuns, false
 	}
 
-	// 有条件语句被处理，简化处理
+	// Conditionals were processed, simplify handling
 	if len(originalRunInfos) == 1 {
 		newRun := te.cloneRun(originalRunInfos[0].run)
 		newRun.Text.Content = processedText
 		return []Run{newRun}, true
 	}
 
-	// 多个Run的情况，使用第一个Run的样式
+	// Multiple Runs case: use the first Run's style
 	newRun := te.cloneRun(originalRunInfos[0].run)
 	newRun.Text.Content = processedText
 	return []Run{newRun}, true
 }
 
-// extractRunsForSegment 为文本片段提取相应的Run（改进版本）
+// extractRunsForSegment extracts the corresponding Runs for a text segment (improved version).
 func (te *TemplateEngine) extractRunsForSegment(originalRunInfos []struct {
 	startIndex int
 	endIndex   int
@@ -2267,18 +2268,18 @@ func (te *TemplateEngine) extractRunsForSegment(originalRunInfos []struct {
 	runs := make([]Run, 0)
 
 	for _, runInfo := range originalRunInfos {
-		// 检查Run是否与文本段有重叠
+		// Check if the Run overlaps with the text segment
 		if runInfo.endIndex > segmentStart && runInfo.startIndex < segmentEnd {
 			overlapStart := max(runInfo.startIndex, segmentStart)
 			overlapEnd := min(runInfo.endIndex, segmentEnd)
 
 			if overlapEnd > overlapStart {
 				newRun := te.cloneRun(runInfo.run)
-				// 计算在分段文本中的相对位置
+				// Calculate relative position within the segment text
 				relativeStart := overlapStart - segmentStart
 				relativeEnd := overlapEnd - segmentStart
 
-				// 确保索引在有效范围内
+				// Ensure indices are within valid range
 				if relativeStart >= 0 && relativeEnd <= len(segmentText) && relativeStart < relativeEnd {
 					newRun.Text.Content = segmentText[relativeStart:relativeEnd]
 					if newRun.Text.Content != "" {
@@ -2292,7 +2293,7 @@ func (te *TemplateEngine) extractRunsForSegment(originalRunInfos []struct {
 	return runs
 }
 
-// findRunForPosition 找到覆盖指定位置的Run
+// findRunForPosition finds the Run covering the specified position.
 func (te *TemplateEngine) findRunForPosition(originalRunInfos []struct {
 	startIndex int
 	endIndex   int
@@ -2303,14 +2304,14 @@ func (te *TemplateEngine) findRunForPosition(originalRunInfos []struct {
 			return runInfo.run
 		}
 	}
-	// 如果没找到，返回第一个Run
+	// If not found, return the first Run
 	if len(originalRunInfos) > 0 {
 		return originalRunInfos[0].run
 	}
 	return nil
 }
 
-// max 返回两个整数中的较大值
+// max returns the larger of two integers.
 func max(a, b int) int {
 	if a > b {
 		return a
@@ -2318,7 +2319,7 @@ func max(a, b int) int {
 	return b
 }
 
-// min 返回两个整数中的较小值
+// min returns the smaller of two integers.
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -2326,14 +2327,14 @@ func min(a, b int) int {
 	return b
 }
 
-// replaceVariablesInTable 在表格中替换变量和处理表格模板
+// replaceVariablesInTable replaces variables and processes table templates.
 func (te *TemplateEngine) replaceVariablesInTable(table *Table, data *TemplateData) error {
-	// 检查是否有表格循环模板
+	// Check if there is a table loop template
 	if len(table.Rows) > 0 && te.isTableTemplate(table) {
 		return te.renderTableTemplate(table, data)
 	}
 
-	// 普通表格变量替换
+	// Regular table variable replacement
 	for i := range table.Rows {
 		for j := range table.Rows[i].Cells {
 			for k := range table.Rows[i].Cells[j].Paragraphs {
@@ -2342,7 +2343,7 @@ func (te *TemplateEngine) replaceVariablesInTable(table *Table, data *TemplateDa
 					return err
 				}
 			}
-			// 递归处理嵌套表格
+			// Recursively process nested tables
 			for k := range table.Rows[i].Cells[j].Tables {
 				err := te.replaceVariablesInTable(&table.Rows[i].Cells[j].Tables[k], data)
 				if err != nil {
@@ -2355,17 +2356,17 @@ func (te *TemplateEngine) replaceVariablesInTable(table *Table, data *TemplateDa
 	return nil
 }
 
-// isTableTemplate 检查表格是否包含模板语法（支持跨Run检测）
+// isTableTemplate checks if a table contains template syntax (supports cross-Run detection).
 func (te *TemplateEngine) isTableTemplate(table *Table) bool {
 	if len(table.Rows) == 0 {
 		return false
 	}
 
-	// 检查所有行是否包含循环语法，支持跨Run检测
+	// Check all rows for loop syntax, with cross-Run detection support
 	for _, row := range table.Rows {
 		for _, cell := range row.Cells {
 			for _, para := range cell.Paragraphs {
-				// 使用新的跨Run检测方法
+				// Use the new cross-Run detection method
 				if te.containsTemplateLoopInRuns(para.Runs) {
 					return true
 				}
@@ -2376,15 +2377,15 @@ func (te *TemplateEngine) isTableTemplate(table *Table) bool {
 	return false
 }
 
-// containsTemplateLoop 检查文本是否包含循环模板语法（支持跨Run检测）
+// containsTemplateLoop checks if text contains loop template syntax.
 func (te *TemplateEngine) containsTemplateLoop(text string) bool {
 	eachPattern := regexp.MustCompile(`\{\{#each\s+\w+\}\}`)
 	return eachPattern.MatchString(text)
 }
 
-// containsTemplateLoopInRuns 检查Run列表中是否包含循环模板语法（跨Run检测）
+// containsTemplateLoopInRuns checks if a list of Runs contains loop template syntax (cross-Run detection).
 func (te *TemplateEngine) containsTemplateLoopInRuns(runs []Run) bool {
-	// 合并所有Run的文本
+	// Merge text from all Runs
 	fullText := ""
 	for _, run := range runs {
 		fullText += run.Text.Content
@@ -2393,28 +2394,28 @@ func (te *TemplateEngine) containsTemplateLoopInRuns(runs []Run) bool {
 	return te.containsTemplateLoop(fullText)
 }
 
-// renderTableTemplate 渲染表格模板
+// renderTableTemplate renders a table template.
 func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) error {
 	if len(table.Rows) == 0 {
 		return nil
 	}
 
-	// 找到模板行（包含循环语法的行）
+	// Find the template row (row containing loop syntax)
 	templateRowIndex := -1
 	var listVarName string
 
 	for i, row := range table.Rows {
 		found := false
-		// 检查整行的所有单元格，合并文本来解决跨Run的变量问题
+		// Check all cells in the row, merge text to resolve cross-Run variable issues
 		for _, cell := range row.Cells {
 			for _, para := range cell.Paragraphs {
-				// 合并所有Run的文本
+				// Merge text from all Runs
 				fullText := ""
 				for _, run := range para.Runs {
 					fullText += run.Text.Content
 				}
 
-				// 检查合并后的文本中是否包含循环语法
+				// Check if the merged text contains loop syntax
 				eachPattern := regexp.MustCompile(`\{\{#each\s+(\w+)\}\}`)
 				matches := eachPattern.FindStringSubmatch(fullText)
 				if len(matches) > 1 {
@@ -2437,56 +2438,56 @@ func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) 
 		return nil
 	}
 
-	// 获取列表数据
+	// Get list data
 	listData, exists := data.Lists[listVarName]
 	if !exists || len(listData) == 0 {
-		// 删除模板行
+		// Remove template row
 		table.Rows = append(table.Rows[:templateRowIndex], table.Rows[templateRowIndex+1:]...)
 		return nil
 	}
 
-	// 保存模板行
+	// Save template row
 	templateRow := table.Rows[templateRowIndex]
 	newRows := make([]TableRow, 0)
 
-	// 保留模板行之前的行（深度克隆以保持样式）
+	// Preserve rows before the template row (deep clone to maintain styles)
 	for _, row := range table.Rows[:templateRowIndex] {
 		clonedRow := te.cloneTableRow(&row)
 		newRows = append(newRows, *clonedRow)
 	}
 
-	// 为每个数据项生成新行
+	// Generate new rows for each data item
 	for _, item := range listData {
 		newRow := te.cloneTableRow(&templateRow)
 
-		// 在新行中替换变量
+		// Replace variables in the new row
 		if itemMap, ok := item.(map[string]interface{}); ok {
 			for i := range newRow.Cells {
 				for j := range newRow.Cells[i].Paragraphs {
-					// 合并所有Run的文本
+					// Merge text from all Runs
 					fullText := ""
 					originalRuns := newRow.Cells[i].Paragraphs[j].Runs
 					for _, run := range originalRuns {
 						fullText += run.Text.Content
 					}
 
-					// 移除模板语法标记
+					// Remove template syntax tags
 					content := fullText
 					content = regexp.MustCompile(`\{\{#each\s+\w+\}\}`).ReplaceAllString(content, "")
 					content = regexp.MustCompile(`\{\{/each\}\}`).ReplaceAllString(content, "")
 
-					// 替换变量
+					// Replace variables
 					for key, value := range itemMap {
 						placeholder := fmt.Sprintf("{{%s}}", key)
 						content = strings.ReplaceAll(content, placeholder, te.interfaceToString(value))
 					}
 
-					// 处理条件语句
+					// Process conditional statements
 					content = te.renderLoopConditionals(content, itemMap)
 
-					// 重建Run结构，更好地保持样式继承
+					// Rebuild Run structure for better style inheritance
 					if len(originalRuns) > 0 {
-						// 寻找第一个有实际内容或样式的Run作为样式模板
+						// Find the first Run with actual content or style as a style template
 						var templateRun *Run
 						for k := range originalRuns {
 							if originalRuns[k].Properties != nil || originalRuns[k].Text.Content != "" {
@@ -2500,10 +2501,10 @@ func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) 
 							newRun.Text.Content = content
 							newRow.Cells[i].Paragraphs[j].Runs = []Run{newRun}
 						} else {
-							// 使用第一个Run但确保基本样式
+							// Use the first Run but ensure basic styling
 							newRun := te.cloneRun(&originalRuns[0])
 							newRun.Text.Content = content
-							// 确保基本的字体设置
+							// Ensure basic font settings
 							if newRun.Properties == nil {
 								newRun.Properties = &RunProperties{}
 							}
@@ -2517,7 +2518,7 @@ func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) 
 							newRow.Cells[i].Paragraphs[j].Runs = []Run{newRun}
 						}
 					} else {
-						// 如果没有原始Run，创建新的但尝试继承段落样式
+						// If there is no original Run, create a new one but try to inherit paragraph style
 						newRun := Run{
 							Text: Text{Content: content},
 							Properties: &RunProperties{
@@ -2530,7 +2531,7 @@ func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) 
 							},
 						}
 
-						// 如果段落有默认的Run属性，尝试继承
+						// If the paragraph has default Run properties, try to inherit them
 						if len(templateRow.Cells) > i && len(templateRow.Cells[i].Paragraphs) > j {
 							templatePara := &templateRow.Cells[i].Paragraphs[j]
 							if len(templatePara.Runs) > 0 && templatePara.Runs[0].Properties != nil {
@@ -2542,18 +2543,18 @@ func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) 
 					}
 				}
 
-				// 处理嵌套表格中的变量替换
+				// Process variable replacement in nested tables
 				for k := range newRow.Cells[i].Tables {
-					// 创建模板数据，用于嵌套表格的变量替换
+					// Create template data for nested table variable replacement
 					nestedData := NewTemplateData()
 					nestedData.Variables = make(map[string]interface{})
 					for key, value := range itemMap {
 						nestedData.Variables[key] = value
 					}
-					// 递归处理嵌套表格
+					// Recursively process nested table
 					err := te.replaceVariablesInTable(&newRow.Cells[i].Tables[k], nestedData)
 					if err != nil {
-						Debugf("处理嵌套表格变量替换时出错: %v", err)
+						Debugf("error replacing variables in nested table: %v", err)
 					}
 				}
 			}
@@ -2562,19 +2563,19 @@ func (te *TemplateEngine) renderTableTemplate(table *Table, data *TemplateData) 
 		newRows = append(newRows, *newRow)
 	}
 
-	// 保留模板行之后的行（深度克隆以保持样式）
+	// Preserve rows after the template row (deep clone to maintain styles)
 	for _, row := range table.Rows[templateRowIndex+1:] {
 		clonedRow := te.cloneTableRow(&row)
 		newRows = append(newRows, *clonedRow)
 	}
 
-	// 更新表格行
+	// Update table rows
 	table.Rows = newRows
 
 	return nil
 }
 
-// NewTemplateData 创建新的模板数据
+// NewTemplateData creates a new TemplateData instance.
 func NewTemplateData() *TemplateData {
 	return &TemplateData{
 		Variables:  make(map[string]interface{}),
@@ -2584,76 +2585,76 @@ func NewTemplateData() *TemplateData {
 	}
 }
 
-// SetVariable 设置变量
+// SetVariable sets a variable value.
 func (td *TemplateData) SetVariable(name string, value interface{}) {
 	td.Variables[name] = value
 }
 
-// SetList 设置列表
+// SetList sets a list value.
 func (td *TemplateData) SetList(name string, list []interface{}) {
 	td.Lists[name] = list
 }
 
-// SetCondition 设置条件
+// SetCondition sets a condition value.
 func (td *TemplateData) SetCondition(name string, value bool) {
 	td.Conditions[name] = value
 }
 
-// SetVariables 批量设置变量
+// SetVariables sets multiple variables at once.
 func (td *TemplateData) SetVariables(variables map[string]interface{}) {
 	for name, value := range variables {
 		td.Variables[name] = value
 	}
 }
 
-// GetVariable 获取变量
+// GetVariable retrieves a variable value.
 func (td *TemplateData) GetVariable(name string) (interface{}, bool) {
 	value, exists := td.Variables[name]
 	return value, exists
 }
 
-// GetList 获取列表
+// GetList retrieves a list value.
 func (td *TemplateData) GetList(name string) ([]interface{}, bool) {
 	list, exists := td.Lists[name]
 	return list, exists
 }
 
-// GetCondition 获取条件
+// GetCondition retrieves a condition value.
 func (td *TemplateData) GetCondition(name string) (bool, bool) {
 	value, exists := td.Conditions[name]
 	return value, exists
 }
 
-// GetImage 获取图片数据
+// GetImage retrieves image data.
 func (td *TemplateData) GetImage(name string) (*TemplateImageData, bool) {
 	value, exists := td.Images[name]
 	return value, exists
 }
 
-// Merge 合并模板数据
+// Merge merges another TemplateData into this one.
 func (td *TemplateData) Merge(other *TemplateData) {
-	// 合并变量
+	// Merge variables
 	for key, value := range other.Variables {
 		td.Variables[key] = value
 	}
 
-	// 合并列表
+	// Merge lists
 	for key, value := range other.Lists {
 		td.Lists[key] = value
 	}
 
-	// 合并条件
+	// Merge conditions
 	for key, value := range other.Conditions {
 		td.Conditions[key] = value
 	}
 
-	// 合并图片
+	// Merge images
 	for key, value := range other.Images {
 		td.Images[key] = value
 	}
 }
 
-// Clear 清空模板数据
+// Clear clears all template data.
 func (td *TemplateData) Clear() {
 	td.Variables = make(map[string]interface{})
 	td.Lists = make(map[string][]interface{})
@@ -2661,7 +2662,7 @@ func (td *TemplateData) Clear() {
 	td.Images = make(map[string]*TemplateImageData)
 }
 
-// FromStruct 从结构体生成模板数据
+// FromStruct populates template data from a struct.
 func (td *TemplateData) FromStruct(data interface{}) error {
 	value := reflect.ValueOf(data)
 	if value.Kind() == reflect.Ptr {
@@ -2677,7 +2678,7 @@ func (td *TemplateData) FromStruct(data interface{}) error {
 		field := typ.Field(i)
 		fieldValue := value.Field(i)
 
-		// 跳过不可导出的字段
+		// Skip unexported fields
 		if !fieldValue.CanInterface() {
 			continue
 		}
@@ -2689,7 +2690,7 @@ func (td *TemplateData) FromStruct(data interface{}) error {
 	return nil
 }
 
-// SetImage 设置图片数据（通过文件路径）
+// SetImage sets image data by file path.
 func (td *TemplateData) SetImage(name, filePath string, config *ImageConfig) {
 	imageData := &TemplateImageData{
 		FilePath: filePath,
@@ -2698,7 +2699,7 @@ func (td *TemplateData) SetImage(name, filePath string, config *ImageConfig) {
 	td.Images[name] = imageData
 }
 
-// SetImageFromData 设置图片数据（通过二进制数据）
+// SetImageFromData sets image data from binary data.
 func (td *TemplateData) SetImageFromData(name string, data []byte, config *ImageConfig) {
 	imageData := &TemplateImageData{
 		Data:   data,
@@ -2707,7 +2708,7 @@ func (td *TemplateData) SetImageFromData(name string, data []byte, config *Image
 	td.Images[name] = imageData
 }
 
-// SetImageWithDetails 设置图片数据（完整配置）
+// SetImageWithDetails sets image data with full configuration.
 func (td *TemplateData) SetImageWithDetails(name, filePath string, data []byte, config *ImageConfig, altText, title string) {
 	imageData := &TemplateImageData{
 		FilePath: filePath,
@@ -2719,9 +2720,9 @@ func (td *TemplateData) SetImageWithDetails(name, filePath string, data []byte, 
 	td.Images[name] = imageData
 }
 
-// renderImages 渲染图片占位符
+// renderImages renders image placeholders.
 func (te *TemplateEngine) renderImages(content string, images map[string]*TemplateImageData) string {
-	// 图片占位符模式: {{#image imageName}}
+	// Image placeholder pattern: {{#image imageName}}
 	imagePattern := regexp.MustCompile(`\{\{#image\s+(\w+)\}\}`)
 
 	return imagePattern.ReplaceAllStringFunc(content, func(match string) string {
@@ -2729,37 +2730,37 @@ func (te *TemplateEngine) renderImages(content string, images map[string]*Templa
 		if len(matches) >= 2 {
 			imageName := matches[1]
 
-			// 查找图片数据
+			// Look up image data
 			if _, exists := images[imageName]; exists {
-				// 在传统的字符串模板中，我们返回图片占位符标记
-				// 实际的图片处理将在RenderTemplateToDocument方法中完成
+				// In traditional string templates, return an image placeholder marker.
+				// Actual image processing happens in RenderTemplateToDocument.
 				return fmt.Sprintf("[IMAGE:%s]", imageName)
 			}
 		}
-		// 如果找不到图片数据，保持原样或返回错误信息
+		// If image data is not found, keep as is or return error message
 		return fmt.Sprintf("[IMAGE_NOT_FOUND:%s]", matches[1])
 	})
 }
 
-// processImagePlaceholders 处理文档中的图片占位符
+// processImagePlaceholders processes image placeholders in a document.
 func (te *TemplateEngine) processImagePlaceholders(doc *Document, data *TemplateData) error {
-	// 遍历文档元素，查找并替换图片占位符
+	// Iterate over document elements to find and replace image placeholders
 	for i, element := range doc.Body.Elements {
 		switch elem := element.(type) {
 		case *Paragraph:
-			// 检查段落是否包含图片占位符
+			// Check if paragraph contains image placeholders
 			newElements, err := te.processImagePlaceholdersInParagraph(elem, data, doc)
 			if err != nil {
 				return err
 			}
 
-			// 如果有图片替换，更新文档元素
+			// If images were replaced, update document elements
 			if len(newElements) > 1 || (len(newElements) == 1 && newElements[0] != elem) {
-				// 移除原段落，插入新元素（可能包含图片段落）
+				// Remove original paragraph and insert new elements (may include image paragraphs)
 				doc.Body.Elements = append(doc.Body.Elements[:i], append(newElements, doc.Body.Elements[i+1:]...)...)
 			}
 		case *Table:
-			// 处理表格中的图片占位符 (Fix for Issue #91)
+			// Process image placeholders in tables (Fix for Issue #91)
 			if err := te.processImagePlaceholdersInTable(elem, data, doc); err != nil {
 				return err
 			}
@@ -2768,12 +2769,12 @@ func (te *TemplateEngine) processImagePlaceholders(doc *Document, data *Template
 	return nil
 }
 
-// processImagePlaceholdersInTable 处理表格中的图片占位符 (Fix for Issue #91)
+// processImagePlaceholdersInTable processes image placeholders in a table (Fix for Issue #91).
 func (te *TemplateEngine) processImagePlaceholdersInTable(table *Table, data *TemplateData, doc *Document) error {
 	for rowIdx := range table.Rows {
 		for cellIdx := range table.Rows[rowIdx].Cells {
 			cell := &table.Rows[rowIdx].Cells[cellIdx]
-			// 处理单元格中的每个段落
+			// Process each paragraph in the cell
 			for paraIdx := range cell.Paragraphs {
 				para := &cell.Paragraphs[paraIdx]
 				newElements, err := te.processImagePlaceholdersInParagraph(para, data, doc)
@@ -2781,15 +2782,15 @@ func (te *TemplateEngine) processImagePlaceholdersInTable(table *Table, data *Te
 					return err
 				}
 
-				// 如果有图片替换
+				// If images were replaced
 				if len(newElements) > 0 {
-					// 检查返回的元素是否与原段落不同
+					// Check if the returned elements differ from the original paragraph
 					if len(newElements) == 1 {
 						if newPara, ok := newElements[0].(*Paragraph); ok {
 							cell.Paragraphs[paraIdx] = *newPara
 						}
 					} else {
-						// 多个元素的情况：替换当前段落为第一个，其余追加
+						// Multiple elements: replace current paragraph with the first, append the rest
 						newParagraphs := make([]Paragraph, 0, len(cell.Paragraphs)-1+len(newElements))
 						newParagraphs = append(newParagraphs, cell.Paragraphs[:paraIdx]...)
 						for _, elem := range newElements {
@@ -2807,24 +2808,24 @@ func (te *TemplateEngine) processImagePlaceholdersInTable(table *Table, data *Te
 	return nil
 }
 
-// processImagePlaceholdersInParagraph 处理段落中的图片占位符
+// processImagePlaceholdersInParagraph processes image placeholders in a paragraph.
 func (te *TemplateEngine) processImagePlaceholdersInParagraph(para *Paragraph, data *TemplateData, doc *Document) ([]interface{}, error) {
-	// 获取段落的完整文本
+	// Get the paragraph's full text
 	fullText := ""
 	for _, run := range para.Runs {
 		fullText += run.Text.Content
 	}
 
-	// 检查是否包含图片占位符（支持两种格式）
-	// 1. 原始模板格式：{{#image imageName}}
-	// 2. 渲染后格式：[IMAGE:imageName]
+	// Check for image placeholders (supports two formats)
+	// 1. Original template format: {{#image imageName}}
+	// 2. Rendered format: [IMAGE:imageName]
 	originalImagePattern := regexp.MustCompile(`\{\{#image\s+(\w+)\}\}`)
 	renderedImagePattern := regexp.MustCompile(`\[IMAGE:(\w+)\]`)
 
 	originalMatches := originalImagePattern.FindAllStringSubmatch(fullText, -1)
 	renderedMatches := renderedImagePattern.FindAllStringSubmatch(fullText, -1)
 
-	// 合并两种格式的匹配结果
+	// Merge match results from both formats
 	allMatches := make([][2]string, 0)
 	for _, match := range originalMatches {
 		allMatches = append(allMatches, [2]string{match[0], match[1]})
@@ -2834,20 +2835,20 @@ func (te *TemplateEngine) processImagePlaceholdersInParagraph(para *Paragraph, d
 	}
 
 	if len(allMatches) == 0 {
-		// 没有图片占位符，返回原段落
+		// No image placeholders, return original paragraph
 		return []interface{}{para}, nil
 	}
 
 	result := make([]interface{}, 0)
 	lastEnd := 0
 
-	// 处理每个图片占位符
+	// Process each image placeholder
 	for _, match := range allMatches {
 		imageName := match[1]
 		matchStart := strings.Index(fullText[lastEnd:], match[0]) + lastEnd
 		matchEnd := matchStart + len(match[0])
 
-		// 添加图片占位符前的文本（如果有）
+		// Add text before the image placeholder (if any)
 		if matchStart > lastEnd {
 			beforeText := fullText[lastEnd:matchStart]
 			if strings.TrimSpace(beforeText) != "" {
@@ -2856,23 +2857,23 @@ func (te *TemplateEngine) processImagePlaceholdersInParagraph(para *Paragraph, d
 			}
 		}
 
-		// 创建图片段落
+		// Create image paragraph
 		if imageData, exists := data.Images[imageName]; exists {
 			imagePara, err := te.createImageParagraph(imageData, doc)
 			if err != nil {
-				return nil, fmt.Errorf("创建图片段落失败: %v", err)
+				return nil, fmt.Errorf("failed to create image paragraph: %v", err)
 			}
 			result = append(result, imagePara)
 		} else {
-			// 图片数据不存在，创建错误文本段落
-			errorPara := te.createTextParagraph(fmt.Sprintf("[图片未找到: %s]", imageName), para)
+			// Image data not found, create error text paragraph
+			errorPara := te.createTextParagraph(fmt.Sprintf("[IMAGE_NOT_FOUND: %s]", imageName), para)
 			result = append(result, errorPara)
 		}
 
 		lastEnd = matchEnd
 	}
 
-	// 添加最后剩余的文本（如果有）
+	// Add the remaining text at the end (if any)
 	if lastEnd < len(fullText) {
 		afterText := fullText[lastEnd:]
 		if strings.TrimSpace(afterText) != "" {
@@ -2881,7 +2882,7 @@ func (te *TemplateEngine) processImagePlaceholdersInParagraph(para *Paragraph, d
 		}
 	}
 
-	// 如果没有任何内容，返回空段落
+	// If there is no content, return an empty paragraph
 	if len(result) == 0 {
 		emptyPara := te.createTextParagraph("", para)
 		result = append(result, emptyPara)
@@ -2890,16 +2891,16 @@ func (te *TemplateEngine) processImagePlaceholdersInParagraph(para *Paragraph, d
 	return result, nil
 }
 
-// createTextParagraph 创建文本段落（保持原段落样式）
+// createTextParagraph creates a text paragraph (preserving the original paragraph's style).
 func (te *TemplateEngine) createTextParagraph(text string, originalPara *Paragraph) *Paragraph {
 	newPara := te.cloneParagraph(originalPara)
 
-	// 设置文本内容，保持原有样式
+	// Set text content while preserving original style
 	if len(newPara.Runs) > 0 {
 		newPara.Runs[0].Text.Content = text
-		newPara.Runs = newPara.Runs[:1] // 只保留第一个run
+		newPara.Runs = newPara.Runs[:1] // keep only the first run
 	} else {
-		// 如果原段落没有runs，创建一个默认的
+		// If the original paragraph has no runs, create a default one
 		newPara.Runs = []Run{{
 			Text: Text{Content: text},
 		}}
@@ -2908,9 +2909,9 @@ func (te *TemplateEngine) createTextParagraph(text string, originalPara *Paragra
 	return newPara
 }
 
-// createImageParagraph 创建图片段落
+// createImageParagraph creates a paragraph containing an image.
 func (te *TemplateEngine) createImageParagraph(imageData *TemplateImageData, doc *Document) (*Paragraph, error) {
-	// 创建图片配置
+	// Create image config
 	config := imageData.Config
 	if config == nil {
 		config = &ImageConfig{
@@ -2919,58 +2920,58 @@ func (te *TemplateEngine) createImageParagraph(imageData *TemplateImageData, doc
 		}
 	}
 
-	// 添加图片到文档
+	// Add image to document
 	var imageInfo *ImageInfo
 	var err error
 
 	if len(imageData.Data) > 0 {
-		// 使用二进制数据
+		// Use binary data
 		var format ImageFormat
 		format, err = detectImageFormat(imageData.Data)
 		if err != nil {
-			return nil, fmt.Errorf("检测图片格式失败: %v", err)
+			return nil, fmt.Errorf("failed to detect image format: %v", err)
 		}
 
 		var width, height int
 		width, height, err = getImageDimensions(imageData.Data, format)
 		if err != nil {
-			return nil, fmt.Errorf("获取图片尺寸失败: %v", err)
+			return nil, fmt.Errorf("failed to get image dimensions: %v", err)
 		}
 
-		// 使用唯一的文件名，包含图片ID计数器
+		// Use a unique filename that includes the image ID counter
 		fileName := fmt.Sprintf("image_%d.%s", doc.nextImageID, string(format))
-		// 使用不创建段落元素的方法，由模板引擎自行管理段落
+		// Use the method that does not create a paragraph element; the template engine manages paragraphs
 		imageInfo, err = doc.AddImageFromDataWithoutElement(imageData.Data, fileName, format, width, height, config)
 	} else if imageData.FilePath != "" {
-		// 使用文件路径，但需要先读取数据，然后使用AddImageFromDataWithoutElement
+		// Use file path, but first read the data, then use AddImageFromDataWithoutElement
 		data, readErr := os.ReadFile(imageData.FilePath)
 		if readErr != nil {
-			return nil, fmt.Errorf("读取图片文件失败: %v", readErr)
+			return nil, fmt.Errorf("failed to read image file: %v", readErr)
 		}
 
 		var format ImageFormat
 		format, err = detectImageFormat(data)
 		if err != nil {
-			return nil, fmt.Errorf("检测图片格式失败: %v", err)
+			return nil, fmt.Errorf("failed to detect image format: %v", err)
 		}
 
 		var width, height int
 		width, height, err = getImageDimensions(data, format)
 		if err != nil {
-			return nil, fmt.Errorf("获取图片尺寸失败: %v", err)
+			return nil, fmt.Errorf("failed to get image dimensions: %v", err)
 		}
 
 		fileName := filepath.Base(imageData.FilePath)
 		imageInfo, err = doc.AddImageFromDataWithoutElement(data, fileName, format, width, height, config)
 	} else {
-		return nil, fmt.Errorf("图片数据和文件路径都为空")
+		return nil, fmt.Errorf("both image data and file path are empty")
 	}
 
 	if err != nil {
-		return nil, fmt.Errorf("添加图片失败: %v", err)
+		return nil, fmt.Errorf("failed to add image: %v", err)
 	}
 
-	// 设置图片描述和标题
+	// Set image description and title
 	if imageData.AltText != "" {
 		doc.SetImageAltText(imageInfo, imageData.AltText)
 	}
@@ -2978,7 +2979,7 @@ func (te *TemplateEngine) createImageParagraph(imageData *TemplateImageData, doc
 		doc.SetImageTitle(imageInfo, imageData.Title)
 	}
 
-	// 创建包含图片的段落
+	// Create paragraph containing the image
 	imagePara := doc.createImageParagraph(imageInfo)
 	return imagePara, nil
 }

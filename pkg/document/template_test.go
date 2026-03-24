@@ -1,4 +1,4 @@
-// Package document 模板功能测试
+// Package document template functionality tests
 package document
 
 import (
@@ -11,7 +11,7 @@ import (
 	"testing"
 )
 
-// TestNewTemplateEngine 测试创建模板引擎
+// TestNewTemplateEngine tests creating a template engine
 func TestNewTemplateEngine(t *testing.T) {
 	engine := NewTemplateEngine()
 	if engine == nil {
@@ -23,18 +23,18 @@ func TestNewTemplateEngine(t *testing.T) {
 	}
 }
 
-// TestTemplateVariableReplacement 测试变量替换功能
+// TestTemplateVariableReplacement tests variable replacement functionality
 func TestTemplateVariableReplacement(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 创建包含变量的模板
+	// Create template with variables
 	templateContent := "Hello {{name}}, welcome to {{company}}!"
 	template, err := engine.LoadTemplate("test_template", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to load template: %v", err)
 	}
 
-	// 验证模板变量解析
+	// Verify template variable parsing
 	if len(template.Variables) != 2 {
 		t.Errorf("Expected 2 variables, got %d", len(template.Variables))
 	}
@@ -47,12 +47,12 @@ func TestTemplateVariableReplacement(t *testing.T) {
 		t.Error("Expected 'company' variable to be found")
 	}
 
-	// 创建模板数据
+	// Create template data
 	data := NewTemplateData()
 	data.SetVariable("name", "张三")
 	data.SetVariable("company", "WordZero公司")
 
-	// 渲染模板
+	// Render template
 	doc, err := engine.RenderToDocument("test_template", data)
 	if err != nil {
 		t.Fatalf("Failed to render template: %v", err)
@@ -62,17 +62,17 @@ func TestTemplateVariableReplacement(t *testing.T) {
 		t.Fatal("Expected document to be created")
 	}
 
-	// 检查文档内容
+	// Check document content
 	if len(doc.Body.Elements) == 0 {
 		t.Error("Expected document to have content")
 	}
 }
 
-// TestTemplateConditionalStatements 测试条件语句功能
+// TestTemplateConditionalStatements tests conditional statement functionality
 func TestTemplateConditionalStatements(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 创建包含条件语句的模板
+	// Create template with conditional statements
 	templateContent := `{{#if showWelcome}}欢迎使用WordZero！{{/if}}
 {{#if showDescription}}这是一个强大的Word文档操作库。{{/if}}`
 
@@ -81,12 +81,12 @@ func TestTemplateConditionalStatements(t *testing.T) {
 		t.Fatalf("Failed to load template: %v", err)
 	}
 
-	// 验证条件块解析
+	// Verify conditional block parsing
 	if len(template.Blocks) < 2 {
 		t.Errorf("Expected at least 2 blocks, got %d", len(template.Blocks))
 	}
 
-	// 测试条件为真的情况
+	// Test condition being true
 	data := NewTemplateData()
 	data.SetCondition("showWelcome", true)
 	data.SetCondition("showDescription", false)
@@ -101,11 +101,11 @@ func TestTemplateConditionalStatements(t *testing.T) {
 	}
 }
 
-// TestTemplateLoopStatements 测试循环语句功能
+// TestTemplateLoopStatements tests loop statement functionality
 func TestTemplateLoopStatements(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 创建包含循环语句的模板
+	// Create template with loop statements
 	templateContent := `产品列表：
 {{#each products}}
 - 产品名称：{{name}}，价格：{{price}}元
@@ -116,7 +116,7 @@ func TestTemplateLoopStatements(t *testing.T) {
 		t.Fatalf("Failed to load template: %v", err)
 	}
 
-	// 验证循环块解析
+	// Verify loop block parsing
 	foundEachBlock := false
 	for _, block := range template.Blocks {
 		if block.Type == "each" && block.Variable == "products" {
@@ -129,7 +129,7 @@ func TestTemplateLoopStatements(t *testing.T) {
 		t.Error("Expected to find 'each products' block")
 	}
 
-	// 创建列表数据
+	// Create list data
 	data := NewTemplateData()
 	products := []interface{}{
 		map[string]interface{}{
@@ -153,11 +153,11 @@ func TestTemplateLoopStatements(t *testing.T) {
 	}
 }
 
-// TestTemplateInheritance 测试模板继承功能
+// TestTemplateInheritance tests template inheritance functionality
 func TestTemplateInheritance(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 创建基础模板
+	// Create base template
 	baseTemplateContent := `文档标题：{{title}}
 基础内容：这是基础模板的内容。`
 
@@ -166,7 +166,7 @@ func TestTemplateInheritance(t *testing.T) {
 		t.Fatalf("Failed to load base template: %v", err)
 	}
 
-	// 创建继承模板
+	// Create child template
 	childTemplateContent := `{{extends "base_template"}}
 扩展内容：这是子模板的内容。`
 
@@ -175,7 +175,7 @@ func TestTemplateInheritance(t *testing.T) {
 		t.Fatalf("Failed to load child template: %v", err)
 	}
 
-	// 验证继承关系
+	// Verify inheritance relationship
 	if childTemplate.Parent == nil {
 		t.Error("Expected child template to have parent")
 	}
@@ -185,11 +185,11 @@ func TestTemplateInheritance(t *testing.T) {
 	}
 }
 
-// TestTemplateValidation 测试模板验证功能
+// TestTemplateValidation tests template validation functionality
 func TestTemplateValidation(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 测试有效模板
+	// Test valid template
 	validTemplate := `Hello {{name}}!
 {{#if showMessage}}This is a message.{{/if}}
 {{#each items}}Item: {{this}}{{/each}}`
@@ -204,7 +204,7 @@ func TestTemplateValidation(t *testing.T) {
 		t.Errorf("Expected valid template to pass validation, got error: %v", err)
 	}
 
-	// 测试无效模板 - 括号不匹配
+	// Test invalid template - mismatched brackets
 	invalidTemplate1 := `Hello {{name}!`
 	template1, err := engine.LoadTemplate("invalid_template1", invalidTemplate1)
 	if err != nil {
@@ -216,7 +216,7 @@ func TestTemplateValidation(t *testing.T) {
 		t.Error("Expected invalid template (mismatched brackets) to fail validation")
 	}
 
-	// 测试无效模板 - if语句不匹配
+	// Test invalid template - mismatched if statements
 	invalidTemplate2 := `{{#if condition}}Hello`
 	template2, err := engine.LoadTemplate("invalid_template2", invalidTemplate2)
 	if err != nil {
@@ -229,11 +229,11 @@ func TestTemplateValidation(t *testing.T) {
 	}
 }
 
-// TestTemplateData 测试模板数据功能
+// TestTemplateData tests template data functionality
 func TestTemplateData(t *testing.T) {
 	data := NewTemplateData()
 
-	// 测试设置和获取变量
+	// Test setting and getting variables
 	data.SetVariable("name", "测试")
 	value, exists := data.GetVariable("name")
 	if !exists {
@@ -243,7 +243,7 @@ func TestTemplateData(t *testing.T) {
 		t.Errorf("Expected variable value to be '测试', got '%v'", value)
 	}
 
-	// 测试设置和获取列表
+	// Test setting and getting lists
 	items := []interface{}{"item1", "item2", "item3"}
 	data.SetList("items", items)
 	list, exists := data.GetList("items")
@@ -254,7 +254,7 @@ func TestTemplateData(t *testing.T) {
 		t.Errorf("Expected list length to be 3, got %d", len(list))
 	}
 
-	// 测试设置和获取条件
+	// Test setting and getting conditions
 	data.SetCondition("enabled", true)
 	condition, exists := data.GetCondition("enabled")
 	if !exists {
@@ -264,7 +264,7 @@ func TestTemplateData(t *testing.T) {
 		t.Error("Expected condition value to be true")
 	}
 
-	// 测试批量设置变量
+	// Test batch setting variables
 	variables := map[string]interface{}{
 		"title":   "测试标题",
 		"content": "测试内容",
@@ -277,7 +277,7 @@ func TestTemplateData(t *testing.T) {
 	}
 }
 
-// TestTemplateDataFromStruct 测试从结构体创建模板数据
+// TestTemplateDataFromStruct tests creating template data from a struct
 func TestTemplateDataFromStruct(t *testing.T) {
 	type TestStruct struct {
 		Name    string
@@ -297,7 +297,7 @@ func TestTemplateDataFromStruct(t *testing.T) {
 		t.Fatalf("Failed to create template data from struct: %v", err)
 	}
 
-	// 验证变量是否正确设置
+	// Verify variables were correctly set
 	name, exists := templateData.GetVariable("name")
 	if !exists || name != "张三" {
 		t.Error("Expected 'name' variable to be set correctly")
@@ -314,7 +314,7 @@ func TestTemplateDataFromStruct(t *testing.T) {
 	}
 }
 
-// TestTemplateMerge 测试模板数据合并
+// TestTemplateMerge tests template data merging
 func TestTemplateMerge(t *testing.T) {
 	data1 := NewTemplateData()
 	data1.SetVariable("name", "张三")
@@ -324,10 +324,10 @@ func TestTemplateMerge(t *testing.T) {
 	data2.SetVariable("age", 30)
 	data2.SetList("items", []interface{}{"item1", "item2"})
 
-	// 合并数据
+	// Merge data
 	data1.Merge(data2)
 
-	// 验证合并结果
+	// Verify merge result
 	name, exists := data1.GetVariable("name")
 	if !exists || name != "张三" {
 		t.Error("Expected original variable to remain")
@@ -349,43 +349,43 @@ func TestTemplateMerge(t *testing.T) {
 	}
 }
 
-// TestTemplateCache 测试模板缓存功能
+// TestTemplateCache tests template caching functionality
 func TestTemplateCache(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 加载模板
+	// Load template
 	templateContent := "Hello {{name}}!"
 	template1, err := engine.LoadTemplate("cached_template", templateContent)
 	if err != nil {
 		t.Fatalf("Failed to load template: %v", err)
 	}
 
-	// 从缓存获取模板
+	// Get template from cache
 	template2, err := engine.GetTemplate("cached_template")
 	if err != nil {
 		t.Fatalf("Failed to get template from cache: %v", err)
 	}
 
-	// 验证是同一个模板实例
+	// Verify same template instance
 	if template1 != template2 {
 		t.Error("Expected to get same template instance from cache")
 	}
 
-	// 清空缓存
+	// Clear cache
 	engine.ClearCache()
 
-	// 尝试获取已清空的模板
+	// Try to get cleared template
 	_, err = engine.GetTemplate("cached_template")
 	if err == nil {
 		t.Error("Expected error when getting template after cache clear")
 	}
 }
 
-// TestComplexTemplateRendering 测试复杂模板渲染
+// TestComplexTemplateRendering tests complex template rendering
 func TestComplexTemplateRendering(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 创建复杂模板
+	// Create complex template
 	complexTemplate := `报告标题：{{title}}
 作者：{{author}}
 
@@ -409,7 +409,7 @@ func TestComplexTemplateRendering(t *testing.T) {
 		t.Fatalf("Failed to load complex template: %v", err)
 	}
 
-	// 创建复杂数据
+	// Create complex data
 	data := NewTemplateData()
 	data.SetVariable("title", "WordZero功能测试报告")
 	data.SetVariable("author", "开发团队")
@@ -430,7 +430,7 @@ func TestComplexTemplateRendering(t *testing.T) {
 	}
 	data.SetList("sections", sections)
 
-	// 渲染复杂模板
+	// Render complex template
 	doc, err := engine.RenderToDocument("complex_template", data)
 	if err != nil {
 		t.Fatalf("Failed to render complex template: %v", err)
@@ -440,18 +440,18 @@ func TestComplexTemplateRendering(t *testing.T) {
 		t.Fatal("Expected document to be created")
 	}
 
-	// 验证文档有内容
+	// Verify document has content
 	if len(doc.Body.Elements) == 0 {
 		t.Error("Expected document to have content")
 	}
 }
 
-// TestImagePlaceholder 测试图片占位符功能
+// TestImagePlaceholder tests image placeholder functionality
 func TestImagePlaceholder(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 测试基础图片占位符解析
-	t.Run("解析图片占位符", func(t *testing.T) {
+	// Test basic image placeholder parsing
+	t.Run("Parse image placeholder", func(t *testing.T) {
 		templateContent := `文档标题
 
 这里有一个图片：
@@ -461,10 +461,10 @@ func TestImagePlaceholder(t *testing.T) {
 
 		template, err := engine.LoadTemplate("image_test", templateContent)
 		if err != nil {
-			t.Fatalf("加载模板失败: %v", err)
+			t.Fatalf("failed to load template: %v", err)
 		}
 
-		// 检查是否正确解析了图片占位符
+		// Check if image placeholder was parsed correctly
 		hasImageBlock := false
 		for _, block := range template.Blocks {
 			if block.Type == "image" && block.Name == "testImage" {
@@ -474,12 +474,12 @@ func TestImagePlaceholder(t *testing.T) {
 		}
 
 		if !hasImageBlock {
-			t.Error("模板应该包含图片块")
+			t.Error("template should contain an image block")
 		}
 	})
 
-	// 测试图片占位符渲染（字符串模板）
-	t.Run("渲染图片占位符到字符串", func(t *testing.T) {
+	// Test image placeholder rendering (string template)
+	t.Run("Render image placeholder to string", func(t *testing.T) {
 		templateContent := `产品介绍：{{productName}}
 
 产品图片：
@@ -489,14 +489,14 @@ func TestImagePlaceholder(t *testing.T) {
 
 		_, err := engine.LoadTemplate("product", templateContent)
 		if err != nil {
-			t.Fatalf("加载模板失败: %v", err)
+			t.Fatalf("failed to load template: %v", err)
 		}
 
 		data := NewTemplateData()
 		data.SetVariable("productName", "测试产品")
 		data.SetVariable("description", "这是一个测试产品")
 
-		// 创建图片配置
+		// Create image config
 		imageConfig := &ImageConfig{
 			Position:  ImagePositionInline,
 			Alignment: AlignCenter,
@@ -508,40 +508,40 @@ func TestImagePlaceholder(t *testing.T) {
 			Title:   "测试产品图片",
 		}
 
-		// 设置图片数据（使用示例二进制数据）
+		// Set image data (using example binary data)
 		imageData := createTestImageData()
 		data.SetImageFromData("productImage", imageData, imageConfig)
 
-		// 渲染模板
+		// Render template
 		doc, err := engine.RenderToDocument("product", data)
 		if err != nil {
-			t.Fatalf("渲染模板失败: %v", err)
+			t.Fatalf("failed to render template: %v", err)
 		}
 
 		if doc == nil {
-			t.Error("渲染结果不应为空")
+			t.Error("render result should not be nil")
 		}
 	})
 
-	// 测试从文档模板渲染图片占位符
-	t.Run("从文档模板渲染图片占位符", func(t *testing.T) {
-		// 创建基础文档
+	// Test rendering image placeholder from document template
+	t.Run("Render image placeholder from document template", func(t *testing.T) {
+		// Create base document
 		baseDoc := New()
 		baseDoc.AddParagraph("报告标题：{{title}}")
 		baseDoc.AddParagraph("{{#image reportChart}}")
 		baseDoc.AddParagraph("总结：{{summary}}")
 
-		// 从文档创建模板
+		// Create template from document
 		template, err := engine.LoadTemplateFromDocument("report_template", baseDoc)
 		if err != nil {
-			t.Fatalf("从文档创建模板失败: %v", err)
+			t.Fatalf("failed to create template from document: %v", err)
 		}
 
 		if len(template.Variables) == 0 {
-			t.Error("模板应该包含变量")
+			t.Error("template should contain variables")
 		}
 
-		// 准备数据
+		// Prepare data
 		data := NewTemplateData()
 		data.SetVariable("title", "月度报告")
 		data.SetVariable("summary", "数据显示增长趋势良好")
@@ -557,65 +557,65 @@ func TestImagePlaceholder(t *testing.T) {
 		imageData := createTestImageData()
 		data.SetImageFromData("reportChart", imageData, chartConfig)
 
-		// 使用RenderTemplateToDocument方法（推荐用于文档模板）
+		// Use RenderTemplateToDocument method (recommended for document templates)
 		doc, err := engine.RenderTemplateToDocument("report_template", data)
 		if err != nil {
-			t.Fatalf("渲染文档模板失败: %v", err)
+			t.Fatalf("failed to render document template: %v", err)
 		}
 
 		if doc == nil {
-			t.Fatal("渲染结果不应为空")
+			t.Fatal("render result should not be nil")
 		}
 
-		// 检查文档中是否有元素
+		// Check if document has elements
 		if len(doc.Body.Elements) == 0 {
-			t.Error("文档应该包含元素")
+			t.Error("document should contain elements")
 		}
 	})
 
-	// 测试图片数据管理方法
-	t.Run("测试图片数据管理", func(t *testing.T) {
+	// Test image data management methods
+	t.Run("Test image data management", func(t *testing.T) {
 		data := NewTemplateData()
 
-		// 测试SetImage方法
+		// Test SetImage method
 		config := &ImageConfig{
 			Position: ImagePositionInline,
 			Size:     &ImageSize{Width: 50},
 		}
 		data.SetImage("test1", "path/to/image.jpg", config)
 
-		// 测试SetImageFromData方法
+		// Test SetImageFromData method
 		imageData := createTestImageData()
 		data.SetImageFromData("test2", imageData, config)
 
-		// 测试SetImageWithDetails方法
+		// Test SetImageWithDetails method
 		data.SetImageWithDetails("test3", "path/to/image2.jpg", imageData, config, "alt text", "title")
 
-		// 测试GetImage方法
+		// Test GetImage method
 		img1, exists1 := data.GetImage("test1")
 		if !exists1 || img1.FilePath != "path/to/image.jpg" {
-			t.Error("图片1数据不正确")
+			t.Error("image 1 data is incorrect")
 		}
 
 		img2, exists2 := data.GetImage("test2")
 		if !exists2 || len(img2.Data) == 0 {
-			t.Error("图片2数据不正确")
+			t.Error("image 2 data is incorrect")
 		}
 
 		img3, exists3 := data.GetImage("test3")
 		if !exists3 || img3.AltText != "alt text" || img3.Title != "title" {
-			t.Error("图片3数据不正确")
+			t.Error("image 3 data is incorrect")
 		}
 
-		// 测试不存在的图片
+		// Test non-existent image
 		_, exists4 := data.GetImage("nonexistent")
 		if exists4 {
-			t.Error("不存在的图片不应该返回true")
+			t.Error("non-existent image should not return true")
 		}
 	})
 
-	// 测试图片占位符与其他模板语法的兼容性
-	t.Run("图片占位符与其他语法兼容性", func(t *testing.T) {
+	// Test image placeholder compatibility with other template syntax
+	t.Run("Image placeholder compatibility with other syntax", func(t *testing.T) {
 		templateContent := `{{#if showImage}}
 图片标题：{{imageTitle}}
 {{#image dynamicImage}}
@@ -629,7 +629,7 @@ func TestImagePlaceholder(t *testing.T) {
 
 		_, err := engine.LoadTemplate("complex", templateContent)
 		if err != nil {
-			t.Fatalf("加载复杂模板失败: %v", err)
+			t.Fatalf("failed to load complex template: %v", err)
 		}
 
 		data := NewTemplateData()
@@ -649,21 +649,21 @@ func TestImagePlaceholder(t *testing.T) {
 		data.SetImageFromData("dynamicImage", imageData, config)
 		data.SetImageFromData("itemImage", imageData, config)
 
-		// 渲染不应该出错
+		// Rendering should not produce an error
 		doc, err := engine.RenderToDocument("complex", data)
 		if err != nil {
-			t.Fatalf("渲染复杂模板失败: %v", err)
+			t.Fatalf("failed to render complex template: %v", err)
 		}
 
 		if doc == nil {
-			t.Error("渲染结果不应为空")
+			t.Error("render result should not be nil")
 		}
 	})
 }
 
-// createTestImageData 创建测试用的图片数据
+// createTestImageData creates test image data
 func createTestImageData() []byte {
-	// 创建一个最小的PNG图片数据用于测试
+	// Create a minimal PNG image data for testing
 	return []byte{
 		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
 		0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
@@ -677,11 +677,11 @@ func createTestImageData() []byte {
 	}
 }
 
-// TestNestedLoops 测试嵌套循环功能
+// TestNestedLoops tests nested loop functionality
 func TestNestedLoops(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 创建包含嵌套循环的模板
+	// Create template with nested loops
 	templateContent := `会议纪要
 
 日期：{{date}}
@@ -706,7 +706,7 @@ func TestNestedLoops(t *testing.T) {
 		t.Error("Expected at least 1 block in template")
 	}
 
-	// 创建嵌套数据结构
+	// Create nested data structure
 	data := NewTemplateData()
 	data.SetVariable("date", "2024-12-01")
 	data.SetVariable("summary", "会议圆满结束")
@@ -743,7 +743,7 @@ func TestNestedLoops(t *testing.T) {
 	}
 	data.SetList("attendees", attendees)
 
-	// 渲染模板
+	// Render template
 	doc, err := engine.RenderToDocument("meeting_minutes", data)
 	if err != nil {
 		t.Fatalf("Failed to render template with nested loops: %v", err)
@@ -753,12 +753,12 @@ func TestNestedLoops(t *testing.T) {
 		t.Fatal("Expected document to be created")
 	}
 
-	// 验证文档内容
+	// Verify document content
 	if len(doc.Body.Elements) == 0 {
 		t.Error("Expected document to have content")
 	}
 
-	// 检查生成的内容是否包含预期的嵌套数据
+	// Check if generated content contains expected nested data
 	foundNestedContent := false
 	for _, element := range doc.Body.Elements {
 		if para, ok := element.(*Paragraph); ok {
@@ -767,13 +767,13 @@ func TestNestedLoops(t *testing.T) {
 				fullText += run.Text.Content
 			}
 
-			// 检查是否包含嵌套循环生成的内容（任务名称）
+			// Check for content generated by nested loops (task names)
 			if fullText == "  * 制定项目计划 - 状态: 进行中" ||
 				fullText == "  * 实现核心功能 - 状态: 进行中" {
 				foundNestedContent = true
 			}
 
-			// 确保没有未处理的模板语法
+			// Ensure no unprocessed template syntax remains
 			if fullText == "{{#each tasks}}" || fullText == "  * {{taskName}} - 状态: {{status}}" {
 				t.Errorf("Found unprocessed template syntax in output: %s", fullText)
 			}
@@ -785,11 +785,11 @@ func TestNestedLoops(t *testing.T) {
 	}
 }
 
-// TestDeepNestedLoops 测试深度嵌套循环（三层）
+// TestDeepNestedLoops tests deep nested loops (three levels)
 func TestDeepNestedLoops(t *testing.T) {
 	engine := NewTemplateEngine()
 
-	// 创建三层嵌套循环的模板
+	// Create template with three-level nested loops
 	templateContent := `组织架构：
 {{#each departments}}
 部门：{{name}}
@@ -806,7 +806,7 @@ func TestDeepNestedLoops(t *testing.T) {
 		t.Fatalf("Failed to load template with deep nested loops: %v", err)
 	}
 
-	// 创建三层嵌套数据
+	// Create three-level nested data
 	data := NewTemplateData()
 
 	departments := []interface{}{
@@ -840,7 +840,7 @@ func TestDeepNestedLoops(t *testing.T) {
 	}
 	data.SetList("departments", departments)
 
-	// 渲染模板
+	// Render template
 	doc, err := engine.RenderToDocument("org_structure", data)
 	if err != nil {
 		t.Fatalf("Failed to render template with deep nested loops: %v", err)
@@ -850,7 +850,7 @@ func TestDeepNestedLoops(t *testing.T) {
 		t.Fatal("Expected document to be created")
 	}
 
-	// 验证第三层嵌套内容是否正确渲染
+	// Verify third-level nested content is correctly rendered
 	foundDeepContent := false
 	for _, element := range doc.Body.Elements {
 		if para, ok := element.(*Paragraph); ok {
@@ -859,13 +859,13 @@ func TestDeepNestedLoops(t *testing.T) {
 				fullText += run.Text.Content
 			}
 
-			// 检查第三层嵌套内容
+			// Check third-level nested content
 			if fullText == "    成员：王五 - 前端工程师" ||
 				fullText == "    成员：孙七 - 后端工程师" {
 				foundDeepContent = true
 			}
 
-			// 确保没有未处理的模板语法
+			// Ensure no unprocessed template syntax remains
 			if fullText == "{{#each members}}" || fullText == "    成员：{{memberName}} - {{position}}" {
 				t.Errorf("Found unprocessed template syntax in deep nested output: %s", fullText)
 			}
@@ -877,122 +877,122 @@ func TestDeepNestedLoops(t *testing.T) {
 	}
 }
 
-// TestHeaderFooterTemplateVariables 测试页眉页脚中的模板变量识别和替换
+// TestHeaderFooterTemplateVariables tests template variable identification and replacement in headers/footers
 func TestHeaderFooterTemplateVariables(t *testing.T) {
-	// 创建包含页眉页脚的文档
+	// Create document with headers/footers
 	doc := New()
 
-	// 添加主体内容
+	// Add body content
 	doc.AddParagraph("{{title}}")
 	doc.AddParagraph("文档内容")
 
-	// 添加带有模板变量的页眉
+	// Add header with template variables
 	err := doc.AddHeader(HeaderFooterTypeDefault, "{{headerTitle}} - {{headerID}}")
 	if err != nil {
-		t.Fatalf("添加页眉失败: %v", err)
+		t.Fatalf("failed to add header: %v", err)
 	}
 
-	// 添加带有模板变量的页脚
+	// Add footer with template variables
 	err = doc.AddFooter(HeaderFooterTypeDefault, "{{footerText}} - 第 {{pageNum}} 页")
 	if err != nil {
-		t.Fatalf("添加页脚失败: %v", err)
+		t.Fatalf("failed to add footer: %v", err)
 	}
 
-	// 创建模板引擎并加载文档作为模板
+	// Create template engine and load document as template
 	engine := NewTemplateEngine()
 	template, err := engine.LoadTemplateFromDocument("header_footer_test", doc)
 	if err != nil {
-		t.Fatalf("从文档加载模板失败: %v", err)
+		t.Fatalf("failed to load template from document: %v", err)
 	}
 
-	// 验证模板变量被正确识别
+	// Verify template variables were correctly identified
 	expectedVars := []string{"title", "headerTitle", "headerID", "footerText", "pageNum"}
 	for _, varName := range expectedVars {
 		if _, exists := template.Variables[varName]; !exists {
-			t.Errorf("模板变量 '%s' 应该被识别但未找到", varName)
+			t.Errorf("template variable '%s' should be identified but was not found", varName)
 		}
 	}
 
-	// 测试使用TemplateRenderer分析包含页眉页脚的模板
-	// 创建一个新的带页眉页脚的文档用于测试分析功能
+	// Test using TemplateRenderer to analyze template with headers/footers
+	// Create a new document with headers/footers for testing analysis functionality
 	doc2 := New()
 	doc2.AddParagraph("{{mainContent}}")
 	err = doc2.AddHeader(HeaderFooterTypeDefault, "{{documentTitle}}")
 	if err != nil {
-		t.Fatalf("添加页眉失败: %v", err)
+		t.Fatalf("failed to add header: %v", err)
 	}
 
-	// 通过engine加载
+	// Load via engine
 	engine2 := NewTemplateEngine()
 	_, err = engine2.LoadTemplateFromDocument("analyze_test", doc2)
 	if err != nil {
-		t.Fatalf("从文档加载模板失败: %v", err)
+		t.Fatalf("failed to load template from document: %v", err)
 	}
 
-	// 创建renderer并使用已加载的模板
+	// Create renderer and use the loaded template
 	renderer := &TemplateRenderer{
 		engine: engine2,
 		logger: &TemplateLogger{enabled: false},
 	}
 
-	// 分析模板
+	// Analyze template
 	analysis, err := renderer.AnalyzeTemplate("analyze_test")
 	if err != nil {
-		t.Fatalf("分析模板失败: %v", err)
+		t.Fatalf("failed to analyze template: %v", err)
 	}
 
-	// 验证分析结果包含页眉中的变量
+	// Verify analysis result contains header variable
 	if _, exists := analysis.Variables["documentTitle"]; !exists {
-		t.Error("分析结果应该包含页眉变量 'documentTitle'")
+		t.Error("analysis result should contain header variable 'documentTitle'")
 	}
 	if _, exists := analysis.Variables["mainContent"]; !exists {
-		t.Error("分析结果应该包含主体变量 'mainContent'")
+		t.Error("analysis result should contain body variable 'mainContent'")
 	}
 
-	t.Logf("分析到的变量: %v", analysis.Variables)
+	t.Logf("analyzed variables: %v", analysis.Variables)
 }
 
-// TestHeaderFooterVariableReplacement 测试页眉页脚中的变量替换功能
+// TestHeaderFooterVariableReplacement tests variable replacement in headers/footers
 func TestHeaderFooterVariableReplacement(t *testing.T) {
-	// 创建包含页眉页脚的文档
+	// Create document with headers/footers
 	doc := New()
 
-	// 添加主体内容
+	// Add body content
 	doc.AddParagraph("{{title}}")
 	doc.AddParagraph("正文内容")
 
-	// 添加带有模板变量的页眉
+	// Add header with template variables
 	err := doc.AddHeader(HeaderFooterTypeDefault, "报告编号: {{reportID}}")
 	if err != nil {
-		t.Fatalf("添加页眉失败: %v", err)
+		t.Fatalf("failed to add header: %v", err)
 	}
 
-	// 添加带有模板变量的页脚
+	// Add footer with template variables
 	err = doc.AddFooter(HeaderFooterTypeDefault, "作者: {{author}}")
 	if err != nil {
-		t.Fatalf("添加页脚失败: %v", err)
+		t.Fatalf("failed to add footer: %v", err)
 	}
 
-	// 创建模板引擎并加载文档作为模板
+	// Create template engine and load document as template
 	engine := NewTemplateEngine()
 	_, err = engine.LoadTemplateFromDocument("replacement_test", doc)
 	if err != nil {
-		t.Fatalf("从文档加载模板失败: %v", err)
+		t.Fatalf("failed to load template from document: %v", err)
 	}
 
-	// 准备模板数据
+	// Prepare template data
 	data := NewTemplateData()
 	data.SetVariable("title", "测试报告标题")
 	data.SetVariable("reportID", "RPT-2024-001")
 	data.SetVariable("author", "测试作者")
 
-	// 渲染模板
+	// Render template
 	resultDoc, err := engine.RenderTemplateToDocument("replacement_test", data)
 	if err != nil {
-		t.Fatalf("渲染模板失败: %v", err)
+		t.Fatalf("failed to render template: %v", err)
 	}
 
-	// 验证页眉中的变量被替换
+	// Verify variables in header were replaced
 	headerReplaced := false
 	footerReplaced := false
 
@@ -1003,36 +1003,36 @@ func TestHeaderFooterVariableReplacement(t *testing.T) {
 			if !strings.Contains(content, "{{reportID}}") && strings.Contains(content, "RPT-2024-001") {
 				headerReplaced = true
 			}
-			t.Logf("页眉内容: %s", content)
+			t.Logf("header content: %s", content)
 		}
 
 		if partName == "word/footer1.xml" {
 			if !strings.Contains(content, "{{author}}") && strings.Contains(content, "测试作者") {
 				footerReplaced = true
 			}
-			t.Logf("页脚内容: %s", content)
+			t.Logf("footer content: %s", content)
 		}
 	}
 
 	if !headerReplaced {
-		t.Error("页眉中的变量应该被替换")
+		t.Error("variables in header should be replaced")
 	}
 
 	if !footerReplaced {
-		t.Error("页脚中的变量应该被替换")
+		t.Error("variables in footer should be replaced")
 	}
 }
 
-// TestTemplateFromFileWithParagraphSectionProperties 确保段落内的节属性仍能保留页眉页脚
+// TestTemplateFromFileWithParagraphSectionProperties ensures section properties within paragraphs still preserve header/footer
 func TestTemplateFromFileWithParagraphSectionProperties(t *testing.T) {
 	doc := New()
 	doc.AddParagraph("{{title}}")
 
 	if err := doc.AddHeader(HeaderFooterTypeDefault, "报告编号: {{reportID}}"); err != nil {
-		t.Fatalf("添加页眉失败: %v", err)
+		t.Fatalf("failed to add header: %v", err)
 	}
 	if err := doc.AddFooter(HeaderFooterTypeDefault, "撰写人: {{author}}"); err != nil {
-		t.Fatalf("添加页脚失败: %v", err)
+		t.Fatalf("failed to add footer: %v", err)
 	}
 
 	sectionMarker := "__SECTION_BREAK__"
@@ -1041,23 +1041,23 @@ func TestTemplateFromFileWithParagraphSectionProperties(t *testing.T) {
 	tmpDir := t.TempDir()
 	basePath := filepath.Join(tmpDir, "base_paragraph_section.docx")
 	if err := doc.Save(basePath); err != nil {
-		t.Fatalf("保存基础文档失败: %v", err)
+		t.Fatalf("failed to save base document: %v", err)
 	}
 
 	modifiedPath := filepath.Join(tmpDir, "paragraph_section_template.docx")
 	if err := moveSectPrIntoParagraph(basePath, modifiedPath, sectionMarker); err != nil {
-		t.Fatalf("调整节属性位置失败: %v", err)
+		t.Fatalf("failed to adjust section properties position: %v", err)
 	}
 
 	loadedDoc, err := Open(modifiedPath)
 	if err != nil {
-		t.Fatalf("打开修改后的文档失败: %v", err)
+		t.Fatalf("failed to open modified document: %v", err)
 	}
 
 	engine := NewTemplateEngine()
 	_, err = engine.LoadTemplateFromDocument("paragraph_section_template", loadedDoc)
 	if err != nil {
-		t.Fatalf("加载模板失败: %v", err)
+		t.Fatalf("failed to load template: %v", err)
 	}
 
 	data := NewTemplateData()
@@ -1067,23 +1067,23 @@ func TestTemplateFromFileWithParagraphSectionProperties(t *testing.T) {
 
 	renderedDoc, err := engine.RenderTemplateToDocument("paragraph_section_template", data)
 	if err != nil {
-		t.Fatalf("渲染模板失败: %v", err)
+		t.Fatalf("failed to render template: %v", err)
 	}
 
 	headerContent := string(renderedDoc.parts["word/header1.xml"])
 	if strings.Contains(headerContent, "{{reportID}}") {
-		t.Error("页眉中的变量应该被替换，即使节属性位于段落内")
+		t.Error("variables in header should be replaced, even when section properties are inside paragraph")
 	}
 	if !strings.Contains(headerContent, "RPT-2024-009") {
-		t.Error("页眉中缺少替换后的值")
+		t.Error("header is missing replaced value")
 	}
 
 	footerContent := string(renderedDoc.parts["word/footer1.xml"])
 	if strings.Contains(footerContent, "{{author}}") {
-		t.Error("页脚中的变量应该被替换")
+		t.Error("variables in footer should be replaced")
 	}
 	if !strings.Contains(footerContent, "测试作者") {
-		t.Error("页脚中缺少替换后的值")
+		t.Error("footer is missing replaced value")
 	}
 }
 
@@ -1137,12 +1137,12 @@ func rewriteSectPrIntoParagraph(xmlData []byte, marker string) ([]byte, error) {
 	content := string(xmlData)
 	sectStart := strings.Index(content, "<w:sectPr")
 	if sectStart == -1 {
-		return nil, fmt.Errorf("未找到sectPr")
+		return nil, fmt.Errorf("sectPr not found")
 	}
 
 	sectEndRel := strings.Index(content[sectStart:], "</w:sectPr>")
 	if sectEndRel == -1 {
-		return nil, fmt.Errorf("sectPr缺少结束标签")
+		return nil, fmt.Errorf("sectPr missing closing tag")
 	}
 	sectEnd := sectStart + sectEndRel + len("</w:sectPr>")
 	sectBlock := content[sectStart:sectEnd]
@@ -1152,16 +1152,16 @@ func rewriteSectPrIntoParagraph(xmlData []byte, marker string) ([]byte, error) {
 
 	markerIndex := strings.Index(content, marker)
 	if markerIndex == -1 {
-		return nil, fmt.Errorf("未找到标记段落")
+		return nil, fmt.Errorf("marker paragraph not found")
 	}
 
 	pStart := strings.LastIndex(content[:markerIndex], "<w:p")
 	if pStart == -1 {
-		return nil, fmt.Errorf("未找到段落起始标签")
+		return nil, fmt.Errorf("paragraph start tag not found")
 	}
 	openEnd := strings.Index(content[pStart:], ">")
 	if openEnd == -1 {
-		return nil, fmt.Errorf("段落标签未闭合")
+		return nil, fmt.Errorf("paragraph tag not closed")
 	}
 	insertPos := pStart + openEnd + 1
 
@@ -1192,67 +1192,67 @@ func stripReferenceTag(block, tag string) string {
 	return block
 }
 
-// TestTemplateDocumentPartsPreservation 测试模板渲染时文档部件的完整保留
+// TestTemplateDocumentPartsPreservation tests complete preservation of document parts during template rendering
 func TestTemplateDocumentPartsPreservation(t *testing.T) {
-	// 创建包含多种文档部件的源文档
+	// Create source document with multiple document parts
 	doc := New()
 
-	// 添加页眉和页脚
+	// Add header and footer
 	err := doc.AddHeader(HeaderFooterTypeDefault, "Template Header - {{headerVar}}")
 	if err != nil {
-		t.Fatalf("添加页眉失败: %v", err)
+		t.Fatalf("failed to add header: %v", err)
 	}
 
 	err = doc.AddFooter(HeaderFooterTypeDefault, "Template Footer - {{footerVar}}")
 	if err != nil {
-		t.Fatalf("添加页脚失败: %v", err)
+		t.Fatalf("failed to add footer: %v", err)
 	}
 
-	// 设置页面设置
+	// Set page settings
 	settings := DefaultPageSettings()
 	settings.Size = PageSizeA4
 	settings.Orientation = OrientationPortrait
 	err = doc.SetPageSettings(settings)
 	if err != nil {
-		t.Fatalf("设置页面设置失败: %v", err)
+		t.Fatalf("failed to set page settings: %v", err)
 	}
 
-	// 添加标题和内容
+	// Add heading and content
 	doc.AddHeadingParagraph("{{docTitle}}", 1)
 	doc.AddParagraph("Content with {{variable1}} and more text.")
 
-	// 保存原文档
+	// Save original document
 	originalPath := "test_parts_preservation_original.docx"
 	err = doc.Save(originalPath)
 	if err != nil {
-		t.Fatalf("保存原文档失败: %v", err)
+		t.Fatalf("failed to save original document: %v", err)
 	}
 	defer func() {
 		if err := os.Remove(originalPath); err != nil {
-			t.Logf("清理原文档失败: %v", err)
+			t.Logf("failed to clean up original document: %v", err)
 		}
 	}()
 
-	// 打开原文档作为模板
+	// Open original document as template
 	templateDoc, err := Open(originalPath)
 	if err != nil {
-		t.Fatalf("打开模板文档失败: %v", err)
+		t.Fatalf("failed to open template document: %v", err)
 	}
 
-	// 记录原文档的parts
+	// Record original document parts
 	originalParts := make(map[string]bool)
 	for partName := range templateDoc.parts {
 		originalParts[partName] = true
 	}
 
-	// 创建模板引擎并加载模板
+	// Create template engine and load template
 	engine := NewTemplateEngine()
 	_, err = engine.LoadTemplateFromDocument("parts_test", templateDoc)
 	if err != nil {
-		t.Fatalf("加载模板失败: %v", err)
+		t.Fatalf("failed to load template: %v", err)
 	}
 
-	// 渲染模板
+	// Render template
 	data := NewTemplateData()
 	data.SetVariable("headerVar", "Header Value")
 	data.SetVariable("footerVar", "Footer Value")
@@ -1261,28 +1261,28 @@ func TestTemplateDocumentPartsPreservation(t *testing.T) {
 
 	renderedDoc, err := engine.RenderTemplateToDocument("parts_test", data)
 	if err != nil {
-		t.Fatalf("渲染模板失败: %v", err)
+		t.Fatalf("failed to render template: %v", err)
 	}
 
-	// 保存渲染后的文档
+	// Save rendered document
 	renderedPath := "test_parts_preservation_rendered.docx"
 	err = renderedDoc.Save(renderedPath)
 	if err != nil {
-		t.Fatalf("保存渲染后的文档失败: %v", err)
+		t.Fatalf("failed to save rendered document: %v", err)
 	}
 	defer func() {
 		if err := os.Remove(renderedPath); err != nil {
-			t.Logf("清理渲染文档失败: %v", err)
+			t.Logf("failed to clean up rendered document: %v", err)
 		}
 	}()
 
-	// 检查渲染后文档的parts
+	// Check rendered document parts
 	renderedParts := make(map[string]bool)
 	for partName := range renderedDoc.parts {
 		renderedParts[partName] = true
 	}
 
-	// 验证关键部件被保留
+	// Verify critical parts are preserved
 	criticalParts := []string{
 		"word/styles.xml",
 		"word/header1.xml",
@@ -1291,36 +1291,36 @@ func TestTemplateDocumentPartsPreservation(t *testing.T) {
 
 	for _, part := range criticalParts {
 		if originalParts[part] && !renderedParts[part] {
-			t.Errorf("关键部件 %s 在原文档中存在但在渲染后的文档中丢失", part)
+			t.Errorf("critical part %s exists in original document but is missing in rendered document", part)
 		}
 	}
 
-	// 验证页眉页脚变量被替换
+	// Verify header/footer variables were replaced
 	headerContent := string(renderedDoc.parts["word/header1.xml"])
 	if strings.Contains(headerContent, "{{headerVar}}") {
-		t.Error("页眉中的变量应该被替换")
+		t.Error("variables in header should be replaced")
 	}
 	if !strings.Contains(headerContent, "Header Value") {
-		t.Error("页眉中应该包含替换后的值")
+		t.Error("header should contain the replaced value")
 	}
 
 	footerContent := string(renderedDoc.parts["word/footer1.xml"])
 	if strings.Contains(footerContent, "{{footerVar}}") {
-		t.Error("页脚中的变量应该被替换")
+		t.Error("variables in footer should be replaced")
 	}
 	if !strings.Contains(footerContent, "Footer Value") {
-		t.Error("页脚中应该包含替换后的值")
+		t.Error("footer should contain the replaced value")
 	}
 
-	t.Log("文档部件保留测试通过")
+	t.Log("document parts preservation test passed")
 }
 
-// TestTemplateSectionPropertiesPreservation 测试节属性在模板渲染时的保留
+// TestTemplateSectionPropertiesPreservation tests section properties preservation during template rendering
 func TestTemplateSectionPropertiesPreservation(t *testing.T) {
-	// 创建包含节属性的源文档
+	// Create source document with section properties
 	doc := New()
 
-	// 设置页面设置（这会创建SectionProperties）
+	// Set page settings (this creates SectionProperties)
 	settings := DefaultPageSettings()
 	settings.Size = PageSizeA4
 	settings.MarginTop = 30.0
@@ -1329,81 +1329,81 @@ func TestTemplateSectionPropertiesPreservation(t *testing.T) {
 	settings.MarginRight = 20.0
 	err := doc.SetPageSettings(settings)
 	if err != nil {
-		t.Fatalf("设置页面设置失败: %v", err)
+		t.Fatalf("failed to set page settings: %v", err)
 	}
 
-	// 添加内容
+	// Add content
 	doc.AddParagraph("Content with {{variable}}")
 
-	// 保存原文档
+	// Save original document
 	originalPath := "test_section_props_original.docx"
 	err = doc.Save(originalPath)
 	if err != nil {
-		t.Fatalf("保存原文档失败: %v", err)
+		t.Fatalf("failed to save original document: %v", err)
 	}
 	defer func() {
 		if err := os.Remove(originalPath); err != nil {
-			t.Logf("清理原文档失败: %v", err)
+			t.Logf("failed to clean up original document: %v", err)
 		}
 	}()
 
-	// 打开原文档作为模板
+	// Open original document as template
 	templateDoc, err := Open(originalPath)
 	if err != nil {
-		t.Fatalf("打开模板文档失败: %v", err)
+		t.Fatalf("failed to open template document: %v", err)
 	}
 
-	// 获取原文档的页面设置
+	// Get original document page settings
 	originalSettings := templateDoc.GetPageSettings()
 
-	// 创建模板引擎并加载模板
+	// Create template engine and load template
 	engine := NewTemplateEngine()
 	_, err = engine.LoadTemplateFromDocument("section_test", templateDoc)
 	if err != nil {
-		t.Fatalf("加载模板失败: %v", err)
+		t.Fatalf("failed to load template: %v", err)
 	}
 
-	// 渲染模板
+	// Render template
 	data := NewTemplateData()
 	data.SetVariable("variable", "Value")
 
 	renderedDoc, err := engine.RenderTemplateToDocument("section_test", data)
 	if err != nil {
-		t.Fatalf("渲染模板失败: %v", err)
+		t.Fatalf("failed to render template: %v", err)
 	}
 
-	// 获取渲染后文档的页面设置
+	// Get rendered document page settings
 	renderedSettings := renderedDoc.GetPageSettings()
 
-	// 验证页面设置被保留
+	// Verify page settings are preserved
 	if renderedSettings.Size != originalSettings.Size {
-		t.Errorf("页面大小不匹配: 期望 %v, 实际 %v", originalSettings.Size, renderedSettings.Size)
+		t.Errorf("page size mismatch: expected %v, got %v", originalSettings.Size, renderedSettings.Size)
 	}
 
-	// 允许1mm的误差
+	// Allow 1mm tolerance
 	tolerance := 1.0
 	if abs(renderedSettings.MarginTop-originalSettings.MarginTop) > tolerance {
-		t.Errorf("上边距不匹配: 期望 %.1f, 实际 %.1f", originalSettings.MarginTop, renderedSettings.MarginTop)
+		t.Errorf("top margin mismatch: expected %.1f, got %.1f", originalSettings.MarginTop, renderedSettings.MarginTop)
 	}
 	if abs(renderedSettings.MarginBottom-originalSettings.MarginBottom) > tolerance {
-		t.Errorf("下边距不匹配: 期望 %.1f, 实际 %.1f", originalSettings.MarginBottom, renderedSettings.MarginBottom)
+		t.Errorf("bottom margin mismatch: expected %.1f, got %.1f", originalSettings.MarginBottom, renderedSettings.MarginBottom)
 	}
 	if abs(renderedSettings.MarginLeft-originalSettings.MarginLeft) > tolerance {
-		t.Errorf("左边距不匹配: 期望 %.1f, 实际 %.1f", originalSettings.MarginLeft, renderedSettings.MarginLeft)
+		t.Errorf("left margin mismatch: expected %.1f, got %.1f", originalSettings.MarginLeft, renderedSettings.MarginLeft)
 	}
 	if abs(renderedSettings.MarginRight-originalSettings.MarginRight) > tolerance {
-		t.Errorf("右边距不匹配: 期望 %.1f, 实际 %.1f", originalSettings.MarginRight, renderedSettings.MarginRight)
+		t.Errorf("right margin mismatch: expected %.1f, got %.1f", originalSettings.MarginRight, renderedSettings.MarginRight)
 	}
 
-	t.Log("节属性保留测试通过")
+	t.Log("section properties preservation test passed")
 }
 
-// TestTemplateNumberingPropertiesPreservation 测试模板渲染时编号属性的保留
+// TestTemplateNumberingPropertiesPreservation tests numbering properties preservation during template rendering
 func TestTemplateNumberingPropertiesPreservation(t *testing.T) {
-	// 创建包含编号段落的文档
+	// Create document with numbered paragraphs
 	doc := New()
 
-	// 添加带有编号的列表项
+	// Add numbered list items
 	config := &ListConfig{
 		Type:        ListTypeNumber,
 		IndentLevel: 0,
@@ -1412,96 +1412,96 @@ func TestTemplateNumberingPropertiesPreservation(t *testing.T) {
 	doc.AddListItem("第一条 {{itemTitle}}", config)
 	doc.AddListItem("第二条 {{itemContent}}", config)
 
-	// 保存原文档
+	// Save original document
 	originalPath := "test_numbering_preservation_original.docx"
 	err := doc.Save(originalPath)
 	if err != nil {
-		t.Fatalf("保存原文档失败: %v", err)
+		t.Fatalf("failed to save original document: %v", err)
 	}
 	defer func() {
 		if err := os.Remove(originalPath); err != nil {
-			t.Logf("清理原文档失败: %v", err)
+			t.Logf("failed to clean up original document: %v", err)
 		}
 	}()
 
-	// 打开原文档作为模板
+	// Open original document as template
 	templateDoc, err := Open(originalPath)
 	if err != nil {
-		t.Fatalf("打开模板文档失败: %v", err)
+		t.Fatalf("failed to open template document: %v", err)
 	}
 
-	// 验证原文档的编号属性被正确解析
+	// Verify original document numbering properties were parsed correctly
 	paragraphs := templateDoc.Body.GetParagraphs()
 	if len(paragraphs) < 2 {
-		t.Fatalf("期望至少2个段落，实际 %d 个", len(paragraphs))
+		t.Fatalf("expected at least 2 paragraphs, got %d", len(paragraphs))
 	}
 
-	// 检查第一个段落的编号属性
+	// Check first paragraph numbering properties
 	if paragraphs[0].Properties == nil || paragraphs[0].Properties.NumberingProperties == nil {
-		t.Error("第一个段落的编号属性应该被解析")
+		t.Error("first paragraph numbering properties should be parsed")
 	}
 
-	// 创建模板引擎并加载模板
+	// Create template engine and load template
 	engine := NewTemplateEngine()
 	_, err = engine.LoadTemplateFromDocument("numbering_test", templateDoc)
 	if err != nil {
-		t.Fatalf("加载模板失败: %v", err)
+		t.Fatalf("failed to load template: %v", err)
 	}
 
-	// 渲染模板
+	// Render template
 	data := NewTemplateData()
 	data.SetVariable("itemTitle", "合作项目情况")
 	data.SetVariable("itemContent", "合作项目背景")
 
 	renderedDoc, err := engine.RenderTemplateToDocument("numbering_test", data)
 	if err != nil {
-		t.Fatalf("渲染模板失败: %v", err)
+		t.Fatalf("failed to render template: %v", err)
 	}
 
-	// 保存渲染后的文档
+	// Save rendered document
 	renderedPath := "test_numbering_preservation_rendered.docx"
 	err = renderedDoc.Save(renderedPath)
 	if err != nil {
-		t.Fatalf("保存渲染后的文档失败: %v", err)
+		t.Fatalf("failed to save rendered document: %v", err)
 	}
 	defer func() {
 		if err := os.Remove(renderedPath); err != nil {
-			t.Logf("清理渲染文档失败: %v", err)
+			t.Logf("failed to clean up rendered document: %v", err)
 		}
 	}()
 
-	// 验证渲染后文档的编号属性被保留
+	// Verify numbering properties are preserved in rendered document
 	renderedParagraphs := renderedDoc.Body.GetParagraphs()
 	if len(renderedParagraphs) < 2 {
-		t.Fatalf("渲染后期望至少2个段落，实际 %d 个", len(renderedParagraphs))
+		t.Fatalf("expected at least 2 paragraphs after rendering, got %d", len(renderedParagraphs))
 	}
 
-	// 检查渲染后段落的编号属性是否被保留
+	// Check rendered paragraph numbering properties are preserved
 	for i, para := range renderedParagraphs[:2] {
 		if para.Properties == nil {
-			t.Errorf("段落 %d 的属性不应为空", i+1)
+			t.Errorf("paragraph %d properties should not be nil", i+1)
 			continue
 		}
 		if para.Properties.NumberingProperties == nil {
-			t.Errorf("段落 %d 的编号属性不应为空", i+1)
+			t.Errorf("paragraph %d numbering properties should not be nil", i+1)
 			continue
 		}
 		if para.Properties.NumberingProperties.NumID == nil {
-			t.Errorf("段落 %d 的编号ID不应为空", i+1)
+			t.Errorf("paragraph %d numbering ID should not be nil", i+1)
 		}
 		if para.Properties.NumberingProperties.ILevel == nil {
-			t.Errorf("段落 %d 的编号级别不应为空", i+1)
+			t.Errorf("paragraph %d numbering level should not be nil", i+1)
 		}
 	}
 
-	// 验证变量已被替换
+	// Verify variables were replaced
 	firstParaText := ""
 	for _, run := range renderedParagraphs[0].Runs {
 		firstParaText += run.Text.Content
 	}
 	if !strings.Contains(firstParaText, "合作项目情况") {
-		t.Errorf("第一个段落应该包含替换后的变量值，实际内容: %s", firstParaText)
+		t.Errorf("first paragraph should contain replaced variable value, actual content: %s", firstParaText)
 	}
 
-	t.Log("编号属性保留测试通过")
+	t.Log("numbering properties preservation test passed")
 }

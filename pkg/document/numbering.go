@@ -1,4 +1,4 @@
-// Package document 提供Word文档列表和编号操作功能
+// Package document provides list and numbering operations for Word documents.
 package document
 
 import (
@@ -7,43 +7,43 @@ import (
 	"strconv"
 )
 
-// ListType 列表类型
+// ListType represents a list type.
 type ListType string
 
 const (
-	// ListTypeBullet 无序列表（项目符号）
+	// ListTypeBullet represents an unordered (bullet) list.
 	ListTypeBullet ListType = "bullet"
-	// ListTypeNumber 有序列表（数字编号）
+	// ListTypeNumber represents an ordered (numbered) list.
 	ListTypeNumber ListType = "number"
-	// ListTypeDecimal 十进制编号
+	// ListTypeDecimal represents decimal numbering.
 	ListTypeDecimal ListType = "decimal"
-	// ListTypeLowerLetter 小写字母编号
+	// ListTypeLowerLetter represents lowercase letter numbering.
 	ListTypeLowerLetter ListType = "lowerLetter"
-	// ListTypeUpperLetter 大写字母编号
+	// ListTypeUpperLetter represents uppercase letter numbering.
 	ListTypeUpperLetter ListType = "upperLetter"
-	// ListTypeLowerRoman 小写罗马数字
+	// ListTypeLowerRoman represents lowercase Roman numeral numbering.
 	ListTypeLowerRoman ListType = "lowerRoman"
-	// ListTypeUpperRoman 大写罗马数字
+	// ListTypeUpperRoman represents uppercase Roman numeral numbering.
 	ListTypeUpperRoman ListType = "upperRoman"
 )
 
-// BulletType 项目符号类型
+// BulletType represents a bullet symbol type.
 type BulletType string
 
 const (
-	// BulletTypeDot 圆点符号
+	// BulletTypeDot represents a filled circle bullet.
 	BulletTypeDot BulletType = "•"
-	// BulletTypeCircle 空心圆
+	// BulletTypeCircle represents a hollow circle bullet.
 	BulletTypeCircle BulletType = "○"
-	// BulletTypeSquare 方块
+	// BulletTypeSquare represents a square bullet.
 	BulletTypeSquare BulletType = "■"
-	// BulletTypeDash 短横线
+	// BulletTypeDash represents a dash bullet.
 	BulletTypeDash BulletType = "–"
-	// BulletTypeArrow 箭头
+	// BulletTypeArrow represents an arrow bullet.
 	BulletTypeArrow BulletType = "→"
 )
 
-// Numbering 编号定义
+// Numbering represents the numbering definitions for a document.
 type Numbering struct {
 	XMLName            xml.Name       `xml:"w:numbering"`
 	Xmlns              string         `xml:"xmlns:w,attr"`
@@ -51,27 +51,27 @@ type Numbering struct {
 	NumberingInstances []*NumInstance `xml:"w:num"`
 }
 
-// AbstractNum 抽象编号定义
+// AbstractNum represents an abstract numbering definition.
 type AbstractNum struct {
 	XMLName       xml.Name `xml:"w:abstractNum"`
 	AbstractNumID string   `xml:"w:abstractNumId,attr"`
 	Levels        []*Level `xml:"w:lvl"`
 }
 
-// NumInstance 编号实例
+// NumInstance represents a numbering instance.
 type NumInstance struct {
 	XMLName       xml.Name              `xml:"w:num"`
 	NumID         string                `xml:"w:numId,attr"`
 	AbstractNumID *AbstractNumReference `xml:"w:abstractNumId"`
 }
 
-// AbstractNumReference 抽象编号引用
+// AbstractNumReference represents a reference to an abstract numbering definition.
 type AbstractNumReference struct {
 	XMLName xml.Name `xml:"w:abstractNumId"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// Level 编号级别
+// Level represents a numbering level definition.
 type Level struct {
 	XMLName   xml.Name   `xml:"w:lvl"`
 	ILevel    string     `xml:"w:ilvl,attr"`
@@ -83,61 +83,58 @@ type Level struct {
 	RPr       *LevelRPr  `xml:"w:rPr,omitempty"`
 }
 
-// Start 起始编号
+// Start represents the starting number for a numbering level.
 type Start struct {
 	XMLName xml.Name `xml:"w:start"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// NumFmt 编号格式
+// NumFmt represents a number format definition.
 type NumFmt struct {
 	XMLName xml.Name `xml:"w:numFmt"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// LevelText 级别文本
+// LevelText represents the text format for a numbering level.
 type LevelText struct {
 	XMLName xml.Name `xml:"w:lvlText"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// LevelJc 级别对齐
+// LevelJc represents the justification for a numbering level.
 type LevelJc struct {
 	XMLName xml.Name `xml:"w:lvlJc"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// LevelPPr 级别段落属性
+// LevelPPr represents paragraph properties for a numbering level.
 type LevelPPr struct {
 	XMLName xml.Name     `xml:"w:pPr"`
 	Ind     *LevelIndent `xml:"w:ind,omitempty"`
 }
 
-// LevelIndent 级别缩进
+// LevelIndent represents indentation settings for a numbering level.
 type LevelIndent struct {
 	XMLName xml.Name `xml:"w:ind"`
 	Left    string   `xml:"w:left,attr,omitempty"`
 	Hanging string   `xml:"w:hanging,attr,omitempty"`
 }
 
-// LevelRPr 级别文本属性
+// LevelRPr represents run properties for a numbering level.
 type LevelRPr struct {
 	XMLName    xml.Name    `xml:"w:rPr"`
 	FontFamily *FontFamily `xml:"w:rFonts,omitempty"`
 }
 
-// ListConfig 列表配置
+// ListConfig holds list configuration options.
 type ListConfig struct {
-	Type         ListType   // 列表类型
-	BulletSymbol BulletType // 项目符号（仅用于无序列表）
-	StartNumber  int        // 起始编号（仅用于有序列表）
-	IndentLevel  int        // 缩进级别（0-8）
+	Type         ListType   // List type
+	BulletSymbol BulletType // Bullet symbol (only for unordered lists)
+	StartNumber  int        // Starting number (only for ordered lists)
+	IndentLevel  int        // Indentation level (0-8)
 }
 
-// 全局编号管理器
-var globalNumberingManager *NumberingManager
-
-// NumberingManager 编号管理器
+// NumberingManager manages numbering definitions for lists.
 type NumberingManager struct {
 	nextAbstractNumID int
 	nextNumID         int
@@ -145,20 +142,20 @@ type NumberingManager struct {
 	numInstances      map[string]*NumInstance
 }
 
-// getNumberingManager 获取全局编号管理器
-func getNumberingManager() *NumberingManager {
-	if globalNumberingManager == nil {
-		globalNumberingManager = &NumberingManager{
+// getNumberingManager returns the document's numbering manager (lazy init).
+func (d *Document) getNumberingManager() *NumberingManager {
+	if d.numberingManager == nil {
+		d.numberingManager = &NumberingManager{
 			nextAbstractNumID: 0,
 			nextNumID:         1,
 			abstractNums:      make(map[string]*AbstractNum),
 			numInstances:      make(map[string]*NumInstance),
 		}
 	}
-	return globalNumberingManager
+	return d.numberingManager
 }
 
-// AddListItem 添加列表项
+// AddListItem adds a list item to the document.
 func (d *Document) AddListItem(text string, config *ListConfig) *Paragraph {
 	if config == nil {
 		config = &ListConfig{
@@ -168,13 +165,13 @@ func (d *Document) AddListItem(text string, config *ListConfig) *Paragraph {
 		}
 	}
 
-	// 确保编号管理器已初始化
+	// Ensure the numbering manager is initialized
 	d.ensureNumberingInitialized()
 
-	// 获取或创建编号定义
+	// Get or create a numbering definition
 	numID := d.getOrCreateNumbering(config)
 
-	// 创建段落
+	// Create the paragraph
 	paragraph := &Paragraph{
 		Properties: &ParagraphProperties{
 			NumberingProperties: &NumberingProperties{
@@ -184,7 +181,7 @@ func (d *Document) AddListItem(text string, config *ListConfig) *Paragraph {
 		},
 	}
 
-	// 添加文本内容
+	// Add text content
 	if text != "" {
 		run := Run{
 			Text: Text{
@@ -194,12 +191,12 @@ func (d *Document) AddListItem(text string, config *ListConfig) *Paragraph {
 		paragraph.Runs = append(paragraph.Runs, run)
 	}
 
-	// 添加到文档
+	// Append to the document
 	d.Body.Elements = append(d.Body.Elements, paragraph)
 	return paragraph
 }
 
-// AddBulletList 添加无序列表项
+// AddBulletList adds an unordered (bullet) list item to the document.
 func (d *Document) AddBulletList(text string, level int, bulletType BulletType) *Paragraph {
 	config := &ListConfig{
 		Type:         ListTypeBullet,
@@ -209,7 +206,7 @@ func (d *Document) AddBulletList(text string, level int, bulletType BulletType) 
 	return d.AddListItem(text, config)
 }
 
-// AddNumberedList 添加有序列表项
+// AddNumberedList adds an ordered (numbered) list item to the document.
 func (d *Document) AddNumberedList(text string, level int, numType ListType) *Paragraph {
 	config := &ListConfig{
 		Type:        numType,
@@ -219,7 +216,7 @@ func (d *Document) AddNumberedList(text string, level int, numType ListType) *Pa
 	return d.AddListItem(text, config)
 }
 
-// CreateMultiLevelList 创建多级列表
+// CreateMultiLevelList creates a multi-level list from the given items.
 func (d *Document) CreateMultiLevelList(items []ListItem) error {
 	for _, item := range items {
 		config := &ListConfig{
@@ -233,24 +230,24 @@ func (d *Document) CreateMultiLevelList(items []ListItem) error {
 	return nil
 }
 
-// ListItem 列表项结构
+// ListItem represents a list item structure.
 type ListItem struct {
-	Text         string     // 文本内容
-	Level        int        // 缩进级别
-	Type         ListType   // 列表类型
-	BulletSymbol BulletType // 项目符号
-	StartNumber  int        // 起始编号
+	Text         string     // Text content
+	Level        int        // Indentation level
+	Type         ListType   // List type
+	BulletSymbol BulletType // Bullet symbol
+	StartNumber  int        // Starting number
 }
 
-// ensureNumberingInitialized 确保编号系统已初始化
+// ensureNumberingInitialized ensures the numbering system is initialized.
 func (d *Document) ensureNumberingInitialized() {
-	// 检查是否已有编号定义
+	// Check if numbering definitions already exist
 	if _, exists := d.parts["word/numbering.xml"]; !exists {
 		d.initializeNumbering()
 	}
 }
 
-// initializeNumbering 初始化编号系统
+// initializeNumbering initializes the numbering system.
 func (d *Document) initializeNumbering() {
 	numbering := &Numbering{
 		Xmlns:              "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
@@ -258,36 +255,36 @@ func (d *Document) initializeNumbering() {
 		NumberingInstances: []*NumInstance{},
 	}
 
-	// 序列化编号定义
+	// Serialize the numbering definitions
 	numberingXML, err := xml.MarshalIndent(numbering, "", "  ")
 	if err != nil {
 		return
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["word/numbering.xml"] = append(xmlDeclaration, numberingXML...)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType("word/numbering.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.numbering+xml")
 
-	// 添加关系
+	// Add relationship
 	d.addNumberingRelationship()
 }
 
-// getOrCreateNumbering 获取或创建编号定义
+// getOrCreateNumbering gets or creates a numbering definition.
 func (d *Document) getOrCreateNumbering(config *ListConfig) string {
-	manager := getNumberingManager()
+	manager := d.getNumberingManager()
 
-	// 生成抽象编号键
+	// Generate abstract numbering key
 	abstractKey := fmt.Sprintf("%s_%s_%d", config.Type, config.BulletSymbol, config.IndentLevel)
 
-	// 检查是否已存在抽象编号
+	// Check if an abstract numbering already exists
 	var abstractNum *AbstractNum
 	if existing, exists := manager.abstractNums[abstractKey]; exists {
 		abstractNum = existing
 	} else {
-		// 创建新的抽象编号
+		// Create a new abstract numbering
 		abstractNumID := strconv.Itoa(manager.nextAbstractNumID)
 		manager.nextAbstractNumID++
 
@@ -295,7 +292,7 @@ func (d *Document) getOrCreateNumbering(config *ListConfig) string {
 		manager.abstractNums[abstractKey] = abstractNum
 	}
 
-	// 创建编号实例
+	// Create a numbering instance
 	numID := strconv.Itoa(manager.nextNumID)
 	manager.nextNumID++
 
@@ -307,20 +304,20 @@ func (d *Document) getOrCreateNumbering(config *ListConfig) string {
 	}
 	manager.numInstances[numID] = numInstance
 
-	// 更新编号定义文件
+	// Update the numbering definition file
 	d.updateNumberingFile()
 
 	return numID
 }
 
-// createAbstractNum 创建抽象编号定义
+// createAbstractNum creates an abstract numbering definition.
 func (d *Document) createAbstractNum(abstractNumID string, config *ListConfig) *AbstractNum {
 	abstractNum := &AbstractNum{
 		AbstractNumID: abstractNumID,
 		Levels:        []*Level{},
 	}
 
-	// 创建多个级别（支持9级列表）
+	// Create multiple levels (supports 9-level lists)
 	for i := 0; i <= 8; i++ {
 		level := d.createLevel(i, config)
 		abstractNum.Levels = append(abstractNum.Levels, level)
@@ -329,7 +326,7 @@ func (d *Document) createAbstractNum(abstractNumID string, config *ListConfig) *
 	return abstractNum
 }
 
-// createLevel 创建编号级别
+// createLevel creates a numbering level definition.
 func (d *Document) createLevel(levelIndex int, config *ListConfig) *Level {
 	level := &Level{
 		ILevel:  strconv.Itoa(levelIndex),
@@ -343,7 +340,7 @@ func (d *Document) createLevel(levelIndex int, config *ListConfig) *Level {
 		},
 	}
 
-	// 设置编号格式和文本
+	// Set number format and text
 	switch config.Type {
 	case ListTypeBullet:
 		level.NumFmt = &NumFmt{Val: "bullet"}
@@ -371,9 +368,9 @@ func (d *Document) createLevel(levelIndex int, config *ListConfig) *Level {
 	return level
 }
 
-// updateNumberingFile 更新编号定义文件
+// updateNumberingFile updates the numbering definition file.
 func (d *Document) updateNumberingFile() {
-	manager := getNumberingManager()
+	manager := d.getNumberingManager()
 
 	numbering := &Numbering{
 		Xmlns:              "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
@@ -381,33 +378,33 @@ func (d *Document) updateNumberingFile() {
 		NumberingInstances: []*NumInstance{},
 	}
 
-	// 添加所有抽象编号
+	// Add all abstract numbering definitions
 	for _, abstractNum := range manager.abstractNums {
 		numbering.AbstractNums = append(numbering.AbstractNums, abstractNum)
 	}
 
-	// 添加所有编号实例
+	// Add all numbering instances
 	for _, numInstance := range manager.numInstances {
 		numbering.NumberingInstances = append(numbering.NumberingInstances, numInstance)
 	}
 
-	// 序列化
+	// Serialize
 	numberingXML, err := xml.MarshalIndent(numbering, "", "  ")
 	if err != nil {
 		return
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["word/numbering.xml"] = append(xmlDeclaration, numberingXML...)
 }
 
-// addNumberingRelationship 添加编号关系
+// addNumberingRelationship adds the numbering relationship to the document.
 func (d *Document) addNumberingRelationship() {
-	// 生成关系ID
-	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 因为已有样式styles.xml定义
+	// Generate relationship ID
+	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because styles.xml is already defined
 
-	// 添加关系
+	// Add relationship
 	relationship := Relationship{
 		ID:     relationshipID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/numbering",
@@ -416,17 +413,17 @@ func (d *Document) addNumberingRelationship() {
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 }
 
-// RestartNumbering 重新开始编号
+// RestartNumbering restarts the numbering sequence.
 func (d *Document) RestartNumbering(numID string) {
-	// 重置编号计数器
-	// 在实际实现中，需要创建新的编号实例来重置计数
-	manager := getNumberingManager()
+	// Reset the numbering counter
+	// In a full implementation, a new numbering instance would be created to reset the count
+	manager := d.getNumberingManager()
 
-	// 创建新的编号实例
+	// Create a new numbering instance
 	newNumID := strconv.Itoa(manager.nextNumID)
 	manager.nextNumID++
 
-	// 如果存在原有实例，复制其抽象编号引用
+	// If the original instance exists, copy its abstract numbering reference
 	if existing, exists := manager.numInstances[numID]; exists {
 		newInstance := &NumInstance{
 			NumID: newNumID,

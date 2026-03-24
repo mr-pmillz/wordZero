@@ -1,4 +1,4 @@
-// Package style 提供Word文档样式管理功能
+// Package style provides Word document style management functionality.
 package style
 
 import (
@@ -6,21 +6,21 @@ import (
 	"fmt"
 )
 
-// StyleType 样式类型
+// StyleType represents a style type.
 type StyleType string
 
 const (
-	// StyleTypeParagraph 段落样式
+	// StyleTypeParagraph is a paragraph style.
 	StyleTypeParagraph StyleType = "paragraph"
-	// StyleTypeCharacter 字符样式
+	// StyleTypeCharacter is a character style.
 	StyleTypeCharacter StyleType = "character"
-	// StyleTypeTable 表格样式
+	// StyleTypeTable is a table style.
 	StyleTypeTable StyleType = "table"
-	// StyleTypeNumbering 编号样式
+	// StyleTypeNumbering is a numbering style.
 	StyleTypeNumbering StyleType = "numbering"
 )
 
-// Style 样式定义
+// Style represents a style definition.
 type Style struct {
 	XMLName     xml.Name             `xml:"w:style"`
 	Type        string               `xml:"w:type,attr"`
@@ -37,26 +37,26 @@ type Style struct {
 	TableCellPr *TableCellProperties `xml:"w:tcPr,omitempty"`
 }
 
-// StyleName 样式名称
+// StyleName represents a style name.
 type StyleName struct {
 	XMLName xml.Name `xml:"w:name"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// BasedOn 基于样式
+// BasedOn represents the parent style reference.
 type BasedOn struct {
 	XMLName xml.Name `xml:"w:basedOn"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// Next 下一个样式
+// Next represents the next style reference.
 type Next struct {
 	XMLName xml.Name `xml:"w:next"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// ParagraphProperties 段落样式属性
-// 注意：字段顺序必须符合OpenXML标准
+// ParagraphProperties represents paragraph style properties.
+// Note: field order must conform to the OpenXML standard.
 type ParagraphProperties struct {
 	XMLName         xml.Name         `xml:"w:pPr"`
 	KeepNext        *KeepNext        `xml:"w:keepNext,omitempty"`
@@ -71,7 +71,7 @@ type ParagraphProperties struct {
 	OutlineLevel    *OutlineLevel    `xml:"w:outlineLvl,omitempty"`
 }
 
-// ParagraphBorder 段落边框
+// ParagraphBorder represents paragraph borders.
 type ParagraphBorder struct {
 	XMLName xml.Name             `xml:"w:pBdr"`
 	Top     *ParagraphBorderLine `xml:"w:top,omitempty"`
@@ -80,7 +80,7 @@ type ParagraphBorder struct {
 	Right   *ParagraphBorderLine `xml:"w:right,omitempty"`
 }
 
-// ParagraphBorderLine 段落边框线
+// ParagraphBorderLine represents a paragraph border line.
 type ParagraphBorderLine struct {
 	XMLName xml.Name `xml:""`
 	Val     string   `xml:"w:val,attr"`
@@ -89,43 +89,57 @@ type ParagraphBorderLine struct {
 	Space   string   `xml:"w:space,attr"`
 }
 
-// Shading 阴影/填充色
+// Shading represents shading/fill color.
 type Shading struct {
 	XMLName xml.Name `xml:"w:shd"`
 	Fill    string   `xml:"w:fill,attr"`
 	Val     string   `xml:"w:val,attr,omitempty"`
 }
 
-// RunProperties 字符样式属性
-// 注意：字段顺序必须符合OpenXML标准，w:rFonts必须在w:color之前
+// RunProperties represents character style properties.
+// Note: field order must conform to the OpenXML standard; w:rStyle comes first, w:rFonts must precede w:color.
 type RunProperties struct {
-	XMLName    xml.Name    `xml:"w:rPr"`
-	FontFamily *FontFamily `xml:"w:rFonts,omitempty"`
-	Bold       *Bold       `xml:"w:b,omitempty"`
-	Italic     *Italic     `xml:"w:i,omitempty"`
-	Underline  *Underline  `xml:"w:u,omitempty"`
-	Strike     *Strike     `xml:"w:strike,omitempty"`
-	Color      *Color      `xml:"w:color,omitempty"`
-	FontSize   *FontSize   `xml:"w:sz,omitempty"`
-	Highlight  *Highlight  `xml:"w:highlight,omitempty"`
+	XMLName       xml.Name           `xml:"w:rPr"`
+	RunStyle      *RunStyle          `xml:"w:rStyle,omitempty"`
+	FontFamily    *FontFamily        `xml:"w:rFonts,omitempty"`
+	Bold          *Bold              `xml:"w:b,omitempty"`
+	Italic        *Italic            `xml:"w:i,omitempty"`
+	Underline     *Underline         `xml:"w:u,omitempty"`
+	Strike        *Strike            `xml:"w:strike,omitempty"`
+	Color         *Color             `xml:"w:color,omitempty"`
+	FontSize      *FontSize          `xml:"w:sz,omitempty"`
+	Highlight     *Highlight         `xml:"w:highlight,omitempty"`
+	VerticalAlign *VerticalAlignment `xml:"w:vertAlign,omitempty"`
 }
 
-// TableProperties 表格样式属性
+// RunStyle represents a character style reference.
+type RunStyle struct {
+	XMLName xml.Name `xml:"w:rStyle"`
+	Val     string   `xml:"w:val,attr"`
+}
+
+// VerticalAlignment represents vertical alignment (superscript/subscript).
+type VerticalAlignment struct {
+	XMLName xml.Name `xml:"w:vertAlign"`
+	Val     string   `xml:"w:val,attr"`
+}
+
+// TableProperties represents table style properties.
 type TableProperties struct {
 	XMLName    xml.Name       `xml:"w:tblPr"`
-	TblInd     *TblIndent     `xml:"w:tblInd,omitempty"`     // 表格缩进
-	TblBorders *TblBorders    `xml:"w:tblBorders,omitempty"` // 表格边框
-	TblCellMar *TblCellMargin `xml:"w:tblCellMar,omitempty"` // 表格单元格边距
+	TblInd     *TblIndent     `xml:"w:tblInd,omitempty"`     // Table indent
+	TblBorders *TblBorders    `xml:"w:tblBorders,omitempty"` // Table borders
+	TblCellMar *TblCellMargin `xml:"w:tblCellMar,omitempty"` // Table cell margins
 }
 
-// TblIndent 表格缩进
+// TblIndent represents table indentation.
 type TblIndent struct {
 	XMLName xml.Name `xml:"w:tblInd"`
 	W       string   `xml:"w:w,attr"`
 	Type    string   `xml:"w:type,attr"`
 }
 
-// TblBorders 表格边框
+// TblBorders represents table borders.
 type TblBorders struct {
 	XMLName xml.Name   `xml:"w:tblBorders"`
 	Top     *TblBorder `xml:"w:top,omitempty"`
@@ -136,7 +150,7 @@ type TblBorders struct {
 	InsideV *TblBorder `xml:"w:insideV,omitempty"`
 }
 
-// TblBorder 表格边框定义
+// TblBorder represents a table border definition.
 type TblBorder struct {
 	Val   string `xml:"w:val,attr"`
 	Sz    string `xml:"w:sz,attr"`
@@ -144,7 +158,7 @@ type TblBorder struct {
 	Color string `xml:"w:color,attr"`
 }
 
-// TblCellMargin 表格单元格边距
+// TblCellMargin represents table cell margins.
 type TblCellMargin struct {
 	XMLName xml.Name      `xml:"w:tblCellMar"`
 	Top     *TblCellSpace `xml:"w:top,omitempty"`
@@ -153,25 +167,25 @@ type TblCellMargin struct {
 	Right   *TblCellSpace `xml:"w:right,omitempty"`
 }
 
-// TblCellSpace 表格单元格空间
+// TblCellSpace represents table cell spacing.
 type TblCellSpace struct {
 	W    string `xml:"w:w,attr"`
 	Type string `xml:"w:type,attr"`
 }
 
-// TableRowProperties 表格行样式属性
+// TableRowProperties represents table row style properties.
 type TableRowProperties struct {
 	XMLName xml.Name `xml:"w:trPr"`
-	// 表格行样式属性将在后续实现
+	// Table row style properties will be implemented later.
 }
 
-// TableCellProperties 表格单元格样式属性
+// TableCellProperties represents table cell style properties.
 type TableCellProperties struct {
 	XMLName xml.Name `xml:"w:tcPr"`
-	// 表格单元格样式属性将在后续实现
+	// Table cell style properties will be implemented later.
 }
 
-// 基础样式元素定义
+// Basic style element definitions
 type Spacing struct {
 	XMLName  xml.Name `xml:"w:spacing"`
 	Before   string   `xml:"w:before,attr,omitempty"`
@@ -209,9 +223,9 @@ type OutlineLevel struct {
 	Val     string   `xml:"w:val,attr"`
 }
 
-// SnapToGrid 网格对齐设置
-// 设置为 "0" 时禁用网格对齐，"1" 时启用网格对齐，允许自定义行间距生效（符合 OOXML 规范，仅支持 "0" 或 "1"）
-// 注意：此类型在 document 包中有相同定义，这是有意为之，因为两个包可独立使用
+// SnapToGrid controls snap-to-grid alignment.
+// Set to "0" to disable grid alignment, "1" to enable it, allowing custom line spacing to take effect (per OOXML spec, only "0" or "1" are valid).
+// Note: this type is intentionally duplicated in the document package, as both packages can be used independently.
 type SnapToGrid struct {
 	XMLName xml.Name `xml:"w:snapToGrid"`
 	Val     string   `xml:"w:val,attr,omitempty"`
@@ -257,19 +271,19 @@ type Highlight struct {
 	Val     string   `xml:"w:val,attr"`
 }
 
-// Styles 样式集合
+// Styles represents a collection of styles.
 type Styles struct {
 	XMLName xml.Name `xml:"w:styles"`
 	Xmlns   string   `xml:"xmlns:w,attr"`
 	Styles  []Style  `xml:"w:style"`
 }
 
-// StyleManager 样式管理器
+// StyleManager manages document styles.
 type StyleManager struct {
 	styles map[string]*Style
 }
 
-// NewStyleManager 创建新的样式管理器
+// NewStyleManager creates a new style manager.
 func NewStyleManager() *StyleManager {
 	sm := &StyleManager{
 		styles: make(map[string]*Style),
@@ -278,17 +292,17 @@ func NewStyleManager() *StyleManager {
 	return sm
 }
 
-// GetStyle 获取指定ID的样式
+// GetStyle returns the style with the specified ID.
 func (sm *StyleManager) GetStyle(styleID string) *Style {
 	return sm.styles[styleID]
 }
 
-// AddStyle 添加样式
+// AddStyle adds a style to the manager.
 func (sm *StyleManager) AddStyle(style *Style) {
 	sm.styles[style.StyleID] = style
 }
 
-// GetAllStyles 获取所有样式
+// GetAllStyles returns all styles.
 func (sm *StyleManager) GetAllStyles() []*Style {
 	styles := make([]*Style, 0, len(sm.styles))
 	for _, style := range sm.styles {
@@ -297,19 +311,19 @@ func (sm *StyleManager) GetAllStyles() []*Style {
 	return styles
 }
 
-// initializePredefinedStyles 初始化预定义样式
+// initializePredefinedStyles initializes the predefined styles.
 func (sm *StyleManager) initializePredefinedStyles() {
-	// 普通文本样式
+	// Normal text style
 	sm.addNormalStyle()
 
-	// 标题样式
+	// Heading styles
 	sm.addHeadingStyles()
 
-	// 其他预定义样式
+	// Other predefined styles
 	sm.addSpecialStyles()
 }
 
-// addNormalStyle 添加Normal样式
+// addNormalStyle adds the Normal style.
 func (sm *StyleManager) addNormalStyle() {
 	normalStyle := &Style{
 		Type:    string(StyleTypeParagraph),
@@ -320,7 +334,7 @@ func (sm *StyleManager) addNormalStyle() {
 		},
 		RunPr: &RunProperties{
 			FontSize: &FontSize{
-				Val: "21", // 五号字体（10.5磅，Word中以半磅为单位）
+				Val: "21", // 10.5pt (Word uses half-point units)
 			},
 			FontFamily: &FontFamily{
 				ASCII:    "Calibri",
@@ -333,9 +347,9 @@ func (sm *StyleManager) addNormalStyle() {
 	sm.AddStyle(normalStyle)
 }
 
-// addHeadingStyles 添加标题样式
+// addHeadingStyles adds heading styles.
 func (sm *StyleManager) addHeadingStyles() {
-	// 标题1
+	// Heading 1
 	heading1 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading1",
@@ -352,8 +366,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "240", // 12磅段前间距
-				After:  "0",   // 0磅段段后间距
+				Before: "240", // 12pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "0",
@@ -362,16 +376,16 @@ func (sm *StyleManager) addHeadingStyles() {
 		RunPr: &RunProperties{
 			Bold: &Bold{},
 			FontSize: &FontSize{
-				Val: "32", // 16磅
+				Val: "32", // 16pt
 			},
 			Color: &Color{
-				Val: "2F5496", // 深蓝色
+				Val: "2F5496", // Dark blue
 			},
 		},
 	}
 	sm.AddStyle(heading1)
 
-	// 标题2
+	// Heading 2
 	heading2 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading2",
@@ -388,8 +402,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "0",   // 0磅段后间距
+				Before: "120", // 6pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "1",
@@ -398,16 +412,16 @@ func (sm *StyleManager) addHeadingStyles() {
 		RunPr: &RunProperties{
 			Bold: &Bold{},
 			FontSize: &FontSize{
-				Val: "26", // 13磅
+				Val: "26", // 13pt
 			},
 			Color: &Color{
-				Val: "2F5496", // 深蓝色
+				Val: "2F5496", // Dark blue
 			},
 		},
 	}
 	sm.AddStyle(heading2)
 
-	// 标题3
+	// Heading 3
 	heading3 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading3",
@@ -424,8 +438,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "0",   // 0磅段后间距
+				Before: "120", // 6pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "2",
@@ -434,16 +448,16 @@ func (sm *StyleManager) addHeadingStyles() {
 		RunPr: &RunProperties{
 			Bold: &Bold{},
 			FontSize: &FontSize{
-				Val: "24", // 12磅
+				Val: "24", // 12pt
 			},
 			Color: &Color{
-				Val: "1F3763", // 深蓝色
+				Val: "1F3763", // Dark blue
 			},
 		},
 	}
 	sm.AddStyle(heading3)
 
-	// 标题4
+	// Heading 4
 	heading4 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading4",
@@ -460,8 +474,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "0",   // 0磅段后间距
+				Before: "120", // 6pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "3",
@@ -471,16 +485,16 @@ func (sm *StyleManager) addHeadingStyles() {
 			Bold:   &Bold{},
 			Italic: &Italic{},
 			FontSize: &FontSize{
-				Val: "22", // 11磅
+				Val: "22", // 11pt
 			},
 			Color: &Color{
-				Val: "2F5496", // 深蓝色
+				Val: "2F5496", // Dark blue
 			},
 		},
 	}
 	sm.AddStyle(heading4)
 
-	// 标题5
+	// Heading 5
 	heading5 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading5",
@@ -497,8 +511,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "0",   // 0磅段后间距
+				Before: "120", // 6pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "4",
@@ -506,16 +520,16 @@ func (sm *StyleManager) addHeadingStyles() {
 		},
 		RunPr: &RunProperties{
 			FontSize: &FontSize{
-				Val: "22", // 11磅
+				Val: "22", // 11pt
 			},
 			Color: &Color{
-				Val: "2F5496", // 深蓝色
+				Val: "2F5496", // Dark blue
 			},
 		},
 	}
 	sm.AddStyle(heading5)
 
-	// 标题6
+	// Heading 6
 	heading6 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading6",
@@ -532,8 +546,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "0",   // 0磅段后间距
+				Before: "120", // 6pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "5",
@@ -542,16 +556,16 @@ func (sm *StyleManager) addHeadingStyles() {
 		RunPr: &RunProperties{
 			Italic: &Italic{},
 			FontSize: &FontSize{
-				Val: "22", // 11磅
+				Val: "22", // 11pt
 			},
 			Color: &Color{
-				Val: "1F3763", // 深蓝色
+				Val: "1F3763", // Dark blue
 			},
 		},
 	}
 	sm.AddStyle(heading6)
 
-	// 标题7
+	// Heading 7
 	heading7 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading7",
@@ -568,8 +582,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "0",   // 0磅段后间距
+				Before: "120", // 6pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "6",
@@ -577,16 +591,16 @@ func (sm *StyleManager) addHeadingStyles() {
 		},
 		RunPr: &RunProperties{
 			FontSize: &FontSize{
-				Val: "20", // 10磅
+				Val: "20", // 10pt
 			},
 			Color: &Color{
-				Val: "1F3763", // 深蓝色
+				Val: "1F3763", // Dark blue
 			},
 		},
 	}
 	sm.AddStyle(heading7)
 
-	// 标题8
+	// Heading 8
 	heading8 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading8",
@@ -603,8 +617,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "0",   // 0磅段后间距
+				Before: "120", // 6pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "7",
@@ -613,16 +627,16 @@ func (sm *StyleManager) addHeadingStyles() {
 		RunPr: &RunProperties{
 			Italic: &Italic{},
 			FontSize: &FontSize{
-				Val: "20", // 10磅
+				Val: "20", // 10pt
 			},
 			Color: &Color{
-				Val: "272727", // 深灰色
+				Val: "272727", // Dark gray
 			},
 		},
 	}
 	sm.AddStyle(heading8)
 
-	// 标题9
+	// Heading 9
 	heading9 := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Heading9",
@@ -639,8 +653,8 @@ func (sm *StyleManager) addHeadingStyles() {
 			KeepNext:  &KeepNext{},
 			KeepLines: &KeepLines{},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "0",   // 0磅段后间距
+				Before: "120", // 6pt space before
+				After:  "0",   // 0pt space after
 			},
 			OutlineLevel: &OutlineLevel{
 				Val: "8",
@@ -648,24 +662,24 @@ func (sm *StyleManager) addHeadingStyles() {
 		},
 		RunPr: &RunProperties{
 			FontSize: &FontSize{
-				Val: "18", // 9磅
+				Val: "18", // 9pt
 			},
 			Color: &Color{
-				Val: "272727", // 深灰色
+				Val: "272727", // Dark gray
 			},
 		},
 	}
 	sm.AddStyle(heading9)
 }
 
-// addSpecialStyles 添加其他特殊样式
+// addSpecialStyles adds other special styles.
 func (sm *StyleManager) addSpecialStyles() {
-	// 文档标题样式
+	// Document title style
 	title := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Title",
 		Name: &StyleName{
-			Val: "标题",
+			Val: "Title",
 		},
 		BasedOn: &BasedOn{
 			Val: "Normal",
@@ -675,17 +689,17 @@ func (sm *StyleManager) addSpecialStyles() {
 		},
 		ParagraphPr: &ParagraphProperties{
 			Justification: &Justification{
-				Val: "center", // 居中对齐
+				Val: "center", // Center aligned
 			},
 			Spacing: &Spacing{
-				Before: "240", // 12磅段前间距
-				After:  "60",  // 3磅段后间距
+				Before: "240", // 12pt space before
+				After:  "60",  // 3pt space after
 			},
 		},
 		RunPr: &RunProperties{
 			Bold: &Bold{},
 			FontSize: &FontSize{
-				Val: "56", // 28磅
+				Val: "56", // 28pt
 			},
 			FontFamily: &FontFamily{
 				ASCII:    "Calibri Light",
@@ -694,18 +708,18 @@ func (sm *StyleManager) addSpecialStyles() {
 				CS:       "Calibri Light",
 			},
 			Color: &Color{
-				Val: "2F5496", // 深蓝色
+				Val: "2F5496", // Dark blue
 			},
 		},
 	}
 	sm.AddStyle(title)
 
-	// 副标题样式
+	// Subtitle style
 	subtitle := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Subtitle",
 		Name: &StyleName{
-			Val: "副标题",
+			Val: "Subtitle",
 		},
 		BasedOn: &BasedOn{
 			Val: "Normal",
@@ -715,17 +729,17 @@ func (sm *StyleManager) addSpecialStyles() {
 		},
 		ParagraphPr: &ParagraphProperties{
 			Justification: &Justification{
-				Val: "center", // 居中对齐
+				Val: "center", // Center aligned
 			},
 			Spacing: &Spacing{
-				Before: "0",   // 0磅段前间距
-				After:  "160", // 8磅段后间距
+				Before: "0",   // 0pt space before
+				After:  "160", // 8pt space after
 			},
 		},
 		RunPr: &RunProperties{
 			Italic: &Italic{},
 			FontSize: &FontSize{
-				Val: "30", // 15磅
+				Val: "30", // 15pt
 			},
 			FontFamily: &FontFamily{
 				ASCII:    "Calibri",
@@ -734,44 +748,44 @@ func (sm *StyleManager) addSpecialStyles() {
 				CS:       "Calibri",
 			},
 			Color: &Color{
-				Val: "7030A0", // 紫色
+				Val: "7030A0", // Purple
 			},
 		},
 	}
 	sm.AddStyle(subtitle)
 
-	// 添加TOC样式（目录样式）
+	// Add TOC (table of contents) styles
 	sm.addTOCStyles()
 
-	// 列表段落样式
+	// List paragraph style
 	listParagraph := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "ListParagraph",
 		Name: &StyleName{
-			Val: "列表段落",
+			Val: "List Paragraph",
 		},
 		BasedOn: &BasedOn{
 			Val: "Normal",
 		},
 		ParagraphPr: &ParagraphProperties{
 			Indentation: &Indentation{
-				Left: "720", // 左缩进0.5英寸（36磅）
+				Left: "720", // Left indent 0.5 inch (36pt)
 			},
 			Spacing: &Spacing{
-				After:    "120", // 6磅段后间距
-				Line:     "276", // 1.15倍行间距
+				After:    "120", // 6pt space after
+				Line:     "276", // 1.15x line spacing
 				LineRule: "auto",
 			},
 		},
 	}
 	sm.AddStyle(listParagraph)
 
-	// 强调样式
+	// Emphasis style
 	emphasis := &Style{
 		Type:    string(StyleTypeCharacter),
 		StyleID: "Emphasis",
 		Name: &StyleName{
-			Val: "强调",
+			Val: "Emphasis",
 		},
 		RunPr: &RunProperties{
 			Italic: &Italic{},
@@ -779,12 +793,12 @@ func (sm *StyleManager) addSpecialStyles() {
 	}
 	sm.AddStyle(emphasis)
 
-	// 加粗样式
+	// Strong (bold) style
 	strong := &Style{
 		Type:    string(StyleTypeCharacter),
 		StyleID: "Strong",
 		Name: &StyleName{
-			Val: "加粗",
+			Val: "Strong",
 		},
 		RunPr: &RunProperties{
 			Bold: &Bold{},
@@ -792,52 +806,52 @@ func (sm *StyleManager) addSpecialStyles() {
 	}
 	sm.AddStyle(strong)
 
-	// 引用样式
+	// Quote style
 	quote := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "Quote",
 		Name: &StyleName{
-			Val: "引用",
+			Val: "Quote",
 		},
 		BasedOn: &BasedOn{
 			Val: "Normal",
 		},
 		ParagraphPr: &ParagraphProperties{
 			Indentation: &Indentation{
-				Left:  "720", // 左缩进0.5英寸
-				Right: "720", // 右缩进0.5英寸
+				Left:  "720", // Left indent 0.5 inch
+				Right: "720", // Right indent 0.5 inch
 			},
 			Spacing: &Spacing{
-				Before: "120", // 6磅段前间距
-				After:  "120", // 6磅段后间距
+				Before: "120", // 6pt space before
+				After:  "120", // 6pt space after
 			},
 		},
 		RunPr: &RunProperties{
 			Italic: &Italic{},
 			Color: &Color{
-				Val: "666666", // 中等灰色，更通用
+				Val: "666666", // Medium gray
 			},
 		},
 	}
 	sm.AddStyle(quote)
 
-	// 代码块样式
+	// Code block style
 	codeBlock := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "CodeBlock",
 		Name: &StyleName{
-			Val: "代码块",
+			Val: "Code Block",
 		},
 		BasedOn: &BasedOn{
 			Val: "Normal",
 		},
 		ParagraphPr: &ParagraphProperties{
 			Indentation: &Indentation{
-				Left: "360", // 左缩进0.25英寸
+				Left: "360", // Left indent 0.25 inch
 			},
 			Spacing: &Spacing{
-				Before: "60", // 3磅段前间距
-				After:  "60", // 3磅段后间距
+				Before: "60", // 3pt space before
+				After:  "60", // 3pt space after
 			},
 			ParagraphBorder: &ParagraphBorder{
 				Top: &ParagraphBorderLine{
@@ -878,18 +892,18 @@ func (sm *StyleManager) addSpecialStyles() {
 				CS:       "Consolas",
 			},
 			FontSize: &FontSize{
-				Val: "18", // 9磅，与code_template保持一致
+				Val: "18", // 9pt, consistent with code_template
 			},
 		},
 	}
 	sm.AddStyle(codeBlock)
 
-	// 代码字符样式
+	// Code character style
 	codeChar := &Style{
 		Type:    string(StyleTypeCharacter),
 		StyleID: "CodeChar",
 		Name: &StyleName{
-			Val: "代码字符",
+			Val: "Code Char",
 		},
 		RunPr: &RunProperties{
 			FontFamily: &FontFamily{
@@ -899,22 +913,22 @@ func (sm *StyleManager) addSpecialStyles() {
 				CS:       "Consolas",
 			},
 			FontSize: &FontSize{
-				Val: "18", // 9磅
+				Val: "18", // 9pt
 			},
 		},
 	}
 	sm.AddStyle(codeChar)
 
-	// 添加表格样式
+	// Add table styles
 	sm.addTableStyles()
 }
 
-// addTOCStyles 添加TOC（目录）样式
+// addTOCStyles adds TOC (table of contents) styles.
 func (sm *StyleManager) addTOCStyles() {
-	// TOC 1 - 一级目录样式（无缩进）
+	// TOC 1 - Level 1 TOC style (no indent)
 	toc1 := &Style{
 		Type:    string(StyleTypeParagraph),
-		StyleID: "13", // TOC1 样式ID
+		StyleID: "13", // TOC1 style ID
 		Name: &StyleName{
 			Val: "toc 1",
 		},
@@ -926,15 +940,15 @@ func (sm *StyleManager) addTOCStyles() {
 		},
 		ParagraphPr: &ParagraphProperties{
 			Spacing: &Spacing{
-				After: "100", // 5磅段后间距
+				After: "100", // 5pt space after
 			},
 			Indentation: &Indentation{
-				Left: "0", // 无左缩进
+				Left: "0", // No left indent
 			},
 		},
 		RunPr: &RunProperties{
 			FontSize: &FontSize{
-				Val: "22", // 11磅
+				Val: "22", // 11pt
 			},
 			FontFamily: &FontFamily{
 				ASCII:    "Calibri",
@@ -946,10 +960,10 @@ func (sm *StyleManager) addTOCStyles() {
 	}
 	sm.AddStyle(toc1)
 
-	// TOC 2 - 二级目录样式（左缩进240 TWIPs = 12磅）
+	// TOC 2 - Level 2 TOC style (left indent 240 TWIPs = 12pt)
 	toc2 := &Style{
 		Type:    string(StyleTypeParagraph),
-		StyleID: "14", // TOC2 样式ID
+		StyleID: "14", // TOC2 style ID
 		Name: &StyleName{
 			Val: "toc 2",
 		},
@@ -961,15 +975,15 @@ func (sm *StyleManager) addTOCStyles() {
 		},
 		ParagraphPr: &ParagraphProperties{
 			Spacing: &Spacing{
-				After: "100", // 5磅段后间距
+				After: "100", // 5pt space after
 			},
 			Indentation: &Indentation{
-				Left: "240", // 左缩进240 TWIPs (12磅)
+				Left: "240", // Left indent 240 TWIPs (12pt)
 			},
 		},
 		RunPr: &RunProperties{
 			FontSize: &FontSize{
-				Val: "22", // 11磅
+				Val: "22", // 11pt
 			},
 			FontFamily: &FontFamily{
 				ASCII:    "Calibri",
@@ -981,10 +995,10 @@ func (sm *StyleManager) addTOCStyles() {
 	}
 	sm.AddStyle(toc2)
 
-	// TOC 3 - 三级目录样式（左缩进480 TWIPs = 24磅）
+	// TOC 3 - Level 3 TOC style (left indent 480 TWIPs = 24pt)
 	toc3 := &Style{
 		Type:    string(StyleTypeParagraph),
-		StyleID: "15", // TOC3 样式ID
+		StyleID: "15", // TOC3 style ID
 		Name: &StyleName{
 			Val: "toc 3",
 		},
@@ -996,15 +1010,15 @@ func (sm *StyleManager) addTOCStyles() {
 		},
 		ParagraphPr: &ParagraphProperties{
 			Spacing: &Spacing{
-				After: "100", // 5磅段后间距
+				After: "100", // 5pt space after
 			},
 			Indentation: &Indentation{
-				Left: "480", // 左缩进480 TWIPs (24磅)
+				Left: "480", // Left indent 480 TWIPs (24pt)
 			},
 		},
 		RunPr: &RunProperties{
 			FontSize: &FontSize{
-				Val: "22", // 11磅
+				Val: "22", // 11pt
 			},
 			FontFamily: &FontFamily{
 				ASCII:    "Calibri",
@@ -1016,7 +1030,7 @@ func (sm *StyleManager) addTOCStyles() {
 	}
 	sm.AddStyle(toc3)
 
-	// TOC 4-9 - 四到九级目录样式
+	// TOC 4-9 - Level 4 through 9 TOC styles
 	for level := 4; level <= 9; level++ {
 		styleID := fmt.Sprintf("%d", 12+level) // 16, 17, 18, 19, 20, 21
 		tocStyle := &Style{
@@ -1033,15 +1047,15 @@ func (sm *StyleManager) addTOCStyles() {
 			},
 			ParagraphPr: &ParagraphProperties{
 				Spacing: &Spacing{
-					After: "100", // 5磅段后间距
+					After: "100", // 5pt space after
 				},
 				Indentation: &Indentation{
-					Left: fmt.Sprintf("%d", level*240), // 每级增加240 TWIPs (12磅)
+					Left: fmt.Sprintf("%d", level*240), // Each level adds 240 TWIPs (12pt)
 				},
 			},
 			RunPr: &RunProperties{
 				FontSize: &FontSize{
-					Val: "22", // 11磅
+					Val: "22", // 11pt
 				},
 				FontFamily: &FontFamily{
 					ASCII:    "Calibri",
@@ -1054,10 +1068,10 @@ func (sm *StyleManager) addTOCStyles() {
 		sm.AddStyle(tocStyle)
 	}
 
-	// 添加基础TOC样式（样式ID为"12"的目录标题样式）
+	// Add base TOC style (style ID "12" for the TOC heading)
 	tocBase := &Style{
 		Type:    string(StyleTypeParagraph),
-		StyleID: "12", // 基础TOC样式ID
+		StyleID: "12", // Base TOC style ID
 		Name: &StyleName{
 			Val: "TOCHeading",
 		},
@@ -1069,17 +1083,17 @@ func (sm *StyleManager) addTOCStyles() {
 		},
 		ParagraphPr: &ParagraphProperties{
 			Spacing: &Spacing{
-				Before: "240", // 12磅段前间距
-				After:  "120", // 6磅段后间距
+				Before: "240", // 12pt space before
+				After:  "120", // 6pt space after
 			},
 			Justification: &Justification{
-				Val: "center", // 居中对齐
+				Val: "center", // Center aligned
 			},
 		},
 		RunPr: &RunProperties{
 			Bold: &Bold{},
 			FontSize: &FontSize{
-				Val: "26", // 13磅
+				Val: "26", // 13pt
 			},
 			FontFamily: &FontFamily{
 				ASCII:    "Calibri",
@@ -1090,28 +1104,100 @@ func (sm *StyleManager) addTOCStyles() {
 		},
 	}
 	sm.AddStyle(tocBase)
+
+	// Footnote reference style (character style)
+	footnoteRef := &Style{
+		Type:    string(StyleTypeCharacter),
+		StyleID: "FootnoteReference",
+		Name: &StyleName{
+			Val: "footnote reference",
+		},
+		RunPr: &RunProperties{
+			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+		},
+	}
+	sm.AddStyle(footnoteRef)
+
+	// Footnote text style (paragraph style)
+	footnoteText := &Style{
+		Type:    string(StyleTypeParagraph),
+		StyleID: "FootnoteText",
+		Name: &StyleName{
+			Val: "footnote text",
+		},
+		BasedOn: &BasedOn{
+			Val: "Normal",
+		},
+		ParagraphPr: &ParagraphProperties{
+			Spacing: &Spacing{
+				After:    "0",
+				Line:     "240",
+				LineRule: "auto",
+			},
+		},
+		RunPr: &RunProperties{
+			FontSize: &FontSize{Val: "20"}, // 10pt
+		},
+	}
+	sm.AddStyle(footnoteText)
+
+	// Endnote reference style (character style)
+	endnoteRef := &Style{
+		Type:    string(StyleTypeCharacter),
+		StyleID: "EndnoteReference",
+		Name: &StyleName{
+			Val: "endnote reference",
+		},
+		RunPr: &RunProperties{
+			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+		},
+	}
+	sm.AddStyle(endnoteRef)
+
+	// Endnote text style (paragraph style)
+	endnoteText := &Style{
+		Type:    string(StyleTypeParagraph),
+		StyleID: "EndnoteText",
+		Name: &StyleName{
+			Val: "endnote text",
+		},
+		BasedOn: &BasedOn{
+			Val: "Normal",
+		},
+		ParagraphPr: &ParagraphProperties{
+			Spacing: &Spacing{
+				After:    "0",
+				Line:     "240",
+				LineRule: "auto",
+			},
+		},
+		RunPr: &RunProperties{
+			FontSize: &FontSize{Val: "20"}, // 10pt
+		},
+	}
+	sm.AddStyle(endnoteText)
 }
 
-// GetStyleWithInheritance 获取具有继承属性的样式
-// 如果样式基于其他样式，会合并父样式的属性
+// GetStyleWithInheritance returns a style with inherited properties resolved.
+// If the style is based on another style, parent style properties are merged.
 func (sm *StyleManager) GetStyleWithInheritance(styleID string) *Style {
 	style := sm.GetStyle(styleID)
 	if style == nil {
 		return nil
 	}
 
-	// 如果样式没有基础样式，直接返回
+	// If the style has no parent, return it directly
 	if style.BasedOn == nil {
 		return style
 	}
 
-	// 递归获取基础样式
+	// Recursively resolve the base style
 	baseStyle := sm.GetStyleWithInheritance(style.BasedOn.Val)
 	if baseStyle == nil {
 		return style
 	}
 
-	// 创建合并后的样式副本
+	// Create a merged style copy
 	mergedStyle := &Style{
 		Type:        style.Type,
 		StyleID:     style.StyleID,
@@ -1122,13 +1208,13 @@ func (sm *StyleManager) GetStyleWithInheritance(styleID string) *Style {
 		CustomStyle: style.CustomStyle,
 	}
 
-	// 合并段落属性
+	// Merge paragraph properties
 	mergedStyle.ParagraphPr = mergeParagraphProperties(baseStyle.ParagraphPr, style.ParagraphPr)
 
-	// 合并字符属性
+	// Merge run properties
 	mergedStyle.RunPr = mergeRunProperties(baseStyle.RunPr, style.RunPr)
 
-	// 合并表格属性（如果有）
+	// Merge table properties (if any)
 	if style.TablePr != nil {
 		mergedStyle.TablePr = style.TablePr
 	} else if baseStyle.TablePr != nil {
@@ -1138,7 +1224,7 @@ func (sm *StyleManager) GetStyleWithInheritance(styleID string) *Style {
 	return mergedStyle
 }
 
-// mergeParagraphProperties 合并段落属性，优先级：override > base
+// mergeParagraphProperties merges paragraph properties; override takes precedence over base.
 func mergeParagraphProperties(base, override *ParagraphProperties) *ParagraphProperties {
 	if base == nil {
 		return override
@@ -1149,42 +1235,42 @@ func mergeParagraphProperties(base, override *ParagraphProperties) *ParagraphPro
 
 	merged := &ParagraphProperties{}
 
-	// 合并间距
+	// Merge spacing
 	if override.Spacing != nil {
 		merged.Spacing = override.Spacing
 	} else if base.Spacing != nil {
 		merged.Spacing = base.Spacing
 	}
 
-	// 合并对齐
+	// Merge alignment
 	if override.Justification != nil {
 		merged.Justification = override.Justification
 	} else if base.Justification != nil {
 		merged.Justification = base.Justification
 	}
 
-	// 合并缩进
+	// Merge indentation
 	if override.Indentation != nil {
 		merged.Indentation = override.Indentation
 	} else if base.Indentation != nil {
 		merged.Indentation = base.Indentation
 	}
 
-	// 合并边框
+	// Merge borders
 	if override.ParagraphBorder != nil {
 		merged.ParagraphBorder = override.ParagraphBorder
 	} else if base.ParagraphBorder != nil {
 		merged.ParagraphBorder = base.ParagraphBorder
 	}
 
-	// 合并阴影
+	// Merge shading
 	if override.Shading != nil {
 		merged.Shading = override.Shading
 	} else if base.Shading != nil {
 		merged.Shading = base.Shading
 	}
 
-	// 合并其他属性
+	// Merge other properties
 	if override.KeepNext != nil {
 		merged.KeepNext = override.KeepNext
 	} else if base.KeepNext != nil {
@@ -1212,7 +1298,7 @@ func mergeParagraphProperties(base, override *ParagraphProperties) *ParagraphPro
 	return merged
 }
 
-// mergeRunProperties 合并字符属性
+// mergeRunProperties merges run (character) properties.
 func mergeRunProperties(base, override *RunProperties) *RunProperties {
 	if base == nil {
 		return override
@@ -1223,7 +1309,7 @@ func mergeRunProperties(base, override *RunProperties) *RunProperties {
 
 	merged := &RunProperties{}
 
-	// 合并文字格式
+	// Merge text formatting
 	if override.Bold != nil {
 		merged.Bold = override.Bold
 	} else if base.Bold != nil {
@@ -1248,7 +1334,7 @@ func mergeRunProperties(base, override *RunProperties) *RunProperties {
 		merged.Strike = base.Strike
 	}
 
-	// 合并字体属性
+	// Merge font properties
 	if override.FontSize != nil {
 		merged.FontSize = override.FontSize
 	} else if base.FontSize != nil {
@@ -1276,7 +1362,7 @@ func mergeRunProperties(base, override *RunProperties) *RunProperties {
 	return merged
 }
 
-// CreateCustomStyle 创建自定义样式
+// CreateCustomStyle creates a custom style.
 func (sm *StyleManager) CreateCustomStyle(styleID, name string, styleType StyleType, basedOn string) *Style {
 	style := &Style{
 		Type:        string(styleType),
@@ -1297,24 +1383,24 @@ func (sm *StyleManager) CreateCustomStyle(styleID, name string, styleType StyleT
 	return style
 }
 
-// RemoveStyle 移除样式
+// RemoveStyle removes a style by ID.
 func (sm *StyleManager) RemoveStyle(styleID string) {
 	delete(sm.styles, styleID)
 }
 
-// StyleExists 检查样式是否存在
+// StyleExists checks whether a style exists.
 func (sm *StyleManager) StyleExists(styleID string) bool {
 	_, exists := sm.styles[styleID]
 	return exists
 }
 
-// Clone 深拷贝样式管理器，用于模板渲染时避免样式冲突
+// Clone deep-copies the style manager to avoid style conflicts during template rendering.
 func (sm *StyleManager) Clone() *StyleManager {
 	clonedSM := &StyleManager{
 		styles: make(map[string]*Style),
 	}
 
-	// 深拷贝所有样式
+	// Deep-copy all styles
 	for styleID, style := range sm.styles {
 		clonedSM.styles[styleID] = sm.cloneStyle(style)
 	}
@@ -1322,7 +1408,7 @@ func (sm *StyleManager) Clone() *StyleManager {
 	return clonedSM
 }
 
-// cloneStyle 深拷贝单个样式
+// cloneStyle deep-copies a single style.
 func (sm *StyleManager) cloneStyle(source *Style) *Style {
 	if source == nil {
 		return nil
@@ -1335,42 +1421,42 @@ func (sm *StyleManager) cloneStyle(source *Style) *Style {
 		CustomStyle: source.CustomStyle,
 	}
 
-	// 克隆样式名称
+	// Clone style name
 	if source.Name != nil {
 		cloned.Name = &StyleName{Val: source.Name.Val}
 	}
 
-	// 克隆基于样式
+	// Clone BasedOn reference
 	if source.BasedOn != nil {
 		cloned.BasedOn = &BasedOn{Val: source.BasedOn.Val}
 	}
 
-	// 克隆下一样式
+	// Clone Next style reference
 	if source.Next != nil {
 		cloned.Next = &Next{Val: source.Next.Val}
 	}
 
-	// 克隆段落属性
+	// Clone paragraph properties
 	if source.ParagraphPr != nil {
 		cloned.ParagraphPr = sm.cloneParagraphProperties(source.ParagraphPr)
 	}
 
-	// 克隆字符属性
+	// Clone run properties
 	if source.RunPr != nil {
 		cloned.RunPr = sm.cloneRunProperties(source.RunPr)
 	}
 
-	// 克隆表格属性
+	// Clone table properties
 	if source.TablePr != nil {
 		cloned.TablePr = sm.cloneTableProperties(source.TablePr)
 	}
 
-	// 克隆表格行属性
+	// Clone table row properties
 	if source.TableRowPr != nil {
 		cloned.TableRowPr = sm.cloneTableRowProperties(source.TableRowPr)
 	}
 
-	// 克隆表格单元格属性
+	// Clone table cell properties
 	if source.TableCellPr != nil {
 		cloned.TableCellPr = sm.cloneTableCellProperties(source.TableCellPr)
 	}
@@ -1378,7 +1464,7 @@ func (sm *StyleManager) cloneStyle(source *Style) *Style {
 	return cloned
 }
 
-// cloneParagraphProperties 深度复制段落属性
+// cloneParagraphProperties deep-copies paragraph properties.
 func (sm *StyleManager) cloneParagraphProperties(source *ParagraphProperties) *ParagraphProperties {
 	if source == nil {
 		return nil
@@ -1386,7 +1472,7 @@ func (sm *StyleManager) cloneParagraphProperties(source *ParagraphProperties) *P
 
 	cloned := &ParagraphProperties{}
 
-	// 复制间距
+	// Copy spacing
 	if source.Spacing != nil {
 		cloned.Spacing = &Spacing{
 			Before:   source.Spacing.Before,
@@ -1396,14 +1482,14 @@ func (sm *StyleManager) cloneParagraphProperties(source *ParagraphProperties) *P
 		}
 	}
 
-	// 复制对齐方式
+	// Copy alignment
 	if source.Justification != nil {
 		cloned.Justification = &Justification{
 			Val: source.Justification.Val,
 		}
 	}
 
-	// 复制缩进
+	// Copy indentation
 	if source.Indentation != nil {
 		cloned.Indentation = &Indentation{
 			FirstLine: source.Indentation.FirstLine,
@@ -1412,7 +1498,7 @@ func (sm *StyleManager) cloneParagraphProperties(source *ParagraphProperties) *P
 		}
 	}
 
-	// 复制段落边框
+	// Copy paragraph borders
 	if source.ParagraphBorder != nil {
 		cloned.ParagraphBorder = &ParagraphBorder{}
 		if source.ParagraphBorder.Top != nil {
@@ -1449,7 +1535,7 @@ func (sm *StyleManager) cloneParagraphProperties(source *ParagraphProperties) *P
 		}
 	}
 
-	// 复制阴影
+	// Copy shading
 	if source.Shading != nil {
 		cloned.Shading = &Shading{
 			Fill: source.Shading.Fill,
@@ -1457,7 +1543,7 @@ func (sm *StyleManager) cloneParagraphProperties(source *ParagraphProperties) *P
 		}
 	}
 
-	// 复制其他属性
+	// Copy other properties
 	if source.KeepNext != nil {
 		cloned.KeepNext = &KeepNext{}
 	}
@@ -1476,7 +1562,7 @@ func (sm *StyleManager) cloneParagraphProperties(source *ParagraphProperties) *P
 		}
 	}
 
-	// 复制网格对齐设置
+	// Copy snap-to-grid setting
 	if source.SnapToGrid != nil {
 		cloned.SnapToGrid = &SnapToGrid{
 			Val: source.SnapToGrid.Val,
@@ -1486,7 +1572,7 @@ func (sm *StyleManager) cloneParagraphProperties(source *ParagraphProperties) *P
 	return cloned
 }
 
-// cloneRunProperties 深拷贝字符属性
+// cloneRunProperties deep-copies run (character) properties.
 func (sm *StyleManager) cloneRunProperties(source *RunProperties) *RunProperties {
 	if source == nil {
 		return nil
@@ -1494,7 +1580,7 @@ func (sm *StyleManager) cloneRunProperties(source *RunProperties) *RunProperties
 
 	cloned := &RunProperties{}
 
-	// 克隆字体格式
+	// Clone text formatting
 	if source.Bold != nil {
 		cloned.Bold = &Bold{}
 	}
@@ -1511,17 +1597,17 @@ func (sm *StyleManager) cloneRunProperties(source *RunProperties) *RunProperties
 		cloned.Strike = &Strike{}
 	}
 
-	// 克隆字体大小
+	// Clone font size
 	if source.FontSize != nil {
 		cloned.FontSize = &FontSize{Val: source.FontSize.Val}
 	}
 
-	// 克隆颜色
+	// Clone color
 	if source.Color != nil {
 		cloned.Color = &Color{Val: source.Color.Val}
 	}
 
-	// 克隆字体族
+	// Clone font family
 	if source.FontFamily != nil {
 		cloned.FontFamily = &FontFamily{
 			ASCII:    source.FontFamily.ASCII,
@@ -1531,7 +1617,7 @@ func (sm *StyleManager) cloneRunProperties(source *RunProperties) *RunProperties
 		}
 	}
 
-	// 克隆高亮
+	// Clone highlight
 	if source.Highlight != nil {
 		cloned.Highlight = &Highlight{Val: source.Highlight.Val}
 	}
@@ -1539,7 +1625,7 @@ func (sm *StyleManager) cloneRunProperties(source *RunProperties) *RunProperties
 	return cloned
 }
 
-// cloneTableProperties 深拷贝表格属性
+// cloneTableProperties deep-copies table properties.
 func (sm *StyleManager) cloneTableProperties(source *TableProperties) *TableProperties {
 	if source == nil {
 		return nil
@@ -1547,7 +1633,7 @@ func (sm *StyleManager) cloneTableProperties(source *TableProperties) *TableProp
 
 	cloned := &TableProperties{}
 
-	// 克隆表格缩进
+	// Clone table indent
 	if source.TblInd != nil {
 		cloned.TblInd = &TblIndent{
 			W:    source.TblInd.W,
@@ -1555,7 +1641,7 @@ func (sm *StyleManager) cloneTableProperties(source *TableProperties) *TableProp
 		}
 	}
 
-	// 克隆表格边框
+	// Clone table borders
 	if source.TblBorders != nil {
 		cloned.TblBorders = &TblBorders{}
 
@@ -1614,7 +1700,7 @@ func (sm *StyleManager) cloneTableProperties(source *TableProperties) *TableProp
 		}
 	}
 
-	// 克隆表格单元格边距
+	// Clone table cell margins
 	if source.TblCellMar != nil {
 		cloned.TblCellMar = &TblCellMargin{}
 
@@ -1650,31 +1736,31 @@ func (sm *StyleManager) cloneTableProperties(source *TableProperties) *TableProp
 	return cloned
 }
 
-// cloneTableRowProperties 深拷贝表格行属性
+// cloneTableRowProperties deep-copies table row properties.
 func (sm *StyleManager) cloneTableRowProperties(source *TableRowProperties) *TableRowProperties {
 	if source == nil {
 		return nil
 	}
 
-	// 目前表格行属性是空结构体，简单返回新实例
+	// Currently an empty struct; simply return a new instance
 	cloned := &TableRowProperties{}
 
 	return cloned
 }
 
-// cloneTableCellProperties 深拷贝表格单元格属性
+// cloneTableCellProperties deep-copies table cell properties.
 func (sm *StyleManager) cloneTableCellProperties(source *TableCellProperties) *TableCellProperties {
 	if source == nil {
 		return nil
 	}
 
-	// 目前表格单元格属性是空结构体，简单返回新实例
+	// Currently an empty struct; simply return a new instance
 	cloned := &TableCellProperties{}
 
 	return cloned
 }
 
-// GetStylesByType 按类型获取样式
+// GetStylesByType returns all styles of the given type.
 func (sm *StyleManager) GetStylesByType(styleType StyleType) []*Style {
 	var styles []*Style
 	for _, style := range sm.styles {
@@ -1685,7 +1771,7 @@ func (sm *StyleManager) GetStylesByType(styleType StyleType) []*Style {
 	return styles
 }
 
-// GetHeadingStyles 获取所有标题样式
+// GetHeadingStyles returns all heading styles.
 func (sm *StyleManager) GetHeadingStyles() []*Style {
 	var headingStyles []*Style
 	for i := 1; i <= 9; i++ {
@@ -1697,7 +1783,7 @@ func (sm *StyleManager) GetHeadingStyles() []*Style {
 	return headingStyles
 }
 
-// ApplyStyleToXML 将样式应用到XML结构（为文档集成做准备）
+// ApplyStyleToXML applies a style to an XML structure (for document integration).
 func (sm *StyleManager) ApplyStyleToXML(styleID string) (map[string]interface{}, error) {
 	style := sm.GetStyleWithInheritance(styleID)
 	if style == nil {
@@ -1719,7 +1805,7 @@ func (sm *StyleManager) ApplyStyleToXML(styleID string) (map[string]interface{},
 	return result, nil
 }
 
-// convertParagraphPropertiesToMap 将段落属性转换为映射
+// convertParagraphPropertiesToMap converts paragraph properties to a map.
 func convertParagraphPropertiesToMap(props *ParagraphProperties) map[string]interface{} {
 	result := make(map[string]interface{})
 
@@ -1765,7 +1851,7 @@ func convertParagraphPropertiesToMap(props *ParagraphProperties) map[string]inte
 	return result
 }
 
-// convertRunPropertiesToMap 将字符属性转换为映射
+// convertRunPropertiesToMap converts run properties to a map.
 func convertRunPropertiesToMap(props *RunProperties) map[string]interface{} {
 	result := make(map[string]interface{})
 
@@ -1817,7 +1903,7 @@ func convertRunPropertiesToMap(props *RunProperties) map[string]interface{} {
 	return result
 }
 
-// ParseStylesFromXML 从XML数据解析样式
+// ParseStylesFromXML parses styles from XML data.
 func (sm *StyleManager) ParseStylesFromXML(xmlData []byte) error {
 	type stylesXML struct {
 		XMLName xml.Name `xml:"w:styles"`
@@ -1826,13 +1912,13 @@ func (sm *StyleManager) ParseStylesFromXML(xmlData []byte) error {
 
 	var styles stylesXML
 	if err := xml.Unmarshal(xmlData, &styles); err != nil {
-		return fmt.Errorf("解析样式XML失败: %v", err)
+		return fmt.Errorf("failed to parse styles XML: %v", err)
 	}
 
-	// 清空现有样式（除非我们想要合并）
+	// Clear existing styles (unless merging)
 	sm.styles = make(map[string]*Style)
 
-	// 添加解析的样式
+	// Add parsed styles
 	for i := range styles.Styles {
 		sm.AddStyle(&styles.Styles[i])
 	}
@@ -1840,7 +1926,7 @@ func (sm *StyleManager) ParseStylesFromXML(xmlData []byte) error {
 	return nil
 }
 
-// MergeStylesFromXML 从XML数据合并样式（保留现有样式，只添加新的）
+// MergeStylesFromXML merges styles from XML data, keeping existing styles and only adding new ones.
 func (sm *StyleManager) MergeStylesFromXML(xmlData []byte) error {
 	type stylesXML struct {
 		XMLName xml.Name `xml:"w:styles"`
@@ -1849,10 +1935,10 @@ func (sm *StyleManager) MergeStylesFromXML(xmlData []byte) error {
 
 	var styles stylesXML
 	if err := xml.Unmarshal(xmlData, &styles); err != nil {
-		return fmt.Errorf("解析样式XML失败: %v", err)
+		return fmt.Errorf("failed to parse styles XML: %v", err)
 	}
 
-	// 只添加不存在的样式，保留现有样式
+	// Only add styles that don't already exist
 	for i := range styles.Styles {
 		if !sm.StyleExists(styles.Styles[i].StyleID) {
 			sm.AddStyle(&styles.Styles[i])
@@ -1862,27 +1948,27 @@ func (sm *StyleManager) MergeStylesFromXML(xmlData []byte) error {
 	return nil
 }
 
-// LoadStylesFromDocument 从现有文档加载样式，优先保留原有样式设置
+// LoadStylesFromDocument loads styles from an existing document, preserving original style settings.
 func (sm *StyleManager) LoadStylesFromDocument(xmlData []byte) error {
 	if len(xmlData) == 0 {
-		// 如果没有样式数据，使用默认样式
+		// If no style data, use default styles
 		sm.initializePredefinedStyles()
 		return nil
 	}
 
-	// 先解析现有样式
+	// Parse existing styles first
 	if err := sm.ParseStylesFromXML(xmlData); err != nil {
-		// 如果解析失败，使用默认样式
+		// If parsing fails, fall back to default styles
 		sm.initializePredefinedStyles()
-		return fmt.Errorf("解析现有样式失败，使用默认样式: %v", err)
+		return fmt.Errorf("failed to parse existing styles, using defaults: %v", err)
 	}
 
-	// 确保基本样式存在，如果不存在则添加
+	// Ensure the basic Normal style exists; add it if missing
 	if !sm.StyleExists("Normal") {
 		sm.addNormalStyle()
 	}
 
-	// 确保基本标题样式存在
+	// Ensure basic heading styles exist
 	headingStyles := []string{"Heading1", "Heading2", "Heading3", "Heading4", "Heading5", "Heading6", "Heading7", "Heading8", "Heading9"}
 	for _, styleID := range headingStyles {
 		if !sm.StyleExists(styleID) {
@@ -1894,9 +1980,9 @@ func (sm *StyleManager) LoadStylesFromDocument(xmlData []byte) error {
 	return nil
 }
 
-// addTableStyles 添加表格样式
+// addTableStyles adds table styles.
 func (sm *StyleManager) addTableStyles() {
-	// 普通表格样式 (Normal Table) - 默认表格样式
+	// Normal Table style - default table style
 	normalTable := &Style{
 		Type:    string(StyleTypeTable),
 		StyleID: "a1",
@@ -1931,7 +2017,7 @@ func (sm *StyleManager) addTableStyles() {
 	}
 	sm.AddStyle(normalTable)
 
-	// 表格网格样式 (Table Grid) - 基于Normal Table，添加边框
+	// Table Grid style - based on Normal Table, adds borders
 	tableGrid := &Style{
 		Type:    string(StyleTypeTable),
 		StyleID: "ab",

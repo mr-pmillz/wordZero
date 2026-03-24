@@ -1,57 +1,57 @@
-// Package markdown 提供Markdown到Word文档的转换功能
+// Package markdown provides Markdown-to-Word document conversion functionality.
 package markdown
 
 import "github.com/zerx-lab/wordZero/pkg/document"
 
-// ConvertOptions 转换选项配置
+// ConvertOptions configures conversion options.
 type ConvertOptions struct {
-	// 基础配置
-	EnableGFM       bool // 启用GitHub Flavored Markdown
-	EnableFootnotes bool // 启用脚注支持
-	EnableTables    bool // 启用表格支持
-	EnableTaskList  bool // 启用任务列表
-	EnableMath      bool // 启用数学公式支持（LaTeX语法）
+	// Basic configuration
+	EnableGFM       bool // enable GitHub Flavored Markdown
+	EnableFootnotes bool // enable footnote support
+	EnableTables    bool // enable table support
+	EnableTaskList  bool // enable task lists
+	EnableMath      bool // enable math formula support (LaTeX syntax)
 
-	// 样式配置
-	StyleMapping      map[string]string // 自定义样式映射
-	DefaultFontFamily string            // 默认字体
-	DefaultFontSize   float64           // 默认字号
+	// Style configuration
+	StyleMapping      map[string]string // custom style mapping
+	DefaultFontFamily string            // default font family
+	DefaultFontSize   float64           // default font size
 
-	// 图片处理
-	ImageBasePath string  // 图片基础路径
-	EmbedImages   bool    // 是否嵌入图片
-	MaxImageWidth float64 // 最大图片宽度（英寸）
+	// Image handling
+	ImageBasePath string  // image base path
+	EmbedImages   bool    // whether to embed images
+	MaxImageWidth float64 // maximum image width (inches)
 
-	// 链接处理
-	PreserveLinkStyle  bool // 保留链接样式
-	ConvertToBookmarks bool // 内部链接转书签
+	// Link handling
+	PreserveLinkStyle  bool // preserve link style
+	ConvertToBookmarks bool // convert internal links to bookmarks
 
-	// 文档设置
-	GenerateTOC  bool                   // 生成目录
-	TOCMaxLevel  int                    // 目录最大级别
-	PageSettings *document.PageSettings // 页面设置（使用现有结构）
+	// Document settings
+	GenerateTOC  bool                   // generate table of contents
+	TOCMaxLevel  int                    // maximum TOC heading level
+	PageSettings *document.PageSettings // page settings (using existing struct)
 
-	// 错误处理
-	StrictMode    bool        // 严格模式
-	IgnoreErrors  bool        // 忽略转换错误
-	ErrorCallback func(error) // 错误回调
+	// Error handling
+	StrictMode    bool        // strict mode
+	IgnoreErrors  bool        // ignore conversion errors
+	ErrorCallback func(error) // error callback
 
-	// 进度报告
-	ProgressCallback func(int, int) // 进度回调
+	// Progress reporting
+	ProgressCallback func(int, int) // progress callback
 }
 
-// DefaultOptions 返回默认的转换配置
+// DefaultOptions returns the default conversion configuration.
 func DefaultOptions() *ConvertOptions {
 	return &ConvertOptions{
 		EnableGFM:         true,
 		EnableFootnotes:   true,
 		EnableTables:      true,
 		EnableTaskList:    true,
-		EnableMath:        true, // 默认启用数学公式支持
+		EnableMath:        true, // math formula support enabled by default
 		DefaultFontFamily: "Calibri",
 		DefaultFontSize:   11.0,
 		EmbedImages:       false,
-		MaxImageWidth:     6.0, // 英寸
+		MaxImageWidth:     6.0, // inches
 		GenerateTOC:       true,
 		TOCMaxLevel:       3,
 		StrictMode:        false,
@@ -59,7 +59,7 @@ func DefaultOptions() *ConvertOptions {
 	}
 }
 
-// HighQualityOptions 返回高质量转换配置
+// HighQualityOptions returns a high-quality conversion configuration.
 func HighQualityOptions() *ConvertOptions {
 	opts := DefaultOptions()
 	opts.EmbedImages = true

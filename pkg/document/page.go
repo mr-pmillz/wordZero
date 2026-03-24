@@ -1,4 +1,4 @@
-// Package document 提供Word文档的页面设置功能
+// Package document provides page settings functionality for Word documents.
 package document
 
 import (
@@ -8,55 +8,55 @@ import (
 	"strconv"
 )
 
-// PageOrientation 页面方向类型
+// PageOrientation represents the page orientation type.
 type PageOrientation string
 
 const (
-	// OrientationPortrait 纵向
+	// OrientationPortrait represents portrait orientation.
 	OrientationPortrait PageOrientation = "portrait"
-	// OrientationLandscape 横向
+	// OrientationLandscape represents landscape orientation.
 	OrientationLandscape PageOrientation = "landscape"
 )
 
-// DocGridType 文档网格类型
+// DocGridType represents the document grid type.
 type DocGridType string
 
 const (
-	// DocGridDefault 默认网格类型
+	// DocGridDefault represents the default grid type.
 	DocGridDefault DocGridType = "default"
-	// DocGridLines 仅影响行间距
+	// DocGridLines affects line spacing only.
 	DocGridLines DocGridType = "lines"
-	// DocGridSnapToChars 文字对齐到网格
+	// DocGridSnapToChars snaps text to character grid.
 	DocGridSnapToChars DocGridType = "snapToChars"
-	// DocGridSnapToLines 文字行对齐到网格
+	// DocGridSnapToLines snaps text lines to the grid.
 	DocGridSnapToLines DocGridType = "snapToLines"
 )
 
-// PageSize 页面尺寸类型
+// PageSize represents a page size type.
 type PageSize string
 
 const (
-	// PageSizeA4 A4纸张 (210mm x 297mm)
+	// PageSizeA4 represents A4 paper (210mm x 297mm).
 	PageSizeA4 PageSize = "A4"
-	// PageSizeLetter 美国Letter (8.5" x 11")
+	// PageSizeLetter represents US Letter paper (8.5" x 11").
 	PageSizeLetter PageSize = "Letter"
-	// PageSizeLegal 美国Legal (8.5" x 14")
+	// PageSizeLegal represents US Legal paper (8.5" x 14").
 	PageSizeLegal PageSize = "Legal"
-	// PageSizeA3 A3纸张 (297mm x 420mm)
+	// PageSizeA3 represents A3 paper (297mm x 420mm).
 	PageSizeA3 PageSize = "A3"
-	// PageSizeA5 A5纸张 (148mm x 210mm)
+	// PageSizeA5 represents A5 paper (148mm x 210mm).
 	PageSizeA5 PageSize = "A5"
-	// PageSizeCustom 自定义尺寸
+	// PageSizeCustom represents a custom page size.
 	PageSizeCustom PageSize = "Custom"
 )
 
-// 页面设置相关错误
+// Page settings related errors
 var (
-	// ErrInvalidPageSettings 无效的页面设置
+	// ErrInvalidPageSettings indicates invalid page settings.
 	ErrInvalidPageSettings = errors.New("invalid page settings")
 )
 
-// SectionProperties 节属性，包含页面设置信息
+// SectionProperties holds section properties including page settings.
 type SectionProperties struct {
 	XMLName          xml.Name                 `xml:"w:sectPr"`
 	XmlnsR           string                   `xml:"xmlns:r,attr,omitempty"`
@@ -70,65 +70,65 @@ type SectionProperties struct {
 	DocGrid          *DocGrid                 `xml:"w:docGrid,omitempty"`
 }
 
-// PageSizeXML 页面尺寸XML结构
+// PageSizeXML represents the page size XML structure.
 type PageSizeXML struct {
 	XMLName xml.Name `xml:"w:pgSz"`
-	W       string   `xml:"w:w,attr"`      // 页面宽度（twips）
-	H       string   `xml:"w:h,attr"`      // 页面高度（twips）
-	Orient  string   `xml:"w:orient,attr"` // 页面方向
+	W       string   `xml:"w:w,attr"`      // Page width (twips)
+	H       string   `xml:"w:h,attr"`      // Page height (twips)
+	Orient  string   `xml:"w:orient,attr"` // Page orientation
 }
 
-// PageMargin 页面边距
+// PageMargin represents page margin settings.
 type PageMargin struct {
 	XMLName xml.Name `xml:"w:pgMar"`
-	Top     string   `xml:"w:top,attr"`    // 上边距（twips）
-	Right   string   `xml:"w:right,attr"`  // 右边距（twips）
-	Bottom  string   `xml:"w:bottom,attr"` // 下边距（twips）
-	Left    string   `xml:"w:left,attr"`   // 左边距（twips）
-	Header  string   `xml:"w:header,attr"` // 页眉距离（twips）
-	Footer  string   `xml:"w:footer,attr"` // 页脚距离（twips）
-	Gutter  string   `xml:"w:gutter,attr"` // 装订线（twips）
+	Top     string   `xml:"w:top,attr"`    // Top margin (twips)
+	Right   string   `xml:"w:right,attr"`  // Right margin (twips)
+	Bottom  string   `xml:"w:bottom,attr"` // Bottom margin (twips)
+	Left    string   `xml:"w:left,attr"`   // Left margin (twips)
+	Header  string   `xml:"w:header,attr"` // Header distance (twips)
+	Footer  string   `xml:"w:footer,attr"` // Footer distance (twips)
+	Gutter  string   `xml:"w:gutter,attr"` // Gutter width (twips)
 }
 
-// Columns 分栏设置
+// Columns represents column layout settings.
 type Columns struct {
 	XMLName xml.Name `xml:"w:cols"`
-	Space   string   `xml:"w:space,attr,omitempty"` // 栏间距
-	Num     string   `xml:"w:num,attr,omitempty"`   // 栏数
+	Space   string   `xml:"w:space,attr,omitempty"` // Column spacing
+	Num     string   `xml:"w:num,attr,omitempty"`   // Number of columns
 }
 
-// PageNumType 页码类型
+// PageNumType represents page number type settings.
 type PageNumType struct {
 	XMLName xml.Name `xml:"w:pgNumType"`
 	Fmt     string   `xml:"w:fmt,attr,omitempty"`
 }
 
-// PageSettings 页面设置配置
+// PageSettings holds page settings configuration.
 type PageSettings struct {
-	// 页面尺寸
+	// Page size
 	Size PageSize
-	// 自定义尺寸（当Size为Custom时使用）
-	CustomWidth  float64 // 自定义宽度（毫米）
-	CustomHeight float64 // 自定义高度（毫米）
-	// 页面方向
+	// Custom dimensions (used when Size is Custom)
+	CustomWidth  float64 // Custom width (millimeters)
+	CustomHeight float64 // Custom height (millimeters)
+	// Page orientation
 	Orientation PageOrientation
-	// 页面边距（毫米）
+	// Page margins (millimeters)
 	MarginTop    float64
 	MarginRight  float64
 	MarginBottom float64
 	MarginLeft   float64
-	// 页眉页脚距离（毫米）
+	// Header and footer distance (millimeters)
 	HeaderDistance float64
 	FooterDistance float64
-	// 装订线宽度（毫米）
+	// Gutter width (millimeters)
 	GutterWidth float64
-	// 文档网格设置
-	DocGridType      DocGridType // 文档网格类型
-	DocGridLinePitch int         // 行网格间距（1/20磅）
-	DocGridCharSpace int         // 字符间距
+	// Document grid settings
+	DocGridType      DocGridType // Document grid type
+	DocGridLinePitch int         // Line grid pitch (1/20 of a point)
+	DocGridCharSpace int         // Character spacing
 }
 
-// 预定义页面尺寸（毫米）
+// Predefined page sizes (millimeters)
 var predefinedSizes = map[PageSize]struct {
 	width  float64
 	height float64
@@ -140,39 +140,39 @@ var predefinedSizes = map[PageSize]struct {
 	PageSizeA5:     {148, 210},
 }
 
-// DefaultPageSettings 返回默认页面设置（A4纵向）
+// DefaultPageSettings returns the default page settings (A4, portrait).
 func DefaultPageSettings() *PageSettings {
 	return &PageSettings{
 		Size:             PageSizeA4,
 		Orientation:      OrientationPortrait,
-		MarginTop:        25.4, // 1英寸
-		MarginRight:      25.4, // 1英寸
-		MarginBottom:     25.4, // 1英寸
-		MarginLeft:       25.4, // 1英寸
-		HeaderDistance:   12.7, // 0.5英寸
-		FooterDistance:   12.7, // 0.5英寸
-		GutterWidth:      0,    // 无装订线
+		MarginTop:        25.4, // 1 inch
+		MarginRight:      25.4, // 1 inch
+		MarginBottom:     25.4, // 1 inch
+		MarginLeft:       25.4, // 1 inch
+		HeaderDistance:   12.7, // 0.5 inch
+		FooterDistance:   12.7, // 0.5 inch
+		GutterWidth:      0,    // No gutter
 		DocGridType:      DocGridLines,
-		DocGridLinePitch: 312, // 默认行网格间距
+		DocGridLinePitch: 312, // Default line grid pitch
 		DocGridCharSpace: 0,
 	}
 }
 
-// SetPageSettings 设置文档的页面属性
+// SetPageSettings sets the page properties for the document.
 func (d *Document) SetPageSettings(settings *PageSettings) error {
 	if settings == nil {
-		return WrapError("SetPageSettings", errors.New("页面设置不能为空"))
+		return WrapError("SetPageSettings", errors.New("page settings cannot be nil"))
 	}
 
-	// 验证页面设置
+	// Validate page settings
 	if err := validatePageSettings(settings); err != nil {
 		return WrapError("SetPageSettings", err)
 	}
 
-	// 获取或创建节属性
+	// Get or create section properties
 	sectPr := d.getSectionProperties()
 
-	// 设置页面尺寸
+	// Set page size
 	width, height := getPageDimensions(settings)
 	sectPr.PageSize = &PageSizeXML{
 		W:      fmt.Sprintf("%.0f", mmToTwips(width)),
@@ -180,7 +180,7 @@ func (d *Document) SetPageSettings(settings *PageSettings) error {
 		Orient: string(settings.Orientation),
 	}
 
-	// 设置页面边距
+	// Set page margins
 	sectPr.PageMargins = &PageMargin{
 		Top:    fmt.Sprintf("%.0f", mmToTwips(settings.MarginTop)),
 		Right:  fmt.Sprintf("%.0f", mmToTwips(settings.MarginRight)),
@@ -191,7 +191,7 @@ func (d *Document) SetPageSettings(settings *PageSettings) error {
 		Gutter: fmt.Sprintf("%.0f", mmToTwips(settings.GutterWidth)),
 	}
 
-	// 设置文档网格
+	// Set document grid
 	if settings.DocGridType != "" {
 		sectPr.DocGrid = &DocGrid{
 			Type:      string(settings.DocGridType),
@@ -203,28 +203,28 @@ func (d *Document) SetPageSettings(settings *PageSettings) error {
 		}
 	}
 
-	Infof("页面设置已更新: 尺寸=%s, 方向=%s", settings.Size, settings.Orientation)
+	InfoMsgf(MsgPageSettingsUpdated, settings.Size, settings.Orientation)
 	return nil
 }
 
-// GetPageSettings 获取当前文档的页面设置
+// GetPageSettings returns the current page settings for the document.
 func (d *Document) GetPageSettings() *PageSettings {
 	sectPr := d.getSectionProperties()
 	settings := DefaultPageSettings()
 
 	if sectPr.PageSize != nil {
-		// 解析页面尺寸
+		// Parse page dimensions
 		width := twipsToMM(parseFloat(sectPr.PageSize.W))
 		height := twipsToMM(parseFloat(sectPr.PageSize.H))
 
-		// 判断是否为预定义尺寸
+		// Determine if this is a predefined size
 		settings.Size = identifyPageSize(width, height)
 		if settings.Size == PageSizeCustom {
 			settings.CustomWidth = width
 			settings.CustomHeight = height
 		}
 
-		// 设置方向
+		// Set orientation
 		if sectPr.PageSize.Orient == string(OrientationLandscape) {
 			settings.Orientation = OrientationLandscape
 		} else {
@@ -233,7 +233,7 @@ func (d *Document) GetPageSettings() *PageSettings {
 	}
 
 	if sectPr.PageMargins != nil {
-		// 解析页面边距
+		// Parse page margins
 		settings.MarginTop = twipsToMM(parseFloat(sectPr.PageMargins.Top))
 		settings.MarginRight = twipsToMM(parseFloat(sectPr.PageMargins.Right))
 		settings.MarginBottom = twipsToMM(parseFloat(sectPr.PageMargins.Bottom))
@@ -243,7 +243,7 @@ func (d *Document) GetPageSettings() *PageSettings {
 		settings.GutterWidth = twipsToMM(parseFloat(sectPr.PageMargins.Gutter))
 	}
 
-	// 解析文档网格设置
+	// Parse document grid settings
 	if sectPr.DocGrid != nil {
 		if sectPr.DocGrid.Type != "" {
 			settings.DocGridType = DocGridType(sectPr.DocGrid.Type)
@@ -261,17 +261,17 @@ func (d *Document) GetPageSettings() *PageSettings {
 	return settings
 }
 
-// SetPageSize 设置页面大小
+// SetPageSize sets the page size for the document.
 func (d *Document) SetPageSize(size PageSize) error {
 	settings := d.GetPageSettings()
 	settings.Size = size
 	return d.SetPageSettings(settings)
 }
 
-// SetCustomPageSize 设置自定义页面大小（毫米）
+// SetCustomPageSize sets a custom page size in millimeters.
 func (d *Document) SetCustomPageSize(width, height float64) error {
 	if width <= 0 || height <= 0 {
-		return WrapError("SetCustomPageSize", errors.New("页面尺寸必须大于0"))
+		return WrapError("SetCustomPageSize", errors.New("page dimensions must be greater than 0"))
 	}
 
 	settings := d.GetPageSettings()
@@ -281,17 +281,17 @@ func (d *Document) SetCustomPageSize(width, height float64) error {
 	return d.SetPageSettings(settings)
 }
 
-// SetPageOrientation 设置页面方向
+// SetPageOrientation sets the page orientation for the document.
 func (d *Document) SetPageOrientation(orientation PageOrientation) error {
 	settings := d.GetPageSettings()
 	settings.Orientation = orientation
 	return d.SetPageSettings(settings)
 }
 
-// SetPageMargins 设置页面边距（毫米）
+// SetPageMargins sets the page margins in millimeters.
 func (d *Document) SetPageMargins(top, right, bottom, left float64) error {
 	if top < 0 || right < 0 || bottom < 0 || left < 0 {
-		return WrapError("SetPageMargins", errors.New("页面边距不能为负数"))
+		return WrapError("SetPageMargins", errors.New("page margins cannot be negative"))
 	}
 
 	settings := d.GetPageSettings()
@@ -302,10 +302,10 @@ func (d *Document) SetPageMargins(top, right, bottom, left float64) error {
 	return d.SetPageSettings(settings)
 }
 
-// SetHeaderFooterDistance 设置页眉页脚距离（毫米）
+// SetHeaderFooterDistance sets the header and footer distance in millimeters.
 func (d *Document) SetHeaderFooterDistance(header, footer float64) error {
 	if header < 0 || footer < 0 {
-		return WrapError("SetHeaderFooterDistance", errors.New("页眉页脚距离不能为负数"))
+		return WrapError("SetHeaderFooterDistance", errors.New("header and footer distance cannot be negative"))
 	}
 
 	settings := d.GetPageSettings()
@@ -314,10 +314,10 @@ func (d *Document) SetHeaderFooterDistance(header, footer float64) error {
 	return d.SetPageSettings(settings)
 }
 
-// SetGutterWidth 设置装订线宽度（毫米）
+// SetGutterWidth sets the gutter width in millimeters.
 func (d *Document) SetGutterWidth(width float64) error {
 	if width < 0 {
-		return WrapError("SetGutterWidth", errors.New("装订线宽度不能为负数"))
+		return WrapError("SetGutterWidth", errors.New("gutter width cannot be negative"))
 	}
 
 	settings := d.GetPageSettings()
@@ -325,27 +325,27 @@ func (d *Document) SetGutterWidth(width float64) error {
 	return d.SetPageSettings(settings)
 }
 
-// getSectionProperties 获取或创建节属性
+// getSectionProperties returns or creates the section properties.
 func (d *Document) getSectionProperties() *SectionProperties {
 	if d.Body == nil {
 		return &SectionProperties{}
 	}
 
-	// 在Elements中查找已存在的SectionProperties（可能在任何位置）
+	// Search for existing SectionProperties in Elements (may be at any position)
 	for _, element := range d.Body.Elements {
 		if sectPr, ok := element.(*SectionProperties); ok {
 			return sectPr
 		}
 	}
 
-	// 如果没有找到，创建新的节属性并添加到末尾
+	// If not found, create new section properties and append to the end
 	sectPr := &SectionProperties{}
 	d.Body.Elements = append(d.Body.Elements, sectPr)
 
 	return sectPr
 }
 
-// setSectionProperties 替换或设置节属性
+// setSectionProperties replaces or sets the section properties.
 func (d *Document) setSectionProperties(sectPr *SectionProperties) {
 	if sectPr == nil {
 		return
@@ -366,38 +366,38 @@ func (d *Document) setSectionProperties(sectPr *SectionProperties) {
 	d.Body.Elements = append(d.Body.Elements, sectPr)
 }
 
-// ElementType 返回节属性元素类型
+// ElementType returns the element type for section properties.
 func (s *SectionProperties) ElementType() string {
 	return "sectionProperties"
 }
 
-// validatePageSettings 验证页面设置
+// validatePageSettings validates the page settings.
 func validatePageSettings(settings *PageSettings) error {
-	// 验证页面尺寸
+	// Validate page dimensions
 	if settings.Size == PageSizeCustom {
 		if settings.CustomWidth <= 0 || settings.CustomHeight <= 0 {
-			return errors.New("自定义页面尺寸必须大于0")
+			return errors.New("custom page dimensions must be greater than 0")
 		}
 
-		// 检查尺寸范围（Word支持的最小和最大尺寸）
-		const minSize = 12.7  // 0.5英寸
-		const maxSize = 558.8 // 22英寸
+		// Check dimension range (minimum and maximum sizes supported by Word)
+		const minSize = 12.7  // 0.5 inch
+		const maxSize = 558.8 // 22 inches
 
 		if settings.CustomWidth < minSize || settings.CustomWidth > maxSize ||
 			settings.CustomHeight < minSize || settings.CustomHeight > maxSize {
-			return fmt.Errorf("页面尺寸必须在%.1f-%.1fmm范围内", minSize, maxSize)
+			return fmt.Errorf("page dimensions must be within %.1f-%.1fmm range", minSize, maxSize)
 		}
 	}
 
-	// 验证方向
+	// Validate orientation
 	if settings.Orientation != OrientationPortrait && settings.Orientation != OrientationLandscape {
-		return errors.New("无效的页面方向")
+		return errors.New("invalid page orientation")
 	}
 
 	return nil
 }
 
-// getPageDimensions 获取页面尺寸（毫米）
+// getPageDimensions returns the page dimensions in millimeters.
 func getPageDimensions(settings *PageSettings) (width, height float64) {
 	if settings.Size == PageSizeCustom {
 		width = settings.CustomWidth
@@ -405,14 +405,14 @@ func getPageDimensions(settings *PageSettings) (width, height float64) {
 	} else {
 		size, exists := predefinedSizes[settings.Size]
 		if !exists {
-			// 默认使用A4
+			// Default to A4
 			size = predefinedSizes[PageSizeA4]
 		}
 		width = size.width
 		height = size.height
 	}
 
-	// 如果是横向，交换宽高
+	// If landscape, swap width and height
 	if settings.Orientation == OrientationLandscape {
 		width, height = height, width
 	}
@@ -420,9 +420,9 @@ func getPageDimensions(settings *PageSettings) (width, height float64) {
 	return width, height
 }
 
-// identifyPageSize 根据尺寸识别页面类型
+// identifyPageSize identifies the page size type from dimensions.
 func identifyPageSize(width, height float64) PageSize {
-	// 允许1mm的误差
+	// Allow 1mm tolerance
 	const tolerance = 1.0
 
 	for size, dims := range predefinedSizes {
@@ -435,23 +435,23 @@ func identifyPageSize(width, height float64) PageSize {
 	return PageSizeCustom
 }
 
-// mmToTwips 毫米转换为Twips（1毫米 = 56.69 twips）
+// mmToTwips converts millimeters to twips (1mm = 56.69 twips).
 func mmToTwips(mm float64) float64 {
 	return mm * 56.692913385827
 }
 
-// twipsToMM Twips转换为毫米
+// twipsToMM converts twips to millimeters.
 func twipsToMM(twips float64) float64 {
 	return twips / 56.692913385827
 }
 
-// parseFloat 安全地解析浮点数字符串
+// parseFloat safely parses a float string.
 func parseFloat(s string) float64 {
 	if s == "" {
 		return 0
 	}
 
-	// 使用strconv.ParseFloat解析浮点数
+	// Use strconv.ParseFloat to parse the float
 	if val, err := strconv.ParseFloat(s, 64); err == nil {
 		return val
 	}
@@ -459,7 +459,7 @@ func parseFloat(s string) float64 {
 	return 0
 }
 
-// abs 返回浮点数的绝对值
+// abs returns the absolute value of a float.
 func abs(x float64) float64 {
 	if x < 0 {
 		return -x
@@ -467,18 +467,18 @@ func abs(x float64) float64 {
 	return x
 }
 
-// DocGrid 文档网格设置
+// DocGrid represents document grid settings.
 type DocGrid struct {
 	XMLName   xml.Name `xml:"w:docGrid"`
-	Type      string   `xml:"w:type,attr,omitempty"`      // 网格类型
-	LinePitch string   `xml:"w:linePitch,attr,omitempty"` // 行网格间距
-	CharSpace string   `xml:"w:charSpace,attr,omitempty"` // 字符间距
+	Type      string   `xml:"w:type,attr,omitempty"`      // Grid type
+	LinePitch string   `xml:"w:linePitch,attr,omitempty"` // Line grid pitch
+	CharSpace string   `xml:"w:charSpace,attr,omitempty"` // Character spacing
 }
 
-// SetDocGrid 设置文档网格
+// SetDocGrid sets the document grid settings.
 func (d *Document) SetDocGrid(gridType DocGridType, linePitch int, charSpace int) error {
 	if gridType == "" {
-		return WrapError("SetDocGrid", errors.New("网格类型不能为空"))
+		return WrapError("SetDocGrid", errors.New("grid type cannot be empty"))
 	}
 
 	settings := d.GetPageSettings()
@@ -488,7 +488,7 @@ func (d *Document) SetDocGrid(gridType DocGridType, linePitch int, charSpace int
 	return d.SetPageSettings(settings)
 }
 
-// ClearDocGrid 清除文档网格设置
+// ClearDocGrid clears the document grid settings.
 func (d *Document) ClearDocGrid() error {
 	sectPr := d.getSectionProperties()
 	sectPr.DocGrid = nil

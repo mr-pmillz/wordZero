@@ -1,4 +1,4 @@
-// Package document 提供Word文档的页眉页脚操作功能
+// Package document provides header and footer operations for Word documents
 package document
 
 import (
@@ -8,19 +8,19 @@ import (
 	"strings"
 )
 
-// HeaderFooterType 页眉页脚类型
+// HeaderFooterType represents the header/footer type
 type HeaderFooterType string
 
 const (
-	// HeaderFooterTypeDefault 默认页眉页脚
+	// HeaderFooterTypeDefault represents the default header/footer
 	HeaderFooterTypeDefault HeaderFooterType = "default"
-	// HeaderFooterTypeFirst 首页页眉页脚
+	// HeaderFooterTypeFirst represents the first page header/footer
 	HeaderFooterTypeFirst HeaderFooterType = "first"
-	// HeaderFooterTypeEven 偶数页页眉页脚
+	// HeaderFooterTypeEven represents the even page header/footer
 	HeaderFooterTypeEven HeaderFooterType = "even"
 )
 
-// Header 页眉结构
+// Header represents a header structure
 type Header struct {
 	XMLName     xml.Name     `xml:"w:hdr"`
 	XmlnsWPC    string       `xml:"xmlns:wpc,attr"`
@@ -44,7 +44,7 @@ type Header struct {
 	Paragraphs  []*Paragraph `xml:"w:p"`
 }
 
-// Footer 页脚结构
+// Footer represents a footer structure
 type Footer struct {
 	XMLName     xml.Name     `xml:"w:ftr"`
 	XmlnsWPC    string       `xml:"xmlns:wpc,attr"`
@@ -68,33 +68,33 @@ type Footer struct {
 	Paragraphs  []*Paragraph `xml:"w:p"`
 }
 
-// HeaderFooterReference 页眉页脚引用
+// HeaderFooterReference represents a header reference
 type HeaderFooterReference struct {
 	XMLName xml.Name `xml:"w:headerReference"`
 	Type    string   `xml:"w:type,attr"`
 	ID      string   `xml:"r:id,attr"`
 }
 
-// FooterReference 页脚引用
+// FooterReference represents a footer reference
 type FooterReference struct {
 	XMLName xml.Name `xml:"w:footerReference"`
 	Type    string   `xml:"w:type,attr"`
 	ID      string   `xml:"r:id,attr"`
 }
 
-// TitlePage 首页不同设置
+// TitlePage represents the different first page setting
 type TitlePage struct {
 	XMLName xml.Name `xml:"w:titlePg"`
 }
 
-// PageNumber 页码字段
+// PageNumber represents a page number field
 type PageNumber struct {
 	XMLName xml.Name `xml:"w:fldSimple"`
 	Instr   string   `xml:"w:instr,attr"`
 	Text    *Text    `xml:"w:t,omitempty"`
 }
 
-// createStandardHeader 创建标准页眉结构
+// createStandardHeader creates a standard header structure
 func createStandardHeader() *Header {
 	return &Header{
 		XmlnsWPC:    "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas",
@@ -119,7 +119,7 @@ func createStandardHeader() *Header {
 	}
 }
 
-// createStandardFooter 创建标准页脚结构
+// createStandardFooter creates a standard footer structure
 func createStandardFooter() *Footer {
 	return &Footer{
 		XmlnsWPC:    "http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas",
@@ -144,7 +144,7 @@ func createStandardFooter() *Footer {
 	}
 }
 
-// createPageNumberRuns 创建页码域代码的Run集合
+// createPageNumberRuns creates a set of Runs for page number field codes
 func createPageNumberRuns() []Run {
 	return []Run{
 		{
@@ -176,7 +176,7 @@ func createPageNumberRuns() []Run {
 	}
 }
 
-// getFileNameForType 获取页眉页脚文件名
+// getFileNameForType returns the header/footer file name for the given type
 func getFileNameForType(typePrefix string, headerType HeaderFooterType) string {
 	switch headerType {
 	case HeaderFooterTypeDefault:
@@ -190,11 +190,11 @@ func getFileNameForType(typePrefix string, headerType HeaderFooterType) string {
 	}
 }
 
-// AddHeader 添加页眉
+// AddHeader adds a header to the document
 func (d *Document) AddHeader(headerType HeaderFooterType, text string) error {
 	header := createStandardHeader()
 
-	// 创建页眉段落
+	// Create header paragraph
 	paragraph := &Paragraph{}
 	if text != "" {
 		run := Run{
@@ -207,26 +207,26 @@ func (d *Document) AddHeader(headerType HeaderFooterType, text string) error {
 	}
 	header.Paragraphs = append(header.Paragraphs, paragraph)
 
-	// 生成关系ID
-	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2因为rId1保留给styles
+	// Generate relationship ID
+	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
 
-	// 序列化页眉
+	// Serialize header
 	headerXML, err := xml.MarshalIndent(header, "", "  ")
 	if err != nil {
-		return fmt.Errorf("序列化页眉失败: %v", err)
+		return fmt.Errorf("failed to serialize header: %v", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	fullXML := append([]byte(xml.Header), headerXML...)
 
-	// 获取文件名
+	// Get file name
 	fileName := getFileNameForType("header", headerType)
 	headerPartName := fmt.Sprintf("word/%s", fileName)
 
-	// 存储页眉内容
+	// Store header content
 	d.parts[headerPartName] = fullXML
 
-	// 添加关系到文档关系
+	// Add relationship to document relationships
 	relationship := Relationship{
 		ID:     headerID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header",
@@ -234,20 +234,20 @@ func (d *Document) AddHeader(headerType HeaderFooterType, text string) error {
 	}
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType(headerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml")
 
-	// 更新节属性
+	// Update section properties
 	d.addHeaderReference(headerType, headerID)
 
 	return nil
 }
 
-// AddFooter 添加页脚
+// AddFooter adds a footer to the document
 func (d *Document) AddFooter(footerType HeaderFooterType, text string) error {
 	footer := createStandardFooter()
 
-	// 创建页脚段落
+	// Create footer paragraph
 	paragraph := &Paragraph{}
 	if text != "" {
 		run := Run{
@@ -260,26 +260,26 @@ func (d *Document) AddFooter(footerType HeaderFooterType, text string) error {
 	}
 	footer.Paragraphs = append(footer.Paragraphs, paragraph)
 
-	// 生成关系ID
-	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2因为rId1保留给styles
+	// Generate relationship ID
+	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
 
-	// 序列化页脚
+	// Serialize footer
 	footerXML, err := xml.MarshalIndent(footer, "", "  ")
 	if err != nil {
-		return fmt.Errorf("序列化页脚失败: %v", err)
+		return fmt.Errorf("failed to serialize footer: %v", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	fullXML := append([]byte(xml.Header), footerXML...)
 
-	// 获取文件名
+	// Get file name
 	fileName := getFileNameForType("footer", footerType)
 	footerPartName := fmt.Sprintf("word/%s", fileName)
 
-	// 存储页脚内容
+	// Store footer content
 	d.parts[footerPartName] = fullXML
 
-	// 添加关系到文档关系
+	// Add relationship to document relationships
 	relationship := Relationship{
 		ID:     footerID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer",
@@ -287,20 +287,20 @@ func (d *Document) AddFooter(footerType HeaderFooterType, text string) error {
 	}
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType(footerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml")
 
-	// 更新节属性
+	// Update section properties
 	d.addFooterReference(footerType, footerID)
 
 	return nil
 }
 
-// AddHeaderWithPageNumber 添加带页码的页眉
+// AddHeaderWithPageNumber adds a header with a page number
 func (d *Document) AddHeaderWithPageNumber(headerType HeaderFooterType, text string, showPageNum bool) error {
 	header := createStandardHeader()
 
-	// 创建页眉段落
+	// Create header paragraph
 	paragraph := &Paragraph{}
 
 	if text != "" {
@@ -314,51 +314,42 @@ func (d *Document) AddHeaderWithPageNumber(headerType HeaderFooterType, text str
 	}
 
 	if showPageNum {
-		// 添加"第"字
+		// Add "Page" prefix
 		pageNumRun := Run{
 			Text: Text{
-				Content: " 第 ",
+				Content: " Page ",
 				Space:   "preserve",
 			},
 		}
 		paragraph.Runs = append(paragraph.Runs, pageNumRun)
 
-		// 添加页码域代码
+		// Add page number field code
 		pageNumberRuns := createPageNumberRuns()
 		paragraph.Runs = append(paragraph.Runs, pageNumberRuns...)
-
-		// 添加"页"字
-		pageNumRun2 := Run{
-			Text: Text{
-				Content: " 页",
-				Space:   "preserve",
-			},
-		}
-		paragraph.Runs = append(paragraph.Runs, pageNumRun2)
 	}
 
 	header.Paragraphs = append(header.Paragraphs, paragraph)
 
-	// 生成关系ID
-	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2因为rId1保留给styles
+	// Generate relationship ID
+	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
 
-	// 序列化页眉
+	// Serialize header
 	headerXML, err := xml.MarshalIndent(header, "", "  ")
 	if err != nil {
-		return fmt.Errorf("序列化页眉失败: %v", err)
+		return fmt.Errorf("failed to serialize header: %v", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	fullXML := append([]byte(xml.Header), headerXML...)
 
-	// 获取文件名
+	// Get file name
 	fileName := getFileNameForType("header", headerType)
 	headerPartName := fmt.Sprintf("word/%s", fileName)
 
-	// 存储页眉内容
+	// Store header content
 	d.parts[headerPartName] = fullXML
 
-	// 添加关系到文档关系
+	// Add relationship to document relationships
 	relationship := Relationship{
 		ID:     headerID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header",
@@ -366,20 +357,20 @@ func (d *Document) AddHeaderWithPageNumber(headerType HeaderFooterType, text str
 	}
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType(headerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml")
 
-	// 更新节属性
+	// Update section properties
 	d.addHeaderReference(headerType, headerID)
 
 	return nil
 }
 
-// AddFooterWithPageNumber 添加带页码的页脚
+// AddFooterWithPageNumber adds a footer with a page number
 func (d *Document) AddFooterWithPageNumber(footerType HeaderFooterType, text string, showPageNum bool) error {
 	footer := createStandardFooter()
 
-	// 创建页脚段落
+	// Create footer paragraph
 	paragraph := &Paragraph{}
 
 	if text != "" {
@@ -393,51 +384,42 @@ func (d *Document) AddFooterWithPageNumber(footerType HeaderFooterType, text str
 	}
 
 	if showPageNum {
-		// 添加"第"字
+		// Add "Page" prefix
 		pageNumRun := Run{
 			Text: Text{
-				Content: " 第 ",
+				Content: " Page ",
 				Space:   "preserve",
 			},
 		}
 		paragraph.Runs = append(paragraph.Runs, pageNumRun)
 
-		// 添加页码域代码
+		// Add page number field code
 		pageNumberRuns := createPageNumberRuns()
 		paragraph.Runs = append(paragraph.Runs, pageNumberRuns...)
-
-		// 添加"页"字
-		pageNumRun2 := Run{
-			Text: Text{
-				Content: " 页",
-				Space:   "preserve",
-			},
-		}
-		paragraph.Runs = append(paragraph.Runs, pageNumRun2)
 	}
 
 	footer.Paragraphs = append(footer.Paragraphs, paragraph)
 
-	// 生成关系ID
-	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2因为rId1保留给styles
+	// Generate relationship ID
+	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
 
-	// 序列化页脚
+	// Serialize footer
 	footerXML, err := xml.MarshalIndent(footer, "", "  ")
 	if err != nil {
-		return fmt.Errorf("序列化页脚失败: %v", err)
+		return fmt.Errorf("failed to serialize footer: %v", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	fullXML := append([]byte(xml.Header), footerXML...)
 
-	// 获取文件名
+	// Get file name
 	fileName := getFileNameForType("footer", footerType)
 	footerPartName := fmt.Sprintf("word/%s", fileName)
 
-	// 存储页脚内容
+	// Store footer content
 	d.parts[footerPartName] = fullXML
 
-	// 添加关系到文档关系
+	// Add relationship to document relationships
 	relationship := Relationship{
 		ID:     footerID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer",
@@ -445,34 +427,34 @@ func (d *Document) AddFooterWithPageNumber(footerType HeaderFooterType, text str
 	}
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType(footerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml")
 
-	// 更新节属性
+	// Update section properties
 	d.addFooterReference(footerType, footerID)
 
 	return nil
 }
 
-// HeaderFooterConfig 页眉页脚配置
+// HeaderFooterConfig represents header/footer configuration
 type HeaderFooterConfig struct {
-	Text      string        // 文本内容
-	Format    *TextFormat   // 文本格式配置
-	Alignment AlignmentType // 对齐方式
+	Text      string        // Text content
+	Format    *TextFormat   // Text format configuration
+	Alignment AlignmentType // Alignment
 }
 
-// createFormattedParagraph 创建格式化的段落
+// createFormattedParagraph creates a formatted paragraph
 func createFormattedParagraph(text string, format *TextFormat, alignment AlignmentType) *Paragraph {
 	paragraph := &Paragraph{}
 
-	// 设置段落对齐方式
+	// Set paragraph alignment
 	if alignment != "" {
 		paragraph.Properties = &ParagraphProperties{
 			Justification: &Justification{Val: string(alignment)},
 		}
 	}
 
-	// 如果有文本内容，创建带格式的Run
+	// If there is text content, create a formatted Run
 	if text != "" {
 		run := Run{
 			Text: Text{
@@ -481,11 +463,11 @@ func createFormattedParagraph(text string, format *TextFormat, alignment Alignme
 			},
 		}
 
-		// 应用文本格式
+		// Apply text formatting
 		if format != nil {
 			runProps := &RunProperties{}
 
-			// 设置字体
+			// Set font
 			fontName := ""
 			if format.FontFamily != "" {
 				fontName = format.FontFamily
@@ -501,40 +483,40 @@ func createFormattedParagraph(text string, format *TextFormat, alignment Alignme
 				}
 			}
 
-			// 设置粗体
+			// Set bold
 			if format.Bold {
 				runProps.Bold = &Bold{}
 			}
 
-			// 设置斜体
+			// Set italic
 			if format.Italic {
 				runProps.Italic = &Italic{}
 			}
 
-			// 设置字体颜色
+			// Set font color
 			if format.FontColor != "" {
-				// 确保颜色格式正确（移除#前缀）
+				// Ensure color format is correct (remove # prefix)
 				color := strings.TrimPrefix(format.FontColor, "#")
 				runProps.Color = &Color{Val: color}
 			}
 
-			// 设置字体大小
+			// Set font size
 			if format.FontSize > 0 {
-				// Word中字体大小是半磅为单位，所以需要乘以2
+				// Font size in Word is in half-points, so multiply by 2
 				runProps.FontSize = &FontSize{Val: strconv.Itoa(format.FontSize * 2)}
 			}
 
-			// 设置下划线
+			// Set underline
 			if format.Underline {
 				runProps.Underline = &Underline{Val: "single"}
 			}
 
-			// 设置删除线
+			// Set strikethrough
 			if format.Strike {
 				runProps.Strike = &Strike{}
 			}
 
-			// 设置高亮
+			// Set highlight
 			if format.Highlight != "" {
 				runProps.Highlight = &Highlight{Val: format.Highlight}
 			}
@@ -548,18 +530,18 @@ func createFormattedParagraph(text string, format *TextFormat, alignment Alignme
 	return paragraph
 }
 
-// AddFormattedHeader 添加格式化页眉
+// AddFormattedHeader adds a formatted header.
 //
-// 该方法允许添加带有自定义文本格式和对齐方式的页眉。
+// This method allows adding a header with custom text formatting and alignment.
 //
-// 参数:
-//   - headerType: 页眉类型 (HeaderFooterTypeDefault, HeaderFooterTypeFirst, HeaderFooterTypeEven)
-//   - config: 页眉配置，包含文本内容、格式和对齐方式
+// Parameters:
+//   - headerType: Header type (HeaderFooterTypeDefault, HeaderFooterTypeFirst, HeaderFooterTypeEven)
+//   - config: Header configuration containing text content, format, and alignment
 //
-// 示例:
+// Example:
 //
 //	doc.AddFormattedHeader(document.HeaderFooterTypeDefault, &document.HeaderFooterConfig{
-//		Text: "公司报告",
+//		Text: "Company Report",
 //		Format: &document.TextFormat{
 //			FontSize:   10,
 //			FontColor:  "8e8e8e",
@@ -570,33 +552,33 @@ func createFormattedParagraph(text string, format *TextFormat, alignment Alignme
 func (d *Document) AddFormattedHeader(headerType HeaderFooterType, config *HeaderFooterConfig) error {
 	header := createStandardHeader()
 
-	// 创建格式化页眉段落
+	// Create formatted header paragraph
 	if config == nil {
 		config = &HeaderFooterConfig{}
 	}
 	paragraph := createFormattedParagraph(config.Text, config.Format, config.Alignment)
 	header.Paragraphs = append(header.Paragraphs, paragraph)
 
-	// 生成关系ID
-	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2因为rId1保留给styles
+	// Generate relationship ID
+	headerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
 
-	// 序列化页眉
+	// Serialize header
 	headerXML, err := xml.MarshalIndent(header, "", "  ")
 	if err != nil {
-		return fmt.Errorf("序列化页眉失败: %v", err)
+		return fmt.Errorf("failed to serialize header: %v", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	fullXML := append([]byte(xml.Header), headerXML...)
 
-	// 获取文件名
+	// Get file name
 	fileName := getFileNameForType("header", headerType)
 	headerPartName := fmt.Sprintf("word/%s", fileName)
 
-	// 存储页眉内容
+	// Store header content
 	d.parts[headerPartName] = fullXML
 
-	// 添加关系到文档关系
+	// Add relationship to document relationships
 	relationship := Relationship{
 		ID:     headerID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/header",
@@ -604,64 +586,64 @@ func (d *Document) AddFormattedHeader(headerType HeaderFooterType, config *Heade
 	}
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType(headerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.header+xml")
 
-	// 更新节属性
+	// Update section properties
 	d.addHeaderReference(headerType, headerID)
 
 	return nil
 }
 
-// AddFormattedFooter 添加格式化页脚
+// AddFormattedFooter adds a formatted footer.
 //
-// 该方法允许添加带有自定义文本格式和对齐方式的页脚。
+// This method allows adding a footer with custom text formatting and alignment.
 //
-// 参数:
-//   - footerType: 页脚类型 (HeaderFooterTypeDefault, HeaderFooterTypeFirst, HeaderFooterTypeEven)
-//   - config: 页脚配置，包含文本内容、格式和对齐方式
+// Parameters:
+//   - footerType: Footer type (HeaderFooterTypeDefault, HeaderFooterTypeFirst, HeaderFooterTypeEven)
+//   - config: Footer configuration containing text content, format, and alignment
 //
-// 示例:
+// Example:
 //
 //	doc.AddFormattedFooter(document.HeaderFooterTypeDefault, &document.HeaderFooterConfig{
-//		Text: "第 1 页",
+//		Text: "Page 1",
 //		Format: &document.TextFormat{
 //			FontSize:   9,
 //			FontColor:  "666666",
-//			FontFamily: "宋体",
+//			FontFamily: "Arial",
 //		},
 //		Alignment: document.AlignCenter,
 //	})
 func (d *Document) AddFormattedFooter(footerType HeaderFooterType, config *HeaderFooterConfig) error {
 	footer := createStandardFooter()
 
-	// 创建格式化页脚段落
+	// Create formatted footer paragraph
 	if config == nil {
 		config = &HeaderFooterConfig{}
 	}
 	paragraph := createFormattedParagraph(config.Text, config.Format, config.Alignment)
 	footer.Paragraphs = append(footer.Paragraphs, paragraph)
 
-	// 生成关系ID
-	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2因为rId1保留给styles
+	// Generate relationship ID
+	footerID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because rId1 is reserved for styles
 
-	// 序列化页脚
+	// Serialize footer
 	footerXML, err := xml.MarshalIndent(footer, "", "  ")
 	if err != nil {
-		return fmt.Errorf("序列化页脚失败: %v", err)
+		return fmt.Errorf("failed to serialize footer: %v", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	fullXML := append([]byte(xml.Header), footerXML...)
 
-	// 获取文件名
+	// Get file name
 	fileName := getFileNameForType("footer", footerType)
 	footerPartName := fmt.Sprintf("word/%s", fileName)
 
-	// 存储页脚内容
+	// Store footer content
 	d.parts[footerPartName] = fullXML
 
-	// 添加关系到文档关系
+	// Add relationship to document relationships
 	relationship := Relationship{
 		ID:     footerID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footer",
@@ -669,16 +651,16 @@ func (d *Document) AddFormattedFooter(footerType HeaderFooterType, config *Heade
 	}
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType(footerPartName, "application/vnd.openxmlformats-officedocument.wordprocessingml.footer+xml")
 
-	// 更新节属性
+	// Update section properties
 	d.addFooterReference(footerType, footerID)
 
 	return nil
 }
 
-// SetDifferentFirstPage 设置首页不同
+// SetDifferentFirstPage sets whether the first page has a different header/footer
 func (d *Document) SetDifferentFirstPage(different bool) {
 	sectPr := d.getSectionPropertiesForHeaderFooter()
 	if different {
@@ -688,11 +670,11 @@ func (d *Document) SetDifferentFirstPage(different bool) {
 	}
 }
 
-// addHeaderReference 添加页眉引用到节属性
+// addHeaderReference adds a header reference to the section properties
 func (d *Document) addHeaderReference(headerType HeaderFooterType, headerID string) {
 	sectPr := d.getSectionPropertiesForHeaderFooter()
 
-	// 确保设置关系命名空间
+	// Ensure the relationship namespace is set
 	if sectPr.XmlnsR == "" {
 		sectPr.XmlnsR = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 	}
@@ -705,11 +687,11 @@ func (d *Document) addHeaderReference(headerType HeaderFooterType, headerID stri
 	sectPr.HeaderReferences = append(sectPr.HeaderReferences, headerRef)
 }
 
-// addFooterReference 添加页脚引用到节属性
+// addFooterReference adds a footer reference to the section properties
 func (d *Document) addFooterReference(footerType HeaderFooterType, footerID string) {
 	sectPr := d.getSectionPropertiesForHeaderFooter()
 
-	// 确保设置关系命名空间
+	// Ensure the relationship namespace is set
 	if sectPr.XmlnsR == "" {
 		sectPr.XmlnsR = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 	}
@@ -722,12 +704,12 @@ func (d *Document) addFooterReference(footerType HeaderFooterType, footerID stri
 	sectPr.FooterReferences = append(sectPr.FooterReferences, footerRef)
 }
 
-// getSectionPropertiesForHeaderFooter 获取或创建带页眉页脚支持的节属性
+// getSectionPropertiesForHeaderFooter returns or creates section properties with header/footer support
 func (d *Document) getSectionPropertiesForHeaderFooter() *SectionProperties {
-	// 查找文档中是否已存在节属性
+	// Check if section properties already exist in the document
 	for _, element := range d.Body.Elements {
 		if sectPr, ok := element.(*SectionProperties); ok {
-			// 确保设置了关系命名空间
+			// Ensure the relationship namespace is set
 			if sectPr.XmlnsR == "" {
 				sectPr.XmlnsR = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
 			}
@@ -735,7 +717,7 @@ func (d *Document) getSectionPropertiesForHeaderFooter() *SectionProperties {
 		}
 	}
 
-	// 如果不存在，创建新的节属性
+	// If none exists, create new section properties
 	sectPr := &SectionProperties{
 		XMLName: xml.Name{Local: "w:sectPr"},
 		XmlnsR:  "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
@@ -751,16 +733,16 @@ func (d *Document) getSectionPropertiesForHeaderFooter() *SectionProperties {
 	return sectPr
 }
 
-// addContentType 添加内容类型
+// addContentType adds a content type
 func (d *Document) addContentType(partName, contentType string) {
-	// 检查是否已存在
+	// Check if it already exists
 	for _, override := range d.contentTypes.Overrides {
 		if override.PartName == "/"+partName {
 			return
 		}
 	}
 
-	// 添加新的内容类型覆盖
+	// Add new content type override
 	override := Override{
 		PartName:    "/" + partName,
 		ContentType: contentType,

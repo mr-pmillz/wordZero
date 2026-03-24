@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-// TestNewStyleManager 测试样式管理器创建
+// TestNewStyleManager tests style manager creation
 func TestNewStyleManager(t *testing.T) {
 	sm := NewStyleManager()
 
@@ -12,13 +12,13 @@ func TestNewStyleManager(t *testing.T) {
 		t.Fatal("StyleManager should not be nil")
 	}
 
-	// 验证预定义样式是否加载
+	// Verify predefined styles are loaded
 	styles := sm.GetAllStyles()
 	if len(styles) == 0 {
 		t.Error("Should have predefined styles loaded")
 	}
 
-	// 验证基本样式存在
+	// Verify basic styles exist
 	expectedStyles := []string{"Normal", "Heading1", "Heading2", "Title", "Subtitle"}
 	for _, styleID := range expectedStyles {
 		if !sm.StyleExists(styleID) {
@@ -27,11 +27,11 @@ func TestNewStyleManager(t *testing.T) {
 	}
 }
 
-// TestStyleExists 测试样式存在性检查
+// TestStyleExists tests style existence check
 func TestStyleExists(t *testing.T) {
 	sm := NewStyleManager()
 
-	// 测试存在的样式
+	// Test existing style
 	if !sm.StyleExists("Normal") {
 		t.Error("Normal style should exist")
 	}
@@ -40,17 +40,17 @@ func TestStyleExists(t *testing.T) {
 		t.Error("Heading1 style should exist")
 	}
 
-	// 测试不存在的样式
+	// Test non-existing style
 	if sm.StyleExists("NonExistentStyle") {
 		t.Error("NonExistentStyle should not exist")
 	}
 }
 
-// TestGetStyle 测试获取样式
+// TestGetStyle tests getting a style
 func TestGetStyle(t *testing.T) {
 	sm := NewStyleManager()
 
-	// 测试获取存在的样式
+	// Test getting existing style
 	normalStyle := sm.GetStyle("Normal")
 	if normalStyle == nil {
 		t.Fatal("Normal style should not be nil")
@@ -60,25 +60,25 @@ func TestGetStyle(t *testing.T) {
 		t.Errorf("Expected StyleID Normal, got %s", normalStyle.StyleID)
 	}
 
-	// 测试获取不存在的样式
+	// Test getting non-existing style
 	nonExistent := sm.GetStyle("NonExistentStyle")
 	if nonExistent != nil {
 		t.Error("NonExistentStyle should return nil")
 	}
 }
 
-// TestGetHeadingStyles 测试获取标题样式
+// TestGetHeadingStyles tests getting heading styles
 func TestGetHeadingStyles(t *testing.T) {
 	sm := NewStyleManager()
 
 	headingStyles := sm.GetHeadingStyles()
 
-	// 应该有9个标题样式
+	// Should have 9 heading styles
 	if len(headingStyles) != 9 {
 		t.Errorf("Expected 9 heading styles, got %d", len(headingStyles))
 	}
 
-	// 验证标题样式ID
+	// Verify heading style IDs
 	expectedHeadings := []string{"Heading1", "Heading2", "Heading3", "Heading4", "Heading5", "Heading6", "Heading7", "Heading8", "Heading9"}
 	styleMap := make(map[string]bool)
 	for _, style := range headingStyles {
@@ -92,7 +92,7 @@ func TestGetHeadingStyles(t *testing.T) {
 	}
 }
 
-// TestAddStyle 测试添加自定义样式
+// TestAddStyle tests adding a custom style
 func TestAddStyle(t *testing.T) {
 	sm := NewStyleManager()
 
@@ -108,12 +108,12 @@ func TestAddStyle(t *testing.T) {
 
 	sm.AddStyle(customStyle)
 
-	// 验证样式添加
+	// Verify style was added
 	if !sm.StyleExists("CustomTest") {
 		t.Error("Custom style should exist after adding")
 	}
 
-	// 验证样式内容
+	// Verify style content
 	retrieved := sm.GetStyle("CustomTest")
 	if retrieved == nil {
 		t.Fatal("Retrieved custom style should not be nil")
@@ -128,11 +128,11 @@ func TestAddStyle(t *testing.T) {
 	}
 }
 
-// TestRemoveStyle 测试移除样式
+// TestRemoveStyle tests removing a style
 func TestRemoveStyle(t *testing.T) {
 	sm := NewStyleManager()
 
-	// 先添加一个测试样式
+	// First add a test style
 	testStyle := &Style{
 		Type:    string(StyleTypeParagraph),
 		StyleID: "TestRemove",
@@ -141,51 +141,51 @@ func TestRemoveStyle(t *testing.T) {
 
 	sm.AddStyle(testStyle)
 
-	// 验证样式存在
+	// Verify style exists
 	if !sm.StyleExists("TestRemove") {
 		t.Fatal("Test style should exist before removal")
 	}
 
-	// 移除样式
+	// Remove style
 	sm.RemoveStyle("TestRemove")
 
-	// 验证样式已移除
+	// Verify style was removed
 	if sm.StyleExists("TestRemove") {
 		t.Error("Test style should not exist after removal")
 	}
 
-	// 尝试移除不存在的样式（不应该报错）
+	// Try removing non-existing style (should not error)
 	sm.RemoveStyle("NonExistentStyle")
 }
 
-// TestGetStyleWithInheritance 测试样式继承
+// TestGetStyleWithInheritance tests style inheritance
 func TestGetStyleWithInheritance(t *testing.T) {
 	sm := NewStyleManager()
 
-	// 获取带继承的Heading1样式
+	// Get Heading1 style with inheritance
 	heading1 := sm.GetStyleWithInheritance("Heading1")
 	if heading1 == nil {
 		t.Fatal("Heading1 with inheritance should not be nil")
 	}
 
-	// Heading1基于Normal，应该继承Normal的属性
+	// Heading1 is based on Normal, should inherit Normal properties
 	if heading1.BasedOn == nil {
 		t.Error("Heading1 should have BasedOn reference")
 	}
 
-	// 验证继承的属性
+	// Verify inherited properties
 	if heading1.RunPr == nil {
 		t.Error("Heading1 should have run properties")
 	}
 
-	// 测试不存在的样式
+	// Test non-existing style
 	nonExistent := sm.GetStyleWithInheritance("NonExistentStyle")
 	if nonExistent != nil {
 		t.Error("Non-existent style with inheritance should return nil")
 	}
 }
 
-// TestQuickStyleAPI 测试快速API功能
+// TestQuickStyleAPI tests quick API functionality
 func TestQuickStyleAPI(t *testing.T) {
 	sm := NewStyleManager()
 	api := NewQuickStyleAPI(sm)
@@ -198,13 +198,13 @@ func TestQuickStyleAPI(t *testing.T) {
 		t.Error("QuickStyleAPI should reference the provided StyleManager")
 	}
 
-	// 测试获取所有样式信息
+	// Test getting all style info
 	stylesInfo := api.GetAllStylesInfo()
 	if len(stylesInfo) == 0 {
 		t.Error("Should have style information")
 	}
 
-	// 验证返回的信息结构
+	// Verify returned info structure
 	for _, info := range stylesInfo {
 		if info.ID == "" {
 			t.Error("Style info should have ID")
@@ -218,12 +218,12 @@ func TestQuickStyleAPI(t *testing.T) {
 	}
 }
 
-// TestQuickStyleAPI_GetStyleInfo 测试获取单个样式信息
+// TestQuickStyleAPI_GetStyleInfo tests getting single style info
 func TestQuickStyleAPI_GetStyleInfo(t *testing.T) {
 	sm := NewStyleManager()
 	api := NewQuickStyleAPI(sm)
 
-	// 测试获取存在的样式信息
+	// Test getting existing style info
 	info, err := api.GetStyleInfo("Normal")
 	if err != nil {
 		t.Fatalf("Error getting Normal style info: %v", err)
@@ -237,14 +237,14 @@ func TestQuickStyleAPI_GetStyleInfo(t *testing.T) {
 		t.Errorf("Expected name Normal, got %s", info.Name)
 	}
 
-	// 测试获取不存在的样式信息
+	// Test getting non-existing style info
 	_, err = api.GetStyleInfo("NonExistentStyle")
 	if err == nil {
 		t.Error("Should return error for non-existent style")
 	}
 }
 
-// TestQuickStyleAPI_CreateStyle 测试快速创建样式
+// TestQuickStyleAPI_CreateStyle tests quick style creation
 func TestQuickStyleAPI_CreateStyle(t *testing.T) {
 	sm := NewStyleManager()
 	api := NewQuickStyleAPI(sm)
@@ -274,7 +274,7 @@ func TestQuickStyleAPI_CreateStyle(t *testing.T) {
 		t.Fatalf("Failed to create quick style: %v", err)
 	}
 
-	// 验证样式创建
+	// Verify style creation
 	if style.StyleID != "QuickTest" {
 		t.Errorf("Expected StyleID QuickTest, got %s", style.StyleID)
 	}
@@ -283,12 +283,12 @@ func TestQuickStyleAPI_CreateStyle(t *testing.T) {
 		t.Errorf("Expected name 快速测试样式, got %s", style.Name.Val)
 	}
 
-	// 验证样式添加到管理器
+	// Verify style was added to manager
 	if !sm.StyleExists("QuickTest") {
 		t.Error("Quick style should exist in style manager")
 	}
 
-	// 验证段落属性
+	// Verify paragraph properties
 	if style.ParagraphPr == nil {
 		t.Fatal("Paragraph properties should not be nil")
 	}
@@ -297,7 +297,7 @@ func TestQuickStyleAPI_CreateStyle(t *testing.T) {
 		t.Error("Alignment should be center")
 	}
 
-	// 验证字符属性
+	// Verify run properties
 	if style.RunPr == nil {
 		t.Fatal("Run properties should not be nil")
 	}
@@ -315,25 +315,25 @@ func TestQuickStyleAPI_CreateStyle(t *testing.T) {
 	}
 }
 
-// TestQuickStyleAPI_StylesByType 测试按类型获取样式
+// TestQuickStyleAPI_StylesByType tests getting styles by type
 func TestQuickStyleAPI_StylesByType(t *testing.T) {
 	sm := NewStyleManager()
 	api := NewQuickStyleAPI(sm)
 
-	// 测试获取段落样式
+	// Test getting paragraph styles
 	paragraphStyles := api.GetParagraphStylesInfo()
 	if len(paragraphStyles) == 0 {
 		t.Error("Should have paragraph styles")
 	}
 
-	// 验证所有返回的都是段落样式
+	// Verify all returned are paragraph styles
 	for _, info := range paragraphStyles {
 		if info.Type != "paragraph" {
 			t.Errorf("Expected paragraph type, got %s", info.Type)
 		}
 	}
 
-	// 测试获取字符样式
+	// Test getting character styles
 	characterStyles := api.GetCharacterStylesInfo()
 	for _, info := range characterStyles {
 		if info.Type != "character" {
@@ -341,14 +341,14 @@ func TestQuickStyleAPI_StylesByType(t *testing.T) {
 		}
 	}
 
-	// 测试获取标题样式
+	// Test getting heading styles
 	headingStyles := api.GetHeadingStylesInfo()
 	if len(headingStyles) != 9 {
 		t.Errorf("Expected 9 heading styles, got %d", len(headingStyles))
 	}
 }
 
-// BenchmarkStyleLookup 基准测试 - 样式查找性能
+// BenchmarkStyleLookup benchmarks style lookup performance
 func BenchmarkStyleLookup(b *testing.B) {
 	sm := NewStyleManager()
 
@@ -358,7 +358,7 @@ func BenchmarkStyleLookup(b *testing.B) {
 	}
 }
 
-// BenchmarkStyleWithInheritance 基准测试 - 继承样式性能
+// BenchmarkStyleWithInheritance benchmarks inherited style performance
 func BenchmarkStyleWithInheritance(b *testing.B) {
 	sm := NewStyleManager()
 

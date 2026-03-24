@@ -9,11 +9,11 @@ func TestNewQuickStyleAPI(t *testing.T) {
 	api := NewQuickStyleAPI(sm)
 
 	if api == nil {
-		t.Fatal("NewQuickStyleAPI 返回了 nil")
+		t.Fatal("NewQuickStyleAPI returned nil")
 	}
 
 	if api.styleManager != sm {
-		t.Error("QuickStyleAPI 的 styleManager 设置不正确")
+		t.Error("QuickStyleAPI styleManager not set correctly")
 	}
 }
 
@@ -21,32 +21,32 @@ func TestGetStyleInfo(t *testing.T) {
 	sm := NewStyleManager()
 	api := NewQuickStyleAPI(sm)
 
-	// 测试获取存在的样式信息
+	// Test getting existing style info
 	info, err := api.GetStyleInfo("Heading1")
 	if err != nil {
-		t.Fatalf("获取样式信息失败: %v", err)
+		t.Fatalf("failed to get style info: %v", err)
 	}
 
 	if info.ID != "Heading1" {
-		t.Errorf("期望样式ID为 'Heading1'，实际为 '%s'", info.ID)
+		t.Errorf("expected style ID 'Heading1', got '%s'", info.ID)
 	}
 
 	if info.Name != "heading 1" {
-		t.Errorf("期望样式名称为 'heading 1'，实际为 '%s'", info.Name)
+		t.Errorf("expected style name 'heading 1', got '%s'", info.Name)
 	}
 
 	if info.Type != StyleTypeParagraph {
-		t.Errorf("期望样式类型为 '%s'，实际为 '%s'", StyleTypeParagraph, info.Type)
+		t.Errorf("expected style type '%s', got '%s'", StyleTypeParagraph, info.Type)
 	}
 
 	if !info.IsBuiltIn {
-		t.Error("Heading1 应该是内置样式")
+		t.Error("Heading1 should be a built-in style")
 	}
 
-	// 测试获取不存在的样式信息
+	// Test getting non-existent style info
 	_, err = api.GetStyleInfo("NonExistentStyle")
 	if err == nil {
-		t.Error("期望获取不存在样式时返回错误")
+		t.Error("expected error when getting non-existent style")
 	}
 }
 
@@ -57,10 +57,10 @@ func TestGetAllStylesInfo(t *testing.T) {
 	allStyles := api.GetAllStylesInfo()
 
 	if len(allStyles) == 0 {
-		t.Error("期望返回样式信息列表不为空")
+		t.Error("expected style info list to be non-empty")
 	}
 
-	// 检查是否包含预期的样式
+	// Check if it contains expected styles
 	styleFound := false
 	for _, info := range allStyles {
 		if info.ID == "Normal" {
@@ -70,7 +70,7 @@ func TestGetAllStylesInfo(t *testing.T) {
 	}
 
 	if !styleFound {
-		t.Error("期望在样式列表中找到 'Normal' 样式")
+		t.Error("expected to find 'Normal' style in style list")
 	}
 }
 
@@ -80,20 +80,20 @@ func TestGetHeadingStylesInfo(t *testing.T) {
 
 	headingStyles := api.GetHeadingStylesInfo()
 
-	expectedCount := 9 // Heading1 到 Heading9
+	expectedCount := 9 // Heading1 through Heading9
 	if len(headingStyles) != expectedCount {
-		t.Errorf("期望标题样式数量为 %d，实际为 %d", expectedCount, len(headingStyles))
+		t.Errorf("expected %d heading styles, got %d", expectedCount, len(headingStyles))
 	}
 
-	// 检查标题样式的顺序和ID
+	// Check heading style order and IDs
 	for i, info := range headingStyles {
 		expectedID := "Heading" + string(rune('1'+i))
 		if info.ID != expectedID {
-			t.Errorf("期望第 %d 个标题样式ID为 '%s'，实际为 '%s'", i+1, expectedID, info.ID)
+			t.Errorf("expected heading style %d ID to be '%s', got '%s'", i+1, expectedID, info.ID)
 		}
 
 		if info.Type != StyleTypeParagraph {
-			t.Errorf("标题样式 '%s' 应该是段落类型", info.ID)
+			t.Errorf("heading style '%s' should be paragraph type", info.ID)
 		}
 	}
 }
@@ -105,13 +105,13 @@ func TestGetParagraphStylesInfo(t *testing.T) {
 	paragraphStyles := api.GetParagraphStylesInfo()
 
 	if len(paragraphStyles) == 0 {
-		t.Error("期望段落样式列表不为空")
+		t.Error("expected paragraph style list to be non-empty")
 	}
 
-	// 检查所有返回的样式都是段落类型
+	// Check all returned styles are paragraph type
 	for _, info := range paragraphStyles {
 		if info.Type != StyleTypeParagraph {
-			t.Errorf("样式 '%s' 应该是段落类型，实际为 '%s'", info.ID, info.Type)
+			t.Errorf("style '%s' should be paragraph type, got '%s'", info.ID, info.Type)
 		}
 	}
 }
@@ -123,13 +123,13 @@ func TestGetCharacterStylesInfo(t *testing.T) {
 	characterStyles := api.GetCharacterStylesInfo()
 
 	if len(characterStyles) == 0 {
-		t.Error("期望字符样式列表不为空")
+		t.Error("expected character style list to be non-empty")
 	}
 
-	// 检查所有返回的样式都是字符类型
+	// Check all returned styles are character type
 	for _, info := range characterStyles {
 		if info.Type != StyleTypeCharacter {
-			t.Errorf("样式 '%s' 应该是字符类型，实际为 '%s'", info.ID, info.Type)
+			t.Errorf("style '%s' should be character type, got '%s'", info.ID, info.Type)
 		}
 	}
 }
@@ -138,7 +138,7 @@ func TestCreateQuickStyle(t *testing.T) {
 	sm := NewStyleManager()
 	api := NewQuickStyleAPI(sm)
 
-	// 测试创建自定义段落样式
+	// Test creating custom paragraph style
 	config := QuickStyleConfig{
 		ID:      "TestCustomStyle",
 		Name:    "测试自定义样式",
@@ -160,42 +160,42 @@ func TestCreateQuickStyle(t *testing.T) {
 
 	style, err := api.CreateQuickStyle(config)
 	if err != nil {
-		t.Fatalf("创建自定义样式失败: %v", err)
+		t.Fatalf("failed to create custom style: %v", err)
 	}
 
 	if style.StyleID != "TestCustomStyle" {
-		t.Errorf("期望样式ID为 'TestCustomStyle'，实际为 '%s'", style.StyleID)
+		t.Errorf("expected style ID 'TestCustomStyle', got '%s'", style.StyleID)
 	}
 
 	if !style.CustomStyle {
-		t.Error("创建的样式应该标记为自定义样式")
+		t.Error("created style should be marked as custom")
 	}
 
-	// 验证段落属性
+	// Verify paragraph properties
 	if style.ParagraphPr == nil {
-		t.Error("自定义样式应该包含段落属性")
+		t.Error("custom style should have paragraph properties")
 	} else {
 		if style.ParagraphPr.Justification == nil || style.ParagraphPr.Justification.Val != "center" {
-			t.Error("段落对齐方式设置不正确")
+			t.Error("paragraph alignment not set correctly")
 		}
 	}
 
-	// 验证字符属性
+	// Verify run properties
 	if style.RunPr == nil {
-		t.Error("自定义样式应该包含字符属性")
+		t.Error("custom style should have run properties")
 	} else {
 		if style.RunPr.Bold == nil {
-			t.Error("粗体属性设置不正确")
+			t.Error("bold property not set correctly")
 		}
 		if style.RunPr.FontSize == nil || style.RunPr.FontSize.Val != "28" {
-			t.Error("字体大小设置不正确")
+			t.Error("font size not set correctly")
 		}
 	}
 
-	// 测试创建重复ID的样式
+	// Test creating style with duplicate ID
 	_, err = api.CreateQuickStyle(config)
 	if err == nil {
-		t.Error("期望创建重复ID样式时返回错误")
+		t.Error("expected error when creating style with duplicate ID")
 	}
 }
 
@@ -213,32 +213,32 @@ func TestCreateParagraphProperties(t *testing.T) {
 	props := createParagraphProperties(config)
 
 	if props == nil {
-		t.Fatal("createParagraphProperties 返回了 nil")
+		t.Fatal("createParagraphProperties returned nil")
 	}
 
-	// 检查对齐方式
+	// Check alignment
 	if props.Justification == nil || props.Justification.Val != "center" {
-		t.Error("对齐方式设置不正确")
+		t.Error("alignment not set correctly")
 	}
 
-	// 检查间距
+	// Check spacing
 	if props.Spacing == nil {
-		t.Error("间距属性未设置")
+		t.Error("spacing properties not set")
 	} else {
 		if props.Spacing.Before != "240" { // 12 * 20
-			t.Errorf("段前间距设置不正确，期望 '240'，实际 '%s'", props.Spacing.Before)
+			t.Errorf("space before not set correctly, expected '240', got '%s'", props.Spacing.Before)
 		}
 		if props.Spacing.After != "120" { // 6 * 20
-			t.Errorf("段后间距设置不正确，期望 '120'，实际 '%s'", props.Spacing.After)
+			t.Errorf("space after not set correctly, expected '120', got '%s'", props.Spacing.After)
 		}
 	}
 
-	// 检查缩进
+	// Check indentation
 	if props.Indentation == nil {
-		t.Error("缩进属性未设置")
+		t.Error("indentation properties not set")
 	} else {
 		if props.Indentation.FirstLine != "480" { // 24 * 20
-			t.Errorf("首行缩进设置不正确，期望 '480'，实际 '%s'", props.Indentation.FirstLine)
+			t.Errorf("first line indent not set correctly, expected '480', got '%s'", props.Indentation.FirstLine)
 		}
 	}
 }
@@ -258,50 +258,50 @@ func TestCreateRunProperties(t *testing.T) {
 	props := createRunProperties(config)
 
 	if props == nil {
-		t.Fatal("createRunProperties 返回了 nil")
+		t.Fatal("createRunProperties returned nil")
 	}
 
-	// 检查字体设置
+	// Check font settings
 	if props.FontFamily == nil {
-		t.Error("字体系列未设置")
+		t.Error("font family not set")
 	} else {
 		if props.FontFamily.ASCII != "微软雅黑" {
-			t.Errorf("ASCII字体设置不正确，期望 '微软雅黑'，实际 '%s'", props.FontFamily.ASCII)
+			t.Errorf("ASCII font not set correctly, expected '微软雅黑', got '%s'", props.FontFamily.ASCII)
 		}
 	}
 
 	if props.FontSize == nil || props.FontSize.Val != "28" { // 14 * 2
-		t.Error("字体大小设置不正确")
+		t.Error("font size not set correctly")
 	}
 
 	if props.Color == nil || props.Color.Val != "FF0000" {
-		t.Error("字体颜色设置不正确")
+		t.Error("font color not set correctly")
 	}
 
-	// 检查格式设置
+	// Check formatting
 	if props.Bold == nil {
-		t.Error("粗体设置不正确")
+		t.Error("bold not set correctly")
 	}
 
 	if props.Italic == nil {
-		t.Error("斜体设置不正确")
+		t.Error("italic not set correctly")
 	}
 
 	if props.Underline == nil || props.Underline.Val != "single" {
-		t.Error("下划线设置不正确")
+		t.Error("underline not set correctly")
 	}
 
 	if props.Strike == nil {
-		t.Error("删除线设置不正确")
+		t.Error("strikethrough not set correctly")
 	}
 
 	if props.Highlight == nil || props.Highlight.Val != "yellow" {
-		t.Error("高亮设置不正确")
+		t.Error("highlight not set correctly")
 	}
 }
 
 func TestCreateParagraphPropertiesWithSnapToGrid(t *testing.T) {
-	// 测试 SnapToGrid = false 时禁用网格对齐
+	// Test SnapToGrid = false disables grid alignment
 	snapToGridFalse := false
 	config := &QuickParagraphConfig{
 		Alignment:   "left",
@@ -312,31 +312,31 @@ func TestCreateParagraphPropertiesWithSnapToGrid(t *testing.T) {
 	props := createParagraphProperties(config)
 
 	if props == nil {
-		t.Fatal("createParagraphProperties 返回了 nil")
+		t.Fatal("createParagraphProperties returned nil")
 	}
 
-	// 检查 SnapToGrid 设置
+	// Check SnapToGrid setting
 	if props.SnapToGrid == nil {
-		t.Error("SnapToGrid 应该被设置")
+		t.Error("SnapToGrid should be set")
 	} else {
 		if props.SnapToGrid.Val != "0" {
-			t.Errorf("SnapToGrid.Val 设置不正确，期望 '0'，实际 '%s'", props.SnapToGrid.Val)
+			t.Errorf("SnapToGrid.Val not set correctly, expected '0', got '%s'", props.SnapToGrid.Val)
 		}
 	}
 
-	// 检查行间距
+	// Check line spacing
 	if props.Spacing == nil {
-		t.Error("间距属性未设置")
+		t.Error("spacing properties not set")
 	} else {
 		if props.Spacing.Line != "360" { // 1.5 * 240
-			t.Errorf("行间距设置不正确，期望 '360'，实际 '%s'", props.Spacing.Line)
+			t.Errorf("line spacing not set correctly, expected '360', got '%s'", props.Spacing.Line)
 		}
 		if props.Spacing.LineRule != "auto" {
-			t.Errorf("LineRule 设置不正确，期望 'auto'，实际 '%s'", props.Spacing.LineRule)
+			t.Errorf("LineRule not set correctly, expected 'auto', got '%s'", props.Spacing.LineRule)
 		}
 	}
 
-	// 测试 SnapToGrid = true 时不设置（保持默认）
+	// Test SnapToGrid = true does not set (keep default)
 	snapToGridTrue := true
 	configWithGridEnabled := &QuickParagraphConfig{
 		Alignment:   "left",
@@ -347,10 +347,10 @@ func TestCreateParagraphPropertiesWithSnapToGrid(t *testing.T) {
 	propsWithGrid := createParagraphProperties(configWithGridEnabled)
 
 	if propsWithGrid.SnapToGrid != nil {
-		t.Error("当 SnapToGrid = true 时，不应该设置 SnapToGrid 属性（保持默认行为）")
+		t.Error("when SnapToGrid = true, SnapToGrid property should not be set (keep default behavior)")
 	}
 
-	// 测试 SnapToGrid = nil 时不设置
+	// Test SnapToGrid = nil does not set
 	configWithoutGrid := &QuickParagraphConfig{
 		Alignment:   "left",
 		LineSpacing: 1.5,
@@ -360,6 +360,6 @@ func TestCreateParagraphPropertiesWithSnapToGrid(t *testing.T) {
 	propsWithoutGrid := createParagraphProperties(configWithoutGrid)
 
 	if propsWithoutGrid.SnapToGrid != nil {
-		t.Error("当 SnapToGrid = nil 时，不应该设置 SnapToGrid 属性")
+		t.Error("when SnapToGrid = nil, SnapToGrid property should not be set")
 	}
 }

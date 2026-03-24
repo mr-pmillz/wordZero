@@ -8,22 +8,22 @@ import (
 	"github.com/zerx-lab/wordZero/pkg/document"
 	"github.com/yuin/goldmark/ast"
 
-	// 添加goldmark扩展的AST节点支持
+	// goldmark extension AST node support
 	extast "github.com/yuin/goldmark/extension/ast"
 
-	// 添加数学公式支持
+	// math formula support
 	mathjax "github.com/litao91/goldmark-mathjax"
 )
 
-// WordRenderer Word文档渲染器
+// WordRenderer renders Markdown AST nodes into a Word document.
 type WordRenderer struct {
 	doc       *document.Document
 	opts      *ConvertOptions
 	source    []byte
-	listLevel int // 当前列表嵌套级别
+	listLevel int // current list nesting level
 }
 
-// Render 渲染AST为Word文档
+// Render walks the AST and renders it into a Word document.
 func (r *WordRenderer) Render(doc ast.Node) error {
 	return ast.Walk(doc, func(node ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
@@ -32,7 +32,7 @@ func (r *WordRenderer) Render(doc ast.Node) error {
 
 		switch n := node.(type) {
 		case *ast.Document:
-			// 文档根节点，继续处理子节点
+			// Document root node, continue processing children
 			return ast.WalkContinue, nil
 
 		case *ast.Heading:
@@ -60,21 +60,21 @@ func (r *WordRenderer) Render(doc ast.Node) error {
 			return r.renderThematicBreak(n)
 
 		case *ast.Text:
-			// Text节点由父节点处理
+			// Text nodes are handled by the parent node
 			return ast.WalkSkipChildren, nil
 
 		case *ast.Emphasis:
-			// 强调节点由父节点处理
+			// Emphasis nodes are handled by the parent node
 			return ast.WalkSkipChildren, nil
 
 		case *ast.Link:
-			// 链接节点由父节点处理
+			// Link nodes are handled by the parent node
 			return ast.WalkSkipChildren, nil
 
 		case *ast.Image:
 			return r.renderImage(n)
 
-		// 表格支持
+		// Table support
 		case *extast.Table:
 			if r.opts.EnableTables {
 				return r.renderTable(n)
@@ -82,14 +82,14 @@ func (r *WordRenderer) Render(doc ast.Node) error {
 			return ast.WalkContinue, nil
 
 		case *extast.TableRow:
-			// TableRow节点由Table处理
+			// TableRow nodes are handled by Table
 			return ast.WalkSkipChildren, nil
 
 		case *extast.TableCell:
-			// TableCell节点由Table处理
+			// TableCell nodes are handled by Table
 			return ast.WalkSkipChildren, nil
 
-		// 任务列表支持
+		// Task list support
 		case *extast.TaskCheckBox:
 			if r.opts.EnableTaskList {
 				return r.renderTaskCheckBox(n)
@@ -97,18 +97,18 @@ func (r *WordRenderer) Render(doc ast.Node) error {
 			return ast.WalkContinue, nil
 
 		default:
-			// 检查是否为数学公式节点
+			// Check if this is a math formula node
 			if r.opts.EnableMath {
-				// 检查块级数学公式
+				// Check for block-level math formula
 				if node.Kind() == mathjax.KindMathBlock {
 					return r.renderMathBlock(node)
 				}
-				// 检查行内数学公式
+				// Check for inline math formula
 				if node.Kind() == mathjax.KindInlineMath {
 					return r.renderInlineMath(node)
 				}
 			}
-			// 对于不支持的节点类型，记录错误但继续处理
+			// For unsupported node types, log the error but continue processing
 			if r.opts.ErrorCallback != nil {
 				r.opts.ErrorCallback(NewConversionError("UnsupportedNode", "unsupported markdown node type", 0, 0, nil))
 			}
@@ -117,45 +117,45 @@ func (r *WordRenderer) Render(doc ast.Node) error {
 	})
 }
 
-// renderHeading 渲染标题
+// renderHeading renders a heading node.
 func (r *WordRenderer) renderHeading(node *ast.Heading) (ast.WalkStatus, error) {
 	text := r.extractTextContent(node)
 	level := node.Level
 
-	// 限制标题级别
+	// Clamp heading level
 	if level > 6 {
 		level = 6
 	}
 
-	// 使用现有的API，确保兼容性
+	// Use the existing API for compatibility
 	if r.opts.GenerateTOC && level <= r.opts.TOCMaxLevel {
-		// 复用现有的AddHeadingWithBookmark方法
+		// Reuse the existing AddHeadingWithBookmark method
 		r.doc.AddHeadingWithBookmark(text, level, "")
 	} else {
-		// 复用现有的AddHeadingParagraph方法
+		// Reuse the existing AddHeadingParagraph method
 		r.doc.AddHeadingParagraph(text, level)
 	}
 
 	return ast.WalkSkipChildren, nil
 }
 
-// renderParagraph 渲染段落
+// renderParagraph renders a paragraph node.
 func (r *WordRenderer) renderParagraph(node *ast.Paragraph) (ast.WalkStatus, error) {
-	// 检查段落是否为空
+	// Check if the paragraph is empty
 	if !node.HasChildren() {
 		return ast.WalkSkipChildren, nil
 	}
 
-	// 创建段落
+	// Create paragraph
 	para := r.doc.AddParagraph("")
 
-	// 处理段落内容
+	// Process paragraph content
 	r.renderInlineContent(node, para)
 
 	return ast.WalkSkipChildren, nil
 }
 
-// renderInlineContent 渲染内联内容（文本、强调、链接等）
+// renderInlineContent renders inline content (text, emphasis, links, etc.).
 func (r *WordRenderer) renderInlineContent(node ast.Node, para *document.Paragraph) {
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
 		switch n := child.(type) {
@@ -163,47 +163,47 @@ func (r *WordRenderer) renderInlineContent(node ast.Node, para *document.Paragra
 			text := string(n.Segment.Value(r.source))
 			para.AddFormattedText(text, nil)
 			
-			// 处理软换行（单个\n）
-			// goldmark将单个\n解析为多个Text节点，第一个节点的SoftLineBreak为true
-			// 在Markdown中，软换行通常应该被渲染为空格
+			// Handle soft line breaks (single \n)
+			// goldmark parses a single \n into multiple Text nodes, with the first node's SoftLineBreak set to true
+			// In Markdown, soft line breaks are typically rendered as spaces
 			if n.SoftLineBreak() {
 				para.AddFormattedText(" ", nil)
 			}
 
 		case *ast.Emphasis:
 			text := r.extractTextContent(n)
-			// goldmark中，level=1是斜体，level=2是粗体
+			// In goldmark, level=1 is italic, level=2 is bold
 			if n.Level == 2 {
-				// 使用粗体格式
+				// Apply bold formatting
 				format := &document.TextFormat{Bold: true}
 				para.AddFormattedText(text, format)
 			} else {
-				// 使用斜体格式
+				// Apply italic formatting
 				format := &document.TextFormat{Italic: true}
 				para.AddFormattedText(text, format)
 			}
 
 		case *ast.CodeSpan:
 			text := r.extractTextContent(n)
-			// 使用CodeChar样式的格式
+			// Apply CodeChar style formatting
 			format := &document.TextFormat{
 				FontFamily: "Consolas",
-				FontColor:  "D73A49", // GitHub风格的红色
+				FontColor:  "D73A49", // GitHub-style red
 			}
 			para.AddFormattedText(text, format)
 
 		case *ast.Link:
 			text := r.extractTextContent(n)
-			// 简单处理链接，后续可以扩展为超链接
+			// Simple link handling; can be extended to hyperlinks later
 			format := &document.TextFormat{
-				FontColor: "0000FF", // 蓝色
+				FontColor: "0000FF", // blue
 			}
 			para.AddFormattedText(text, format)
 
 		case *ast.Image:
 			r.renderImageInline(n, para)
 		case *extast.Strikethrough:
-			// 处理删除线
+			// Handle strikethrough
 			text := r.extractTextContent(n)
 			format := &document.TextFormat{
 				Strike: true,
@@ -211,12 +211,12 @@ func (r *WordRenderer) renderInlineContent(node ast.Node, para *document.Paragra
 			para.AddFormattedText(text, format)
 
 		default:
-			// 检查是否为行内数学公式
+			// Check if this is an inline math formula
 			if r.opts.EnableMath && child.Kind() == mathjax.KindInlineMath {
 				r.renderInlineMathToParagraph(child, para)
 				continue
 			}
-			// 对于其他类型，尝试提取文本内容
+			// For other types, try to extract text content
 			text := r.extractTextContent(n)
 			if text != "" {
 				para.AddFormattedText(text, nil)
@@ -225,12 +225,12 @@ func (r *WordRenderer) renderInlineContent(node ast.Node, para *document.Paragra
 	}
 }
 
-// renderList 渲染列表
+// renderList renders a list node.
 func (r *WordRenderer) renderList(node *ast.List) (ast.WalkStatus, error) {
 	r.listLevel++
 	defer func() { r.listLevel-- }()
 
-	// 处理列表项
+	// Process list items
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
 		if listItem, ok := child.(*ast.ListItem); ok {
 			r.renderListItem(listItem)
@@ -240,9 +240,9 @@ func (r *WordRenderer) renderList(node *ast.List) (ast.WalkStatus, error) {
 	return ast.WalkSkipChildren, nil
 }
 
-// renderListItem 渲染列表项
+// renderListItem renders a list item node.
 func (r *WordRenderer) renderListItem(node *ast.ListItem) (ast.WalkStatus, error) {
-	// 检查是否包含任务复选框
+	// Check if the item contains a task checkbox
 	hasTaskCheckBox := false
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
 		if _, ok := child.(*extast.TaskCheckBox); ok {
@@ -251,17 +251,17 @@ func (r *WordRenderer) renderListItem(node *ast.ListItem) (ast.WalkStatus, error
 		}
 	}
 
-	// 如果包含任务复选框且启用了任务列表，让TaskCheckBox节点处理
+	// If the item contains a task checkbox and task lists are enabled, let the TaskCheckBox node handle it
 	if hasTaskCheckBox && r.opts.EnableTaskList {
-		// 任务列表项将由TaskCheckBox节点处理
+		// Task list items will be handled by the TaskCheckBox node
 		return ast.WalkContinue, nil
 	}
 
-	// 普通列表项处理
+	// Normal list item processing
 	text := r.extractTextContent(node)
 
-	// 简单的列表项处理，后续可以扩展为真正的列表格式
-	// 这里暂时使用缩进和符号来模拟列表
+	// Simple list item handling; can be extended to proper list formatting later
+	// For now, indentation and bullet symbols are used to simulate lists
 	indent := strings.Repeat("  ", r.listLevel-1)
 	bulletText := "• " + text
 
@@ -270,33 +270,33 @@ func (r *WordRenderer) renderListItem(node *ast.ListItem) (ast.WalkStatus, error
 	return ast.WalkSkipChildren, nil
 }
 
-// renderBlockquote 渲染引用块
+// renderBlockquote renders a blockquote node.
 func (r *WordRenderer) renderBlockquote(node *ast.Blockquote) (ast.WalkStatus, error) {
 	text := r.extractTextContent(node)
 
-	// 创建引用段落，使用Quote样式
+	// Create a blockquote paragraph using the Quote style
 	para := r.doc.AddParagraph(text)
 	para.SetStyle("Quote")
 
 	return ast.WalkSkipChildren, nil
 }
 
-// renderCodeBlock 渲染代码块
+// renderCodeBlock renders a code block node.
 func (r *WordRenderer) renderCodeBlock(node ast.Node) (ast.WalkStatus, error) {
-	// 按行处理代码块内容，保持格式化状态
+	// Process code block content line by line, preserving formatting
 	lines := r.extractCodeBlockLines(node)
 
-	// 为每行代码创建一个段落，保持换行和缩进
+	// Create a paragraph for each code line, preserving line breaks and indentation
 	for _, line := range lines {
-		// 处理空行
+		// Handle empty lines
 		if strings.TrimSpace(line) == "" {
-			para := r.doc.AddParagraph(" ") // 空行用空格表示
+			para := r.doc.AddParagraph(" ") // Represent empty lines with a space
 			para.SetStyle("CodeBlock")
 			r.applyCodeBlockFormatting(para)
 			continue
 		}
 
-		// 创建代码行段落
+		// Create a code line paragraph
 		para := r.doc.AddParagraph(line)
 		para.SetStyle("CodeBlock")
 		r.applyCodeBlockFormatting(para)
@@ -305,110 +305,110 @@ func (r *WordRenderer) renderCodeBlock(node ast.Node) (ast.WalkStatus, error) {
 	return ast.WalkSkipChildren, nil
 }
 
-// extractCodeBlockLines 按行提取代码块文本，保持格式
+// extractCodeBlockLines extracts code block text line by line, preserving formatting.
 func (r *WordRenderer) extractCodeBlockLines(node ast.Node) []string {
 	var lines []string
 
 	for i := 0; i < node.Lines().Len(); i++ {
 		line := node.Lines().At(i)
 		lineText := string(line.Value(r.source))
-		// 保持原始格式，包括空格和制表符
+		// Preserve original formatting, including spaces and tabs
 		lines = append(lines, lineText)
 	}
 
 	return lines
 }
 
-// applyCodeBlockFormatting 应用代码块格式
+// applyCodeBlockFormatting applies code block formatting to a paragraph.
 func (r *WordRenderer) applyCodeBlockFormatting(para *document.Paragraph) {
-	// 应用额外的代码块格式
+	// Apply additional code block formatting
 	if para.Properties == nil {
 		para.Properties = &document.ParagraphProperties{}
 	}
 
-	// 设置左缩进（模拟code_template中的样式）
+	// Set left indentation (matching the code_template style)
 	para.Properties.Indentation = &document.Indentation{
-		Left: "360", // 左缩进0.25英寸，与code_template保持一致
+		Left: "360", // 0.25 inch left indent, consistent with code_template
 	}
 
-	// 设置间距（段前段后间距）
+	// Set spacing (before and after paragraph)
 	para.Properties.Spacing = &document.Spacing{
-		Before: "60", // 3磅段前间距（减少间距，避免代码行之间空隙太大）
-		After:  "60", // 3磅段后间距
+		Before: "60", // 3pt before spacing (reduced to avoid excessive gaps between code lines)
+		After:  "60", // 3pt after spacing
 	}
 
-	// 设置对齐方式为左对齐
+	// Set alignment to left
 	para.Properties.Justification = &document.Justification{
 		Val: "left",
 	}
 }
 
-// renderThematicBreak 渲染分割线
+// renderThematicBreak renders a thematic break (horizontal rule).
 func (r *WordRenderer) renderThematicBreak(node *ast.ThematicBreak) (ast.WalkStatus, error) {
-	// 创建一个空段落用于显示分割线
+	// Create an empty paragraph to display the horizontal rule
 	para := r.doc.AddParagraph("")
 
-	// 设置水平分割线样式
-	// 使用单线样式，中等粗细，黑色
+	// Set horizontal rule style
+	// Single line style, medium weight, black
 	para.SetHorizontalRule(document.BorderStyleSingle, 12, "000000")
 
-	// 设置段落间距，使分割线在视觉上更明显
+	// Set paragraph spacing to make the horizontal rule more visually distinct
 	para.SetSpacing(&document.SpacingConfig{
-		BeforePara: 6, // 段前6磅间距
-		AfterPara:  6, // 段后6磅间距
+		BeforePara: 6, // 6pt before spacing
+		AfterPara:  6, // 6pt after spacing
 	})
 
 	return ast.WalkSkipChildren, nil
 }
 
-// renderImage 渲染图片
+// renderImage renders an image node.
 func (r *WordRenderer) renderImage(node *ast.Image) (ast.WalkStatus, error) {
-	// 获取图片路径
+	// Get image path
 	src := string(node.Destination)
 	alt := r.extractTextContent(node)
 
-	// 处理相对路径
+	// Handle relative paths
 	if !filepath.IsAbs(src) && r.opts.ImageBasePath != "" {
 		src = filepath.Join(r.opts.ImageBasePath, src)
 	}
 
-	// 尝试添加图片，如果失败则添加替代文本
-	// 这里需要后续完善图片处理逻辑
+	// Try to add the image; fall back to alt text on failure
+	// Image handling logic can be improved later
 	if alt != "" {
-		r.doc.AddParagraph("[图片: " + alt + "]")
+		r.doc.AddParagraph("[Image: " + alt + "]")
 	} else {
-		r.doc.AddParagraph("[图片: " + src + "]")
+		r.doc.AddParagraph("[Image: " + src + "]")
 	}
 
 	return ast.WalkSkipChildren, nil
 }
 
-// renderImageInline 渲染内联图片
+// renderImageInline renders an inline image node.
 func (r *WordRenderer) renderImageInline(node *ast.Image, para *document.Paragraph) {
 	src := string(node.Destination)
 	alt := r.extractTextContent(node)
 
-	// 处理相对路径
+	// Handle relative paths
 	if !filepath.IsAbs(src) && r.opts.ImageBasePath != "" {
 		src = filepath.Join(r.opts.ImageBasePath, src)
 	}
 
-	// 内联图片暂时用文本替代
+	// Inline images are temporarily represented as text
 	if alt != "" {
-		para.AddFormattedText("[图片: "+alt+"]", nil)
+		para.AddFormattedText("[Image: "+alt+"]", nil)
 	} else {
-		para.AddFormattedText("[图片: "+src+"]", nil)
+		para.AddFormattedText("[Image: "+src+"]", nil)
 	}
 }
 
-// extractTextContent 提取节点的文本内容
+// extractTextContent extracts the text content of a node.
 func (r *WordRenderer) extractTextContent(node ast.Node) string {
 	var buf strings.Builder
 	r.extractTextContentRecursive(node, &buf)
 	return buf.String()
 }
 
-// extractTextContentRecursive 递归提取文本内容
+// extractTextContentRecursive recursively extracts text content.
 func (r *WordRenderer) extractTextContentRecursive(node ast.Node, buf *strings.Builder) {
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
 		switch n := child.(type) {
@@ -420,32 +420,32 @@ func (r *WordRenderer) extractTextContentRecursive(node ast.Node, buf *strings.B
 	}
 }
 
-// cleanText 清理文本内容
+// cleanText cleans up text content by collapsing whitespace.
 func (r *WordRenderer) cleanText(text string) string {
-	// 移除多余的空白字符
+	// Remove excess whitespace characters
 	re := regexp.MustCompile(`\s+`)
 	text = re.ReplaceAllString(text, " ")
 	return strings.TrimSpace(text)
 }
 
-// renderTable 渲染表格
+// renderTable renders a table node.
 func (r *WordRenderer) renderTable(node *extast.Table) (ast.WalkStatus, error) {
-	// 收集表格数据
+	// Collect table data
 	var tableData [][]string
 	var alignments []extast.Alignment
 	var emphases [][]int
 
-	// 遍历表头
+	// Iterate over table headers
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
 		if row, ok := child.(*extast.TableHeader); ok {
 			var rowData []string
 			var rowEmphasis []int
-			// 遍历表头单元格
+			// Iterate over header cells
 			for cellChild := row.FirstChild(); cellChild != nil; cellChild = cellChild.NextSibling() {
 				if cell, ok := cellChild.(*extast.TableCell); ok {
 					cellText := r.extractTextContent(cell)
 					rowData = append(rowData, cellText)
-					//表头默认粗体
+					// Headers default to bold
 					rowEmphasis = append(rowEmphasis, 2)
 				}
 			}
@@ -454,17 +454,17 @@ func (r *WordRenderer) renderTable(node *extast.Table) (ast.WalkStatus, error) {
 		}
 	}
 
-	// 遍历表格行
+	// Iterate over table rows
 	for child := node.FirstChild(); child != nil; child = child.NextSibling() {
 		if row, ok := child.(*extast.TableRow); ok {
 			var rowData []string
 			var rowEmphasis []int
 			if len(alignments) == 0 {
-				// 从第一行获取对齐方式
+				// Get alignment from the first row
 				alignments = row.Alignments
 			}
 
-			// 遍历单元格
+			// Iterate over cells
 			for cellChild := row.FirstChild(); cellChild != nil; cellChild = cellChild.NextSibling() {
 				if cell, ok := cellChild.(*extast.TableCell); ok {
 					cellText := r.extractTextContent(cell)
@@ -478,12 +478,12 @@ func (r *WordRenderer) renderTable(node *extast.Table) (ast.WalkStatus, error) {
 		}
 	}
 
-	// 如果没有数据，跳过
+	// Skip if there is no data
 	if len(tableData) == 0 {
 		return ast.WalkSkipChildren, nil
 	}
 
-	// 计算列数
+	// Calculate column count
 	cols := 0
 	for _, row := range tableData {
 		if len(row) > cols {
@@ -491,31 +491,31 @@ func (r *WordRenderer) renderTable(node *extast.Table) (ast.WalkStatus, error) {
 		}
 	}
 
-	// 创建表格配置
+	// Create table configuration
 	config := &document.TableConfig{
 		Rows:     len(tableData),
 		Cols:     cols,
-		Width:    9000, // 默认宽度（磅）
+		Width:    9000, // default width (points)
 		Data:     tableData,
 		Emphases: emphases,
 	}
 
-	// 添加表格到文档
+	// Add table to document
 	table, err := r.doc.AddTable(config)
 	if err != nil && r.opts.ErrorCallback != nil {
 		r.opts.ErrorCallback(NewConversionError("AddTable", err.Error(), 0, 0, err))
 	}
 	if table != nil {
-		// 设置表头样式（如果有的话）
+		// Set header style (if applicable)
 		if len(tableData) > 0 {
-			// 第一行设为表头样式
+			// Set the first row as a header
 			err := table.SetRowAsHeader(0, true)
 			if err != nil && r.opts.ErrorCallback != nil {
 				r.opts.ErrorCallback(NewConversionError("TableHeader", "failed to set table header", 0, 0, err))
 			}
 		}
 
-		// 根据对齐方式设置单元格对齐
+		// Set cell alignment based on column alignments
 		for rowIdx, row := range tableData {
 			for colIdx := range row {
 				if colIdx < len(alignments) {
@@ -546,10 +546,10 @@ func (r *WordRenderer) renderTable(node *extast.Table) (ast.WalkStatus, error) {
 	return ast.WalkSkipChildren, nil
 }
 
-// 处理单元格样式
+// extractCellEmphasis extracts the emphasis level from a table cell.
 func extractCellEmphasis(cell *extast.TableCell) int {
-	format := 0 // 0表示无格式
-	// 遍历单元格内容
+	format := 0 // 0 means no formatting
+	// Iterate over cell content
 	ast.Walk(cell, func(n ast.Node, entering bool) (ast.WalkStatus, error) {
 		if !entering {
 			return ast.WalkContinue, nil
@@ -557,7 +557,7 @@ func extractCellEmphasis(cell *extast.TableCell) int {
 
 		switch node := n.(type) {
 		case *ast.Emphasis:
-			// 处理强调文本（粗体或斜体）
+			// Handle emphasis text (bold or italic)
 			format = node.Level
 		}
 
@@ -567,40 +567,40 @@ func extractCellEmphasis(cell *extast.TableCell) int {
 	return format
 }
 
-// renderTaskCheckBox 渲染任务列表复选框 ✨ 新增功能
+// renderTaskCheckBox renders a task list checkbox.
 func (r *WordRenderer) renderTaskCheckBox(node *extast.TaskCheckBox) (ast.WalkStatus, error) {
-	// 获取复选框状态
+	// Get checkbox state
 	checked := node.IsChecked
 
-	// 根据状态选择符号
+	// Select symbol based on state
 	var checkSymbol string
 	if checked {
-		checkSymbol = "☑" // 选中的复选框
+		checkSymbol = "☑" // checked checkbox
 	} else {
-		checkSymbol = "☐" // 未选中的复选框
+		checkSymbol = "☐" // unchecked checkbox
 	}
 
-	// 创建一个段落来包含复选框
+	// Create a paragraph to contain the checkbox
 	para := r.doc.AddParagraph("")
 
-	// 添加复选框符号
+	// Add checkbox symbol
 	para.AddFormattedText(checkSymbol+" ", nil)
 
-	// 处理任务项文本（通常是父级ListItem中的其他内容）
-	// 注意：TaskCheckBox通常是ListItem的第一个子元素
+	// Process task item text (usually other content in the parent ListItem)
+	// Note: TaskCheckBox is typically the first child element of a ListItem
 	parent := node.Parent()
 	if parent != nil {
-		// 提取除TaskCheckBox外的其他文本内容
+		// Extract text content other than the TaskCheckBox
 		r.renderTaskItemContent(parent, para, node)
 	}
 
 	return ast.WalkSkipChildren, nil
 }
 
-// renderTaskItemContent 渲染任务项内容（除复选框外的文本）
+// renderTaskItemContent renders task item content (text excluding the checkbox).
 func (r *WordRenderer) renderTaskItemContent(parent ast.Node, para *document.Paragraph, skipNode ast.Node) {
 	for child := parent.FirstChild(); child != nil; child = child.NextSibling() {
-		// 跳过复选框节点本身
+		// Skip the checkbox node itself
 		if child == skipNode {
 			continue
 		}
@@ -609,8 +609,8 @@ func (r *WordRenderer) renderTaskItemContent(parent ast.Node, para *document.Par
 		case *ast.Text:
 			text := string(n.Segment.Value(r.source))
 			para.AddFormattedText(text, nil)
-			
-			// 处理软换行（单个\n）
+
+			// Handle soft line breaks (single \n)
 			if n.SoftLineBreak() {
 				para.AddFormattedText(" ", nil)
 			}
@@ -632,16 +632,16 @@ func (r *WordRenderer) renderTaskItemContent(parent ast.Node, para *document.Par
 		case *ast.Link:
 			text := r.extractTextContent(n)
 			format := &document.TextFormat{
-				FontColor: "0000FF", // 蓝色
+				FontColor: "0000FF", // blue
 			}
 			para.AddFormattedText(text, format)
 		default:
-			// 检查是否为行内数学公式
+			// Check if this is an inline math formula
 			if r.opts.EnableMath && child.Kind() == mathjax.KindInlineMath {
 				r.renderInlineMathToParagraph(child, para)
 				continue
 			}
-			// 对于其他类型，尝试提取文本内容
+			// For other types, try to extract text content
 			text := r.extractTextContent(n)
 			if text != "" {
 				para.AddFormattedText(text, nil)
@@ -650,7 +650,7 @@ func (r *WordRenderer) renderTaskItemContent(parent ast.Node, para *document.Par
 	}
 }
 
-// renderInlineMathToParagraph 将行内数学公式渲染到段落中
+// renderInlineMathToParagraph renders an inline math formula into a paragraph.
 func (r *WordRenderer) renderInlineMathToParagraph(node ast.Node, para *document.Paragraph) {
 	latex := r.extractMathContent(node)
 	para.AddFormattedText(latex, &document.TextFormat{
@@ -658,16 +658,16 @@ func (r *WordRenderer) renderInlineMathToParagraph(node ast.Node, para *document
 	})
 }
 
-// renderMathBlock 渲染块级数学公式
+// renderMathBlock renders a block-level math formula.
 func (r *WordRenderer) renderMathBlock(node ast.Node) (ast.WalkStatus, error) {
-	// 提取LaTeX内容
+	// Extract LaTeX content
 	latex := r.extractMathContent(node)
 
-	// 创建包含公式的段落
+	// Create a paragraph containing the formula
 	para := r.doc.AddParagraph("")
 	para.SetAlignment(document.AlignCenter)
 
-	// 添加公式内容（使用Cambria Math字体以获得更好的数学符号显示）
+	// Add formula content (using Cambria Math font for better math symbol rendering)
 	para.AddFormattedText(latex, &document.TextFormat{
 		FontFamily: "Cambria Math",
 		FontSize:   12,
@@ -676,23 +676,23 @@ func (r *WordRenderer) renderMathBlock(node ast.Node) (ast.WalkStatus, error) {
 	return ast.WalkSkipChildren, nil
 }
 
-// renderInlineMath 渲染行内数学公式
+// renderInlineMath renders an inline math formula.
 func (r *WordRenderer) renderInlineMath(node ast.Node) (ast.WalkStatus, error) {
-	// 行内公式通常由父节点处理（在renderInlineContent中）
-	// 如果直接调用此方法，创建一个新段落
+	// Inline formulas are usually handled by the parent node (in renderInlineContent)
+	// If this method is called directly, create a new paragraph
 	para := r.doc.AddParagraph("")
 	r.renderInlineMathToParagraph(node, para)
 
 	return ast.WalkSkipChildren, nil
 }
 
-// extractMathContent 从数学节点中提取LaTeX内容
+// extractMathContent extracts LaTeX content from a math node.
 func (r *WordRenderer) extractMathContent(node ast.Node) string {
 	var content strings.Builder
 
-	// 检查是否为块级节点（MathBlock）
+	// Check if this is a block-level node (MathBlock)
 	if node.Kind() == mathjax.KindMathBlock {
-		// MathBlock是块级节点，可以安全地访问Lines()
+		// MathBlock is a block-level node; Lines() can be safely accessed
 		if blockNode, ok := node.(ast.Node); ok {
 			lines := blockNode.Lines()
 			if lines != nil {
@@ -704,7 +704,7 @@ func (r *WordRenderer) extractMathContent(node ast.Node) string {
 		}
 	}
 
-	// 如果没有行内容（可能是行内公式），尝试从子节点提取
+	// If there is no line content (possibly an inline formula), try extracting from child nodes
 	if content.Len() == 0 {
 		for child := node.FirstChild(); child != nil; child = child.NextSibling() {
 			if text, ok := child.(*ast.Text); ok {
@@ -715,15 +715,15 @@ func (r *WordRenderer) extractMathContent(node ast.Node) string {
 
 	latex := strings.TrimSpace(content.String())
 
-	// 转换常见的LaTeX命令为Unicode字符以获得更好的显示效果
+	// Convert common LaTeX commands to Unicode characters for better display
 	latex = convertLaTeXToDisplay(latex)
 
 	return latex
 }
 
-// convertLaTeXToDisplay 将LaTeX命令转换为可显示的Unicode字符
+// convertLaTeXToDisplay converts LaTeX commands to displayable Unicode characters.
 func convertLaTeXToDisplay(latex string) string {
-	// 处理分数：\frac{a}{b} -> a/b 或 (a)/(b)
+	// Handle fractions: \frac{a}{b} -> a/b or (a)/(b)
 	fracPattern := regexp.MustCompile(`\\frac\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}`)
 	for fracPattern.MatchString(latex) {
 		latex = fracPattern.ReplaceAllStringFunc(latex, func(match string) string {
@@ -731,14 +731,14 @@ func convertLaTeXToDisplay(latex string) string {
 			if len(parts) == 3 {
 				num := convertLaTeXToDisplay(parts[1])
 				den := convertLaTeXToDisplay(parts[2])
-				// 使用分数斜线字符来表示分数
+				// Use fraction slash notation to represent fractions
 				return "(" + num + ")/(" + den + ")"
 			}
 			return match
 		})
 	}
 
-	// 处理根号：\sqrt{x} -> √x, \sqrt[n]{x} -> ⁿ√x
+	// Handle square roots: \sqrt{x} -> √x, \sqrt[n]{x} -> ⁿ√x
 	sqrtPattern := regexp.MustCompile(`\\sqrt\s*(?:\[([^\]]*)\])?\s*\{([^{}]*(?:\{[^{}]*\}[^{}]*)*)\}`)
 	for sqrtPattern.MatchString(latex) {
 		latex = sqrtPattern.ReplaceAllStringFunc(latex, func(match string) string {
@@ -749,7 +749,7 @@ func convertLaTeXToDisplay(latex string) string {
 				if deg == "" {
 					return "√(" + content + ")"
 				}
-				// 将根指数转换为上标
+				// Convert the root index to superscript
 				degSup := convertToSuperscript(deg)
 				return degSup + "√(" + content + ")"
 			}
@@ -757,7 +757,7 @@ func convertLaTeXToDisplay(latex string) string {
 		})
 	}
 
-	// 处理上标：x^{n} -> xⁿ 或 x^n -> xⁿ
+	// Handle superscripts: x^{n} -> xⁿ or x^n -> xⁿ
 	supBracePattern := regexp.MustCompile(`\^\{([^{}]*)\}`)
 	latex = supBracePattern.ReplaceAllStringFunc(latex, func(match string) string {
 		parts := supBracePattern.FindStringSubmatch(match)
@@ -775,7 +775,7 @@ func convertLaTeXToDisplay(latex string) string {
 		return match
 	})
 
-	// 处理下标：x_{n} -> xₙ 或 x_n -> xₙ
+	// Handle subscripts: x_{n} -> xₙ or x_n -> xₙ
 	subBracePattern := regexp.MustCompile(`_\{([^{}]*)\}`)
 	latex = subBracePattern.ReplaceAllStringFunc(latex, func(match string) string {
 		parts := subBracePattern.FindStringSubmatch(match)
@@ -793,9 +793,9 @@ func convertLaTeXToDisplay(latex string) string {
 		return match
 	})
 
-	// LaTeX命令替换映射
+	// LaTeX command replacement map
 	replacements := map[string]string{
-		// 希腊字母（小写）
+		// Greek letters (lowercase)
 		`\alpha`:   "α",
 		`\beta`:    "β",
 		`\gamma`:   "γ",
@@ -820,7 +820,7 @@ func convertLaTeXToDisplay(latex string) string {
 		`\psi`:     "ψ",
 		`\omega`:   "ω",
 
-		// 希腊字母（大写）
+		// Greek letters (uppercase)
 		`\Alpha`:   "Α",
 		`\Beta`:    "Β",
 		`\Gamma`:   "Γ",
@@ -845,7 +845,7 @@ func convertLaTeXToDisplay(latex string) string {
 		`\Psi`:     "Ψ",
 		`\Omega`:   "Ω",
 
-		// 运算符
+		// Operators
 		`\times`:  "×",
 		`\div`:    "÷",
 		`\pm`:     "±",
@@ -859,7 +859,7 @@ func convertLaTeXToDisplay(latex string) string {
 		`\ominus`: "⊖",
 		`\otimes`: "⊗",
 
-		// 关系符号
+		// Relational symbols
 		`\leq`:      "≤",
 		`\le`:       "≤",
 		`\geq`:      "≥",
@@ -882,7 +882,7 @@ func convertLaTeXToDisplay(latex string) string {
 		`\notin`:    "∉",
 		`\ni`:       "∋",
 
-		// 箭头
+		// Arrows
 		`\rightarrow`:     "→",
 		`\leftarrow`:      "←",
 		`\leftrightarrow`: "↔",
@@ -895,7 +895,7 @@ func convertLaTeXToDisplay(latex string) string {
 		`\gets`:           "←",
 		`\mapsto`:         "↦",
 
-		// 杂项符号
+		// Miscellaneous symbols
 		`\infty`:      "∞",
 		`\partial`:    "∂",
 		`\nabla`:      "∇",
@@ -918,13 +918,13 @@ func convertLaTeXToDisplay(latex string) string {
 		`\prod`:       "∏",
 		`\coprod`:     "∐",
 
-		// 省略号
+		// Ellipsis
 		`\ldots`: "…",
 		`\cdots`: "⋯",
 		`\vdots`: "⋮",
 		`\ddots`: "⋱",
 
-		// 空格
+		// Spaces
 		`\quad`:  " ",
 		`\qquad`: "  ",
 		`\,`:     " ",
@@ -932,7 +932,7 @@ func convertLaTeXToDisplay(latex string) string {
 		`\:`:     " ",
 		`\ `:     " ",
 
-		// 括号
+		// Brackets
 		`\{`:      "{",
 		`\}`:      "}",
 		`\lbrace`: "{",
@@ -947,8 +947,8 @@ func convertLaTeXToDisplay(latex string) string {
 		`\right`:  "",
 	}
 
-	// 应用替换 - 按长度降序排列，确保较长的命令先被替换
-	// 这样避免 \neq 和 \ne 等命令冲突
+	// Apply replacements - sorted by length in descending order to ensure longer commands are replaced first
+	// This avoids conflicts between commands like \neq and \ne
 	type replacement struct {
 		cmd     string
 		unicode string
@@ -957,7 +957,7 @@ func convertLaTeXToDisplay(latex string) string {
 	for cmd, u := range replacements {
 		sortedReplacements = append(sortedReplacements, replacement{cmd, u})
 	}
-	// 按命令长度降序排序
+	// Sort by command length in descending order
 	for i := 0; i < len(sortedReplacements); i++ {
 		for j := i + 1; j < len(sortedReplacements); j++ {
 			if len(sortedReplacements[j].cmd) > len(sortedReplacements[i].cmd) {
@@ -969,14 +969,14 @@ func convertLaTeXToDisplay(latex string) string {
 		latex = strings.ReplaceAll(latex, r.cmd, r.unicode)
 	}
 
-	// 清理多余的花括号
+	// Clean up excess curly braces
 	latex = strings.ReplaceAll(latex, "{", "")
 	latex = strings.ReplaceAll(latex, "}", "")
 
 	return latex
 }
 
-// convertToSuperscript 将字符串转换为上标形式
+// convertToSuperscript converts a string to superscript form.
 func convertToSuperscript(s string) string {
 	superscripts := map[rune]rune{
 		'0': '⁰', '1': '¹', '2': '²', '3': '³', '4': '⁴',
@@ -1000,7 +1000,7 @@ func convertToSuperscript(s string) string {
 	return result.String()
 }
 
-// convertToSubscript 将字符串转换为下标形式
+// convertToSubscript converts a string to subscript form.
 func convertToSubscript(s string) string {
 	subscripts := map[rune]rune{
 		'0': '₀', '1': '₁', '2': '₂', '3': '₃', '4': '₄',

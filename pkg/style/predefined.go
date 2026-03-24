@@ -1,12 +1,12 @@
-// Package style 预定义样式常量
+// Package style provides predefined style constants.
 package style
 
-// 预定义样式ID常量
+// Predefined style ID constants
 const (
-	// StyleNormal 普通文本样式
+	// StyleNormal is the normal text style.
 	StyleNormal = "Normal"
 
-	// 标题样式
+	// Heading styles
 	StyleHeading1 = "Heading1"
 	StyleHeading2 = "Heading2"
 	StyleHeading3 = "Heading3"
@@ -17,46 +17,46 @@ const (
 	StyleHeading8 = "Heading8"
 	StyleHeading9 = "Heading9"
 
-	// 文档标题样式
-	StyleTitle    = "Title"    // 文档标题
-	StyleSubtitle = "Subtitle" // 副标题
+	// Document title styles
+	StyleTitle    = "Title"    // Document title
+	StyleSubtitle = "Subtitle" // Subtitle
 
-	// 字符样式
-	StyleEmphasis = "Emphasis" // 强调（斜体）
-	StyleStrong   = "Strong"   // 加粗
-	StyleCodeChar = "CodeChar" // 代码字符
+	// Character styles
+	StyleEmphasis = "Emphasis" // Emphasis (italic)
+	StyleStrong   = "Strong"   // Bold
+	StyleCodeChar = "CodeChar" // Code character
 
-	// 段落样式
-	StyleQuote         = "Quote"         // 引用样式
-	StyleListParagraph = "ListParagraph" // 列表段落
-	StyleCodeBlock     = "CodeBlock"     // 代码块
+	// Paragraph styles
+	StyleQuote         = "Quote"         // Quote style
+	StyleListParagraph = "ListParagraph" // List paragraph
+	StyleCodeBlock     = "CodeBlock"     // Code block
 )
 
-// GetPredefinedStyleNames 获取所有预定义样式名称映射
+// GetPredefinedStyleNames returns a mapping of all predefined style names.
 func GetPredefinedStyleNames() map[string]string {
 	return map[string]string{
-		StyleNormal:        "普通文本",
-		StyleHeading1:      "标题 1",
-		StyleHeading2:      "标题 2",
-		StyleHeading3:      "标题 3",
-		StyleHeading4:      "标题 4",
-		StyleHeading5:      "标题 5",
-		StyleHeading6:      "标题 6",
-		StyleHeading7:      "标题 7",
-		StyleHeading8:      "标题 8",
-		StyleHeading9:      "标题 9",
-		StyleTitle:         "文档标题",
-		StyleSubtitle:      "副标题",
-		StyleEmphasis:      "强调",
-		StyleStrong:        "加粗",
-		StyleCodeChar:      "代码字符",
-		StyleQuote:         "引用",
-		StyleListParagraph: "列表段落",
-		StyleCodeBlock:     "代码块",
+		StyleNormal:        "Normal",
+		StyleHeading1:      "Heading 1",
+		StyleHeading2:      "Heading 2",
+		StyleHeading3:      "Heading 3",
+		StyleHeading4:      "Heading 4",
+		StyleHeading5:      "Heading 5",
+		StyleHeading6:      "Heading 6",
+		StyleHeading7:      "Heading 7",
+		StyleHeading8:      "Heading 8",
+		StyleHeading9:      "Heading 9",
+		StyleTitle:         "Document Title",
+		StyleSubtitle:      "Subtitle",
+		StyleEmphasis:      "Emphasis",
+		StyleStrong:        "Strong",
+		StyleCodeChar:      "Code Character",
+		StyleQuote:         "Quote",
+		StyleListParagraph: "List Paragraph",
+		StyleCodeBlock:     "Code Block",
 	}
 }
 
-// StyleConfig 样式配置帮助结构
+// StyleConfig is a helper struct for style configuration.
 type StyleConfig struct {
 	StyleID     string
 	Name        string
@@ -64,115 +64,115 @@ type StyleConfig struct {
 	StyleType   StyleType
 }
 
-// GetPredefinedStyleConfigs 获取所有预定义样式配置
+// GetPredefinedStyleConfigs returns all predefined style configurations.
 func GetPredefinedStyleConfigs() []StyleConfig {
 	return []StyleConfig{
 		{
 			StyleID:     StyleNormal,
-			Name:        "普通文本",
-			Description: "默认的段落样式，使用Calibri字体，11磅字号",
+			Name:        "Normal",
+			Description: "Default paragraph style using Calibri font at 11pt",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading1,
-			Name:        "标题 1",
-			Description: "一级标题，16磅蓝色粗体，段前12磅间距",
+			Name:        "Heading 1",
+			Description: "Heading level 1, 16pt blue bold, 12pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading2,
-			Name:        "标题 2",
-			Description: "二级标题，13磅蓝色粗体，段前6磅间距",
+			Name:        "Heading 2",
+			Description: "Heading level 2, 13pt blue bold, 6pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading3,
-			Name:        "标题 3",
-			Description: "三级标题，12磅蓝色粗体，段前6磅间距",
+			Name:        "Heading 3",
+			Description: "Heading level 3, 12pt blue bold, 6pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading4,
-			Name:        "标题 4",
-			Description: "四级标题，12磅蓝色粗体，段前6磅间距",
+			Name:        "Heading 4",
+			Description: "Heading level 4, 12pt blue bold, 6pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading5,
-			Name:        "标题 5",
-			Description: "五级标题，12磅蓝色粗体，段前6磅间距",
+			Name:        "Heading 5",
+			Description: "Heading level 5, 12pt blue bold, 6pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading6,
-			Name:        "标题 6",
-			Description: "六级标题，12磅蓝色粗体，段前6磅间距",
+			Name:        "Heading 6",
+			Description: "Heading level 6, 12pt blue bold, 6pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading7,
-			Name:        "标题 7",
-			Description: "七级标题，12磅蓝色粗体，段前6磅间距",
+			Name:        "Heading 7",
+			Description: "Heading level 7, 12pt blue bold, 6pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading8,
-			Name:        "标题 8",
-			Description: "八级标题，12磅蓝色粗体，段前6磅间距",
+			Name:        "Heading 8",
+			Description: "Heading level 8, 12pt blue bold, 6pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleHeading9,
-			Name:        "标题 9",
-			Description: "九级标题，12磅蓝色粗体，段前6磅间距",
+			Name:        "Heading 9",
+			Description: "Heading level 9, 12pt blue bold, 6pt space before",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleTitle,
-			Name:        "文档标题",
-			Description: "文档标题样式",
+			Name:        "Document Title",
+			Description: "Document title style",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleSubtitle,
-			Name:        "副标题",
-			Description: "副标题样式",
+			Name:        "Subtitle",
+			Description: "Subtitle style",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleEmphasis,
-			Name:        "强调",
-			Description: "斜体文本样式",
+			Name:        "Emphasis",
+			Description: "Italic text style",
 			StyleType:   StyleTypeCharacter,
 		},
 		{
 			StyleID:     StyleStrong,
-			Name:        "加粗",
-			Description: "粗体文本样式",
+			Name:        "Strong",
+			Description: "Bold text style",
 			StyleType:   StyleTypeCharacter,
 		},
 		{
 			StyleID:     StyleCodeChar,
-			Name:        "代码字符",
-			Description: "等宽字体，红色文本，适用于代码片段",
+			Name:        "Code Character",
+			Description: "Monospace font, red text, for code snippets",
 			StyleType:   StyleTypeCharacter,
 		},
 		{
 			StyleID:     StyleQuote,
-			Name:        "引用",
-			Description: "引用段落样式，斜体灰色，左右各缩进0.5英寸",
+			Name:        "Quote",
+			Description: "Quote paragraph style, italic gray, indented 0.5 inch on each side",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleListParagraph,
-			Name:        "列表段落",
-			Description: "列表段落样式",
+			Name:        "List Paragraph",
+			Description: "List paragraph style",
 			StyleType:   StyleTypeParagraph,
 		},
 		{
 			StyleID:     StyleCodeBlock,
-			Name:        "代码块",
-			Description: "代码块样式",
+			Name:        "Code Block",
+			Description: "Code block style",
 			StyleType:   StyleTypeParagraph,
 		},
 	}

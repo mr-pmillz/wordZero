@@ -1,4 +1,4 @@
-// Package document 提供Word文档脚注和尾注操作功能
+// Package document provides footnote and endnote operations for Word documents
 package document
 
 import (
@@ -7,31 +7,31 @@ import (
 	"strconv"
 )
 
-// FootnoteType 脚注类型
+// FootnoteType represents the type of a note
 type FootnoteType string
 
 const (
-	// FootnoteTypeFootnote 脚注
+	// FootnoteTypeFootnote represents a footnote
 	FootnoteTypeFootnote FootnoteType = "footnote"
-	// FootnoteTypeEndnote 尾注
+	// FootnoteTypeEndnote represents an endnote
 	FootnoteTypeEndnote FootnoteType = "endnote"
 )
 
-// Footnotes 脚注集合
+// Footnotes represents a collection of footnotes
 type Footnotes struct {
 	XMLName   xml.Name    `xml:"w:footnotes"`
 	Xmlns     string      `xml:"xmlns:w,attr"`
 	Footnotes []*Footnote `xml:"w:footnote"`
 }
 
-// Endnotes 尾注集合
+// Endnotes represents a collection of endnotes
 type Endnotes struct {
 	XMLName  xml.Name   `xml:"w:endnotes"`
 	Xmlns    string     `xml:"xmlns:w,attr"`
 	Endnotes []*Endnote `xml:"w:endnote"`
 }
 
-// Footnote 脚注结构
+// Footnote represents a footnote structure
 type Footnote struct {
 	XMLName    xml.Name     `xml:"w:footnote"`
 	Type       string       `xml:"w:type,attr,omitempty"`
@@ -39,7 +39,7 @@ type Footnote struct {
 	Paragraphs []*Paragraph `xml:"w:p"`
 }
 
-// Endnote 尾注结构
+// Endnote represents an endnote structure
 type Endnote struct {
 	XMLName    xml.Name     `xml:"w:endnote"`
 	Type       string       `xml:"w:type,attr,omitempty"`
@@ -47,71 +47,71 @@ type Endnote struct {
 	Paragraphs []*Paragraph `xml:"w:p"`
 }
 
-// FootnoteReference 脚注引用
+// FootnoteReference represents a footnote reference
 type FootnoteReference struct {
 	XMLName xml.Name `xml:"w:footnoteReference"`
 	ID      string   `xml:"w:id,attr"`
 }
 
-// EndnoteReference 尾注引用
+// EndnoteReference represents an endnote reference
 type EndnoteReference struct {
 	XMLName xml.Name `xml:"w:endnoteReference"`
 	ID      string   `xml:"w:id,attr"`
 }
 
-// FootnoteConfig 脚注配置
+// FootnoteConfig represents footnote configuration
 type FootnoteConfig struct {
-	NumberFormat FootnoteNumberFormat // 编号格式
-	StartNumber  int                  // 起始编号
-	RestartEach  FootnoteRestart      // 重新开始规则
-	Position     FootnotePosition     // 位置
+	NumberFormat FootnoteNumberFormat // Number format
+	StartNumber  int                  // Starting number
+	RestartEach  FootnoteRestart      // Restart rule
+	Position     FootnotePosition     // Position
 }
 
-// FootnoteNumberFormat 脚注编号格式
+// FootnoteNumberFormat represents the numbering format for footnotes
 type FootnoteNumberFormat string
 
 const (
-	// FootnoteFormatDecimal 十进制数字
+	// FootnoteFormatDecimal represents decimal numbers
 	FootnoteFormatDecimal FootnoteNumberFormat = "decimal"
-	// FootnoteFormatLowerRoman 小写罗马数字
+	// FootnoteFormatLowerRoman represents lowercase Roman numerals
 	FootnoteFormatLowerRoman FootnoteNumberFormat = "lowerRoman"
-	// FootnoteFormatUpperRoman 大写罗马数字
+	// FootnoteFormatUpperRoman represents uppercase Roman numerals
 	FootnoteFormatUpperRoman FootnoteNumberFormat = "upperRoman"
-	// FootnoteFormatLowerLetter 小写字母
+	// FootnoteFormatLowerLetter represents lowercase letters
 	FootnoteFormatLowerLetter FootnoteNumberFormat = "lowerLetter"
-	// FootnoteFormatUpperLetter 大写字母
+	// FootnoteFormatUpperLetter represents uppercase letters
 	FootnoteFormatUpperLetter FootnoteNumberFormat = "upperLetter"
-	// FootnoteFormatSymbol 符号
+	// FootnoteFormatSymbol represents symbols
 	FootnoteFormatSymbol FootnoteNumberFormat = "symbol"
 )
 
-// FootnoteRestart 脚注重新开始规则
+// FootnoteRestart represents the restart rule for footnote numbering
 type FootnoteRestart string
 
 const (
-	// FootnoteRestartContinuous 连续编号
+	// FootnoteRestartContinuous represents continuous numbering
 	FootnoteRestartContinuous FootnoteRestart = "continuous"
-	// FootnoteRestartEachSection 每节重新开始
+	// FootnoteRestartEachSection restarts numbering at each section
 	FootnoteRestartEachSection FootnoteRestart = "eachSect"
-	// FootnoteRestartEachPage 每页重新开始
+	// FootnoteRestartEachPage restarts numbering at each page
 	FootnoteRestartEachPage FootnoteRestart = "eachPage"
 )
 
-// FootnotePosition 脚注位置
+// FootnotePosition represents the position of footnotes
 type FootnotePosition string
 
 const (
-	// FootnotePositionPageBottom 页面底部
+	// FootnotePositionPageBottom places footnotes at the bottom of the page
 	FootnotePositionPageBottom FootnotePosition = "pageBottom"
-	// FootnotePositionBeneathText 文本下方
+	// FootnotePositionBeneathText places footnotes beneath the text
 	FootnotePositionBeneathText FootnotePosition = "beneathText"
-	// FootnotePositionSectionEnd 节末尾
+	// FootnotePositionSectionEnd places footnotes at the end of the section
 	FootnotePositionSectionEnd FootnotePosition = "sectEnd"
-	// FootnotePositionDocumentEnd 文档末尾
+	// FootnotePositionDocumentEnd places footnotes at the end of the document
 	FootnotePositionDocumentEnd FootnotePosition = "docEnd"
 )
 
-// FootnoteProperties 脚注属性
+// FootnoteProperties represents footnote properties
 type FootnoteProperties struct {
 	NumberFormat string `xml:"w:numFmt,attr,omitempty"`
 	StartNumber  int    `xml:"w:numStart,attr,omitempty"`
@@ -119,7 +119,7 @@ type FootnoteProperties struct {
 	Position     string `xml:"w:pos,attr,omitempty"`
 }
 
-// EndnoteProperties 尾注属性
+// EndnoteProperties represents endnote properties
 type EndnoteProperties struct {
 	NumberFormat string `xml:"w:numFmt,attr,omitempty"`
 	StartNumber  int    `xml:"w:numStart,attr,omitempty"`
@@ -127,7 +127,7 @@ type EndnoteProperties struct {
 	Position     string `xml:"w:pos,attr,omitempty"`
 }
 
-// Settings 文档设置XML结构
+// Settings represents the document settings XML structure
 type Settings struct {
 	XMLName                 xml.Name                 `xml:"w:settings"`
 	Xmlns                   string                   `xml:"xmlns:w,attr"`
@@ -137,19 +137,19 @@ type Settings struct {
 	EndnotePr               *EndnotePr               `xml:"w:endnotePr,omitempty"`
 }
 
-// DefaultTabStop 默认制表位设置
+// DefaultTabStop represents the default tab stop setting
 type DefaultTabStop struct {
 	XMLName xml.Name `xml:"w:defaultTabStop"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// CharacterSpacingControl 字符间距控制
+// CharacterSpacingControl represents the character spacing control setting
 type CharacterSpacingControl struct {
 	XMLName xml.Name `xml:"w:characterSpacingControl"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// FootnotePr 脚注属性设置
+// FootnotePr represents footnote property settings
 type FootnotePr struct {
 	XMLName    xml.Name            `xml:"w:footnotePr"`
 	NumFmt     *FootnoteNumFmt     `xml:"w:numFmt,omitempty"`
@@ -158,7 +158,7 @@ type FootnotePr struct {
 	Pos        *FootnotePos        `xml:"w:pos,omitempty"`
 }
 
-// EndnotePr 尾注属性设置
+// EndnotePr represents endnote property settings
 type EndnotePr struct {
 	XMLName    xml.Name           `xml:"w:endnotePr"`
 	NumFmt     *EndnoteNumFmt     `xml:"w:numFmt,omitempty"`
@@ -167,58 +167,55 @@ type EndnotePr struct {
 	Pos        *EndnotePos        `xml:"w:pos,omitempty"`
 }
 
-// FootnoteNumFmt 脚注编号格式
+// FootnoteNumFmt represents the footnote number format
 type FootnoteNumFmt struct {
 	XMLName xml.Name `xml:"w:numFmt"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// FootnoteNumStart 脚注起始编号
+// FootnoteNumStart represents the footnote starting number
 type FootnoteNumStart struct {
 	XMLName xml.Name `xml:"w:numStart"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// FootnoteNumRestart 脚注重新开始规则
+// FootnoteNumRestart represents the footnote numbering restart rule
 type FootnoteNumRestart struct {
 	XMLName xml.Name `xml:"w:numRestart"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// FootnotePos 脚注位置
+// FootnotePos represents the footnote position
 type FootnotePos struct {
 	XMLName xml.Name `xml:"w:pos"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// EndnoteNumFmt 尾注编号格式
+// EndnoteNumFmt represents the endnote number format
 type EndnoteNumFmt struct {
 	XMLName xml.Name `xml:"w:numFmt"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// EndnoteNumStart 尾注起始编号
+// EndnoteNumStart represents the endnote starting number
 type EndnoteNumStart struct {
 	XMLName xml.Name `xml:"w:numStart"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// EndnoteNumRestart 尾注重新开始规则
+// EndnoteNumRestart represents the endnote numbering restart rule
 type EndnoteNumRestart struct {
 	XMLName xml.Name `xml:"w:numRestart"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// EndnotePos 尾注位置
+// EndnotePos represents the endnote position
 type EndnotePos struct {
 	XMLName xml.Name `xml:"w:pos"`
 	Val     string   `xml:"w:val,attr"`
 }
 
-// 全局脚注/尾注管理器
-var globalFootnoteManager *FootnoteManager
-
-// FootnoteManager 脚注管理器
+// FootnoteManager manages footnotes and endnotes
 type FootnoteManager struct {
 	nextFootnoteID int
 	nextEndnoteID  int
@@ -226,20 +223,20 @@ type FootnoteManager struct {
 	endnotes       map[string]*Endnote
 }
 
-// getFootnoteManager 获取全局脚注管理器
-func getFootnoteManager() *FootnoteManager {
-	if globalFootnoteManager == nil {
-		globalFootnoteManager = &FootnoteManager{
+// getFootnoteManager returns the document's footnote manager (lazy initialization)
+func (d *Document) getFootnoteManager() *FootnoteManager {
+	if d.footnoteManager == nil {
+		d.footnoteManager = &FootnoteManager{
 			nextFootnoteID: 1,
 			nextEndnoteID:  1,
 			footnotes:      make(map[string]*Footnote),
 			endnotes:       make(map[string]*Endnote),
 		}
 	}
-	return globalFootnoteManager
+	return d.footnoteManager
 }
 
-// DefaultFootnoteConfig 返回默认脚注配置
+// DefaultFootnoteConfig returns the default footnote configuration
 func DefaultFootnoteConfig() *FootnoteConfig {
 	return &FootnoteConfig{
 		NumberFormat: FootnoteFormatDecimal,
@@ -249,21 +246,21 @@ func DefaultFootnoteConfig() *FootnoteConfig {
 	}
 }
 
-// AddFootnote 添加脚注
+// AddFootnote adds a footnote to the document
 func (d *Document) AddFootnote(text string, footnoteText string) error {
 	return d.addFootnoteOrEndnote(text, footnoteText, FootnoteTypeFootnote)
 }
 
-// AddEndnote 添加尾注
+// AddEndnote adds an endnote to the document
 func (d *Document) AddEndnote(text string, endnoteText string) error {
 	return d.addFootnoteOrEndnote(text, endnoteText, FootnoteTypeEndnote)
 }
 
-// addFootnoteOrEndnote 添加脚注或尾注的通用方法
+// addFootnoteOrEndnote is a shared method for adding footnotes or endnotes
 func (d *Document) addFootnoteOrEndnote(text string, noteText string, noteType FootnoteType) error {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 
-	// 确保脚注/尾注系统已初始化
+	// Ensure the footnote/endnote system is initialized
 	d.ensureFootnoteInitialized(noteType)
 
 	var noteID string
@@ -275,10 +272,10 @@ func (d *Document) addFootnoteOrEndnote(text string, noteText string, noteType F
 		manager.nextEndnoteID++
 	}
 
-	// 创建包含脚注引用的段落
+	// Create a paragraph containing the note reference
 	paragraph := &Paragraph{}
 
-	// 添加正文文本
+	// Add body text
 	if text != "" {
 		textRun := Run{
 			Text: Text{Content: text},
@@ -286,56 +283,106 @@ func (d *Document) addFootnoteOrEndnote(text string, noteText string, noteType F
 		paragraph.Runs = append(paragraph.Runs, textRun)
 	}
 
-	// 添加脚注/尾注引用
+	// Add footnote/endnote reference (using standard OOXML elements)
 	refRun := Run{
-		Properties: &RunProperties{},
+		Properties: &RunProperties{
+			RunStyle:      &RunStyle{Val: "FootnoteReference"},
+			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+		},
 	}
 
 	if noteType == FootnoteTypeFootnote {
-		// 简化处理：在文本中插入脚注标记
-		refRun.Text = Text{Content: fmt.Sprintf("[%s]", noteID)}
+		refRun.FootnoteReference = &FootnoteReference{ID: noteID}
 	} else {
-		// 简化处理：在文本中插入尾注标记
-		refRun.Text = Text{Content: fmt.Sprintf("[尾注%s]", noteID)}
+		refRun.EndnoteReference = &EndnoteReference{ID: noteID}
 	}
 
 	paragraph.Runs = append(paragraph.Runs, refRun)
 	d.Body.Elements = append(d.Body.Elements, paragraph)
 
-	// 创建脚注/尾注内容
+	// Create footnote/endnote content
 	if err := d.createNoteContent(noteID, noteText, noteType); err != nil {
-		return fmt.Errorf("创建%s内容失败: %v", noteType, err)
+		return fmt.Errorf("failed to create %s content: %v", noteType, err)
 	}
 
 	return nil
 }
 
-// AddFootnoteToRun 在现有Run中添加脚注引用
+// AddFootnoteToRun adds a footnote reference to an existing Run (deprecated, use AddFootnoteToParagraph instead).
+// Note: this method modifies the passed Run, appending a footnote reference marker after its text.
 func (d *Document) AddFootnoteToRun(run *Run, footnoteText string) error {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 	d.ensureFootnoteInitialized(FootnoteTypeFootnote)
 
 	noteID := strconv.Itoa(manager.nextFootnoteID)
 	manager.nextFootnoteID++
 
-	// 在当前Run后添加脚注引用
-	refText := fmt.Sprintf("[%s]", noteID)
-	run.Text.Content += refText
+	// Set the Run to footnote reference style
+	run.Properties = &RunProperties{
+		RunStyle:      &RunStyle{Val: "FootnoteReference"},
+		VerticalAlign: &VerticalAlignment{Val: "superscript"},
+	}
+	run.FootnoteReference = &FootnoteReference{ID: noteID}
+	run.Text = Text{} // Footnote reference Run does not need text content
 
-	// 创建脚注内容
+	// Create footnote content
 	return d.createNoteContent(noteID, footnoteText, FootnoteTypeFootnote)
 }
 
-// SetFootnoteConfig 设置脚注配置
+// AddFootnoteToParagraph appends a footnote reference Run at the end of a paragraph
+func (d *Document) AddFootnoteToParagraph(para *Paragraph, footnoteText string) error {
+	manager := d.getFootnoteManager()
+	d.ensureFootnoteInitialized(FootnoteTypeFootnote)
+
+	noteID := strconv.Itoa(manager.nextFootnoteID)
+	manager.nextFootnoteID++
+
+	// Create footnote reference Run
+	refRun := Run{
+		Properties: &RunProperties{
+			RunStyle:      &RunStyle{Val: "FootnoteReference"},
+			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+		},
+		FootnoteReference: &FootnoteReference{ID: noteID},
+	}
+	para.Runs = append(para.Runs, refRun)
+
+	// Create footnote content
+	return d.createNoteContent(noteID, footnoteText, FootnoteTypeFootnote)
+}
+
+// AddEndnoteToParagraph appends an endnote reference Run at the end of a paragraph
+func (d *Document) AddEndnoteToParagraph(para *Paragraph, footnoteText string) error {
+	manager := d.getFootnoteManager()
+	d.ensureFootnoteInitialized(FootnoteTypeEndnote)
+
+	noteID := strconv.Itoa(manager.nextEndnoteID)
+	manager.nextEndnoteID++
+
+	// Create endnote reference Run
+	refRun := Run{
+		Properties: &RunProperties{
+			RunStyle:      &RunStyle{Val: "EndnoteReference"},
+			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+		},
+		EndnoteReference: &EndnoteReference{ID: noteID},
+	}
+	para.Runs = append(para.Runs, refRun)
+
+	// Create endnote content
+	return d.createNoteContent(noteID, footnoteText, FootnoteTypeEndnote)
+}
+
+// SetFootnoteConfig sets the footnote configuration
 func (d *Document) SetFootnoteConfig(config *FootnoteConfig) error {
 	if config == nil {
 		config = DefaultFootnoteConfig()
 	}
 
-	// 确保文档设置已初始化
+	// Ensure document settings are initialized
 	d.ensureSettingsInitialized()
 
-	// 创建脚注属性XML结构
+	// Create footnote properties XML structure
 	footnoteProps := &FootnoteProperties{
 		NumberFormat: string(config.NumberFormat),
 		StartNumber:  config.StartNumber,
@@ -343,7 +390,7 @@ func (d *Document) SetFootnoteConfig(config *FootnoteConfig) error {
 		Position:     string(config.Position),
 	}
 
-	// 创建尾注属性XML结构
+	// Create endnote properties XML structure
 	endnoteProps := &EndnoteProperties{
 		NumberFormat: string(config.NumberFormat),
 		StartNumber:  config.StartNumber,
@@ -351,15 +398,15 @@ func (d *Document) SetFootnoteConfig(config *FootnoteConfig) error {
 		Position:     string(config.Position),
 	}
 
-	// 更新文档设置
+	// Update document settings
 	if err := d.updateDocumentSettings(footnoteProps, endnoteProps); err != nil {
-		return fmt.Errorf("更新脚注配置失败: %v", err)
+		return fmt.Errorf("failed to update footnote configuration: %v", err)
 	}
 
 	return nil
 }
 
-// ensureFootnoteInitialized 确保脚注/尾注系统已初始化
+// ensureFootnoteInitialized ensures the footnote/endnote system is initialized
 func (d *Document) ensureFootnoteInitialized(noteType FootnoteType) {
 	if noteType == FootnoteTypeFootnote {
 		if _, exists := d.parts["word/footnotes.xml"]; !exists {
@@ -372,22 +419,25 @@ func (d *Document) ensureFootnoteInitialized(noteType FootnoteType) {
 	}
 }
 
-// initializeFootnotes 初始化脚注系统
+// initializeFootnotes initializes the footnote system
 func (d *Document) initializeFootnotes() {
 	footnotes := &Footnotes{
 		Xmlns:     "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
 		Footnotes: []*Footnote{},
 	}
 
-	// 添加默认的分隔符脚注
+	// Add the default separator footnote
 	separatorFootnote := &Footnote{
 		Type: "separator",
 		ID:   "-1",
 		Paragraphs: []*Paragraph{
 			{
+				Properties: &ParagraphProperties{
+					ParagraphStyle: &ParagraphStyle{Val: "FootnoteText"},
+				},
 				Runs: []Run{
 					{
-						Text: Text{Content: ""},
+						FootnoteRef: &FootnoteRef{},
 					},
 				},
 			},
@@ -395,39 +445,42 @@ func (d *Document) initializeFootnotes() {
 	}
 	footnotes.Footnotes = append(footnotes.Footnotes, separatorFootnote)
 
-	// 序列化脚注
+	// Serialize footnotes
 	footnotesXML, err := xml.MarshalIndent(footnotes, "", "  ")
 	if err != nil {
 		return
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["word/footnotes.xml"] = append(xmlDeclaration, footnotesXML...)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType("word/footnotes.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml")
 
-	// 添加关系
+	// Add relationship
 	d.addFootnoteRelationship()
 }
 
-// initializeEndnotes 初始化尾注系统
+// initializeEndnotes initializes the endnote system
 func (d *Document) initializeEndnotes() {
 	endnotes := &Endnotes{
 		Xmlns:    "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
 		Endnotes: []*Endnote{},
 	}
 
-	// 添加默认的分隔符尾注
+	// Add the default separator endnote
 	separatorEndnote := &Endnote{
 		Type: "separator",
 		ID:   "-1",
 		Paragraphs: []*Paragraph{
 			{
+				Properties: &ParagraphProperties{
+					ParagraphStyle: &ParagraphStyle{Val: "EndnoteText"},
+				},
 				Runs: []Run{
 					{
-						Text: Text{Content: ""},
+						EndnoteRef: &EndnoteRef{},
 					},
 				},
 			},
@@ -435,79 +488,110 @@ func (d *Document) initializeEndnotes() {
 	}
 	endnotes.Endnotes = append(endnotes.Endnotes, separatorEndnote)
 
-	// 序列化尾注
+	// Serialize endnotes
 	endnotesXML, err := xml.MarshalIndent(endnotes, "", "  ")
 	if err != nil {
 		return
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["word/endnotes.xml"] = append(xmlDeclaration, endnotesXML...)
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType("word/endnotes.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml")
 
-	// 添加关系
+	// Add relationship
 	d.addEndnoteRelationship()
 }
 
-// createNoteContent 创建脚注/尾注内容
+// createNoteContent creates footnote/endnote content
 func (d *Document) createNoteContent(noteID string, noteText string, noteType FootnoteType) error {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 
-	// 创建脚注/尾注段落
-	noteParagraph := &Paragraph{
-		Runs: []Run{
-			{
-				Text: Text{Content: noteText},
-			},
+	// Determine paragraph style and self-reference element
+	var pStyleVal string
+	var refRunStyle string
+	if noteType == FootnoteTypeFootnote {
+		pStyleVal = "FootnoteText"
+		refRunStyle = "FootnoteReference"
+	} else {
+		pStyleVal = "EndnoteText"
+		refRunStyle = "EndnoteReference"
+	}
+
+	// Create self-reference Run (displays footnote/endnote number)
+	selfRefRun := Run{
+		Properties: &RunProperties{
+			RunStyle:      &RunStyle{Val: refRunStyle},
+			VerticalAlign: &VerticalAlignment{Val: "superscript"},
 		},
+	}
+	if noteType == FootnoteTypeFootnote {
+		selfRefRun.FootnoteRef = &FootnoteRef{}
+	} else {
+		selfRefRun.EndnoteRef = &EndnoteRef{}
+	}
+
+	// Create text content Run (with leading space)
+	textRun := Run{
+		Text: Text{Content: " " + noteText, Space: "preserve"},
+	}
+
+	// Create footnote/endnote paragraph (with paragraph style and self-reference + text Runs)
+	noteParagraph := &Paragraph{
+		Properties: &ParagraphProperties{
+			ParagraphStyle: &ParagraphStyle{Val: pStyleVal},
+		},
+		Runs: []Run{selfRefRun, textRun},
 	}
 
 	if noteType == FootnoteTypeFootnote {
-		// 创建脚注
+		// Create footnote
 		footnote := &Footnote{
 			ID:         noteID,
 			Paragraphs: []*Paragraph{noteParagraph},
 		}
 		manager.footnotes[noteID] = footnote
 
-		// 更新脚注文件
+		// Update footnotes file
 		d.updateFootnotesFile()
 	} else {
-		// 创建尾注
+		// Create endnote
 		endnote := &Endnote{
 			ID:         noteID,
 			Paragraphs: []*Paragraph{noteParagraph},
 		}
 		manager.endnotes[noteID] = endnote
 
-		// 更新尾注文件
+		// Update endnotes file
 		d.updateEndnotesFile()
 	}
 
 	return nil
 }
 
-// updateFootnotesFile 更新脚注文件
+// updateFootnotesFile updates the footnotes file
 func (d *Document) updateFootnotesFile() {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 
 	footnotes := &Footnotes{
 		Xmlns:     "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
 		Footnotes: []*Footnote{},
 	}
 
-	// 添加默认分隔符
+	// Add default separator
 	separatorFootnote := &Footnote{
 		Type: "separator",
 		ID:   "-1",
 		Paragraphs: []*Paragraph{
 			{
+				Properties: &ParagraphProperties{
+					ParagraphStyle: &ParagraphStyle{Val: "FootnoteText"},
+				},
 				Runs: []Run{
 					{
-						Text: Text{Content: ""},
+						FootnoteRef: &FootnoteRef{},
 					},
 				},
 			},
@@ -515,40 +599,43 @@ func (d *Document) updateFootnotesFile() {
 	}
 	footnotes.Footnotes = append(footnotes.Footnotes, separatorFootnote)
 
-	// 添加所有脚注
+	// Add all footnotes
 	for _, footnote := range manager.footnotes {
 		footnotes.Footnotes = append(footnotes.Footnotes, footnote)
 	}
 
-	// 序列化
+	// Serialize
 	footnotesXML, err := xml.MarshalIndent(footnotes, "", "  ")
 	if err != nil {
 		return
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["word/footnotes.xml"] = append(xmlDeclaration, footnotesXML...)
 }
 
-// updateEndnotesFile 更新尾注文件
+// updateEndnotesFile updates the endnotes file
 func (d *Document) updateEndnotesFile() {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 
 	endnotes := &Endnotes{
 		Xmlns:    "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
 		Endnotes: []*Endnote{},
 	}
 
-	// 添加默认分隔符
+	// Add default separator
 	separatorEndnote := &Endnote{
 		Type: "separator",
 		ID:   "-1",
 		Paragraphs: []*Paragraph{
 			{
+				Properties: &ParagraphProperties{
+					ParagraphStyle: &ParagraphStyle{Val: "EndnoteText"},
+				},
 				Runs: []Run{
 					{
-						Text: Text{Content: ""},
+						EndnoteRef: &EndnoteRef{},
 					},
 				},
 			},
@@ -556,23 +643,23 @@ func (d *Document) updateEndnotesFile() {
 	}
 	endnotes.Endnotes = append(endnotes.Endnotes, separatorEndnote)
 
-	// 添加所有尾注
+	// Add all endnotes
 	for _, endnote := range manager.endnotes {
 		endnotes.Endnotes = append(endnotes.Endnotes, endnote)
 	}
 
-	// 序列化
+	// Serialize
 	endnotesXML, err := xml.MarshalIndent(endnotes, "", "  ")
 	if err != nil {
 		return
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["word/endnotes.xml"] = append(xmlDeclaration, endnotesXML...)
 }
 
-// addFootnoteRelationship 添加脚注关系
+// addFootnoteRelationship adds the footnote relationship
 func (d *Document) addFootnoteRelationship() {
 	relationshipID := fmt.Sprintf("rId%d", len(d.relationships.Relationships)+1)
 
@@ -584,7 +671,7 @@ func (d *Document) addFootnoteRelationship() {
 	d.relationships.Relationships = append(d.relationships.Relationships, relationship)
 }
 
-// addEndnoteRelationship 添加尾注关系
+// addEndnoteRelationship adds the endnote relationship
 func (d *Document) addEndnoteRelationship() {
 	relationshipID := fmt.Sprintf("rId%d", len(d.relationships.Relationships)+1)
 
@@ -596,24 +683,24 @@ func (d *Document) addEndnoteRelationship() {
 	d.relationships.Relationships = append(d.relationships.Relationships, relationship)
 }
 
-// GetFootnoteCount 获取脚注数量
+// GetFootnoteCount returns the number of footnotes
 func (d *Document) GetFootnoteCount() int {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 	return len(manager.footnotes)
 }
 
-// GetEndnoteCount 获取尾注数量
+// GetEndnoteCount returns the number of endnotes
 func (d *Document) GetEndnoteCount() int {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 	return len(manager.endnotes)
 }
 
-// RemoveFootnote 删除指定脚注
+// RemoveFootnote removes the specified footnote
 func (d *Document) RemoveFootnote(footnoteID string) error {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 
 	if _, exists := manager.footnotes[footnoteID]; !exists {
-		return fmt.Errorf("脚注 %s 不存在", footnoteID)
+		return fmt.Errorf("footnote %s does not exist", footnoteID)
 	}
 
 	delete(manager.footnotes, footnoteID)
@@ -622,12 +709,12 @@ func (d *Document) RemoveFootnote(footnoteID string) error {
 	return nil
 }
 
-// RemoveEndnote 删除指定尾注
+// RemoveEndnote removes the specified endnote
 func (d *Document) RemoveEndnote(endnoteID string) error {
-	manager := getFootnoteManager()
+	manager := d.getFootnoteManager()
 
 	if _, exists := manager.endnotes[endnoteID]; !exists {
-		return fmt.Errorf("尾注 %s 不存在", endnoteID)
+		return fmt.Errorf("endnote %s does not exist", endnoteID)
 	}
 
 	delete(manager.endnotes, endnoteID)
@@ -636,22 +723,22 @@ func (d *Document) RemoveEndnote(endnoteID string) error {
 	return nil
 }
 
-// ensureSettingsInitialized 确保文档设置已初始化
+// ensureSettingsInitialized ensures document settings are initialized
 func (d *Document) ensureSettingsInitialized() {
-	// 检查settings.xml是否存在，如果不存在则创建默认设置
+	// Check if settings.xml exists; if not, create default settings
 	if _, exists := d.parts["word/settings.xml"]; !exists {
 		d.initializeSettings()
 	}
 }
 
-// initializeSettings 初始化文档设置
+// initializeSettings initializes the document settings
 func (d *Document) initializeSettings() {
-	// 创建默认设置
+	// Create default settings
 	settings := d.createDefaultSettings()
 
-	// 保存设置
+	// Save settings
 	if err := d.saveSettings(settings); err != nil {
-		// 如果保存失败，使用原有的硬编码方式作为后备
+		// If saving fails, use the hardcoded fallback
 		settingsXML := `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:settings xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:defaultTabStop w:val="708"/>
@@ -660,22 +747,22 @@ func (d *Document) initializeSettings() {
 		d.parts["word/settings.xml"] = []byte(settingsXML)
 	}
 
-	// 添加内容类型
+	// Add content type
 	d.addContentType("word/settings.xml", "application/vnd.openxmlformats-officedocument.wordprocessingml.settings+xml")
 
-	// 添加关系
+	// Add relationship
 	d.addSettingsRelationship()
 }
 
-// updateDocumentSettings 更新文档设置中的脚注尾注配置
+// updateDocumentSettings updates the footnote and endnote configuration in document settings
 func (d *Document) updateDocumentSettings(footnoteProps *FootnoteProperties, endnoteProps *EndnoteProperties) error {
-	// 解析现有的settings.xml
+	// Parse existing settings.xml
 	settings, err := d.parseSettings()
 	if err != nil {
-		return fmt.Errorf("解析设置文件失败: %v", err)
+		return fmt.Errorf("failed to parse settings file: %v", err)
 	}
 
-	// 更新脚注设置
+	// Update footnote settings
 	if footnoteProps != nil {
 		footnotePr := &FootnotePr{}
 
@@ -698,7 +785,7 @@ func (d *Document) updateDocumentSettings(footnoteProps *FootnoteProperties, end
 		settings.FootnotePr = footnotePr
 	}
 
-	// 更新尾注设置
+	// Update endnote settings
 	if endnoteProps != nil {
 		endnotePr := &EndnotePr{}
 
@@ -721,39 +808,40 @@ func (d *Document) updateDocumentSettings(footnoteProps *FootnoteProperties, end
 		settings.EndnotePr = endnotePr
 	}
 
-	// 保存更新后的settings.xml
+	// Save the updated settings.xml
 	return d.saveSettings(settings)
 }
 
-// parseSettings 解析settings.xml文件
+// parseSettings parses the settings.xml file
 func (d *Document) parseSettings() (*Settings, error) {
 	settingsData, exists := d.parts["word/settings.xml"]
 	if !exists {
-		// 如果settings.xml不存在，返回默认设置
+		// If settings.xml does not exist, return default settings
 		return d.createDefaultSettings(), nil
 	}
 
 	var settings Settings
 
-	// 直接使用xml.Unmarshal可能有命名空间问题，我们改用字符串替换的方式
-	// 将w:settings替换为settings等，然后用一个简化的结构来解析
+	// Using xml.Unmarshal directly may have namespace issues, so we use a
+	// string replacement approach instead. We replace w:settings with settings, etc.,
+	// then parse with a simplified structure.
 	settingsStr := string(settingsData)
 
-	// 如果XML中包含w:前缀，说明是序列化的XML，直接创建默认设置并更新
-	// 这是一个简化的处理方式，避免命名空间解析问题
+	// If the XML contains w: prefix, it is serialized XML; create default settings and update.
+	// This is a simplified approach to avoid namespace parsing issues.
 	if len(settingsStr) > 0 {
-		// 如果文件存在且不为空，我们使用默认设置作为基础
+		// If the file exists and is not empty, use default settings as a base
 		settings = *d.createDefaultSettings()
 
-		// 后续可以在这里添加更复杂的XML解析逻辑
-		// 暂时简化处理，返回默认设置
+		// More complex XML parsing logic can be added here later.
+		// For now, use simplified handling and return default settings.
 		return &settings, nil
 	}
 
 	return d.createDefaultSettings(), nil
 }
 
-// createDefaultSettings 创建默认设置
+// createDefaultSettings creates default settings
 func (d *Document) createDefaultSettings() *Settings {
 	return &Settings{
 		Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
@@ -766,22 +854,22 @@ func (d *Document) createDefaultSettings() *Settings {
 	}
 }
 
-// saveSettings 保存settings.xml文件
+// saveSettings saves the settings.xml file
 func (d *Document) saveSettings(settings *Settings) error {
-	// 序列化为XML
+	// Serialize to XML
 	settingsXML, err := xml.MarshalIndent(settings, "", "  ")
 	if err != nil {
-		return fmt.Errorf("序列化settings.xml失败: %v", err)
+		return fmt.Errorf("failed to serialize settings.xml: %v", err)
 	}
 
-	// 添加XML声明
+	// Add XML declaration
 	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
 	d.parts["word/settings.xml"] = append(xmlDeclaration, settingsXML...)
 
 	return nil
 }
 
-// addSettingsRelationship 添加设置文件关系
+// addSettingsRelationship adds the settings file relationship
 func (d *Document) addSettingsRelationship() {
 	relationshipID := fmt.Sprintf("rId%d", len(d.relationships.Relationships)+1)
 

@@ -4,11 +4,11 @@ import (
 	"testing"
 )
 
-// TestCreateTable 测试表格创建功能
+// TestCreateTable tests table creation functionality
 func TestCreateTable(t *testing.T) {
 	doc := New()
 
-	// 测试基础表格创建
+	// Test basic table creation
 	config := &TableConfig{
 		Rows:  3,
 		Cols:  4,
@@ -22,40 +22,40 @@ func TestCreateTable(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 验证表格尺寸
+	// Verify table dimensions
 	if table.GetRowCount() != 3 {
-		t.Errorf("期望行数3，实际%d", table.GetRowCount())
+		t.Errorf("expected 3 rows, got %d", table.GetRowCount())
 	}
 	if table.GetColumnCount() != 4 {
-		t.Errorf("期望列数4，实际%d", table.GetColumnCount())
+		t.Errorf("expected 4 columns, got %d", table.GetColumnCount())
 	}
 
-	// 验证表格内容
+	// Verify table content
 	cellText, err := table.GetCellText(0, 0)
 	if err != nil {
-		t.Errorf("获取单元格内容失败: %v", err)
+		t.Errorf("failed to get cell content: %v", err)
 	}
 	if cellText != "A1" {
-		t.Errorf("期望单元格内容'A1'，实际'%s'", cellText)
+		t.Errorf("expected cell content 'A1', got '%s'", cellText)
 	}
 
 	cellText, err = table.GetCellText(2, 3)
 	if err != nil {
-		t.Errorf("获取单元格内容失败: %v", err)
+		t.Errorf("failed to get cell content: %v", err)
 	}
 	if cellText != "D3" {
-		t.Errorf("期望单元格内容'D3'，实际'%s'", cellText)
+		t.Errorf("expected cell content 'D3', got '%s'", cellText)
 	}
 }
 
-// TestCreateTableWithInvalidConfig 测试无效配置的表格创建
+// TestCreateTableWithInvalidConfig tests table creation with invalid config
 func TestCreateTableWithInvalidConfig(t *testing.T) {
 	doc := New()
 
-	// 测试行数为0
+	// Test with 0 rows
 	config := &TableConfig{
 		Rows:  0,
 		Cols:  3,
@@ -63,10 +63,10 @@ func TestCreateTableWithInvalidConfig(t *testing.T) {
 	}
 	_, err := doc.CreateTable(config)
 	if err == nil {
-		t.Error("期望创建失败，但成功了")
+		t.Error("expected creation to fail, but it succeeded")
 	}
 
-	// 测试列数为0
+	// Test with 0 columns
 	config = &TableConfig{
 		Rows:  3,
 		Cols:  0,
@@ -74,23 +74,23 @@ func TestCreateTableWithInvalidConfig(t *testing.T) {
 	}
 	_, err = doc.CreateTable(config)
 	if err == nil {
-		t.Error("期望创建失败，但成功了")
+		t.Error("expected creation to fail, but it succeeded")
 	}
 
-	// 测试列宽数量不匹配
+	// Test with mismatched column width count
 	config = &TableConfig{
 		Rows:      3,
 		Cols:      4,
 		Width:     6000,
-		ColWidths: []int{1000, 2000}, // 只有2个列宽，但有4列
+		ColWidths: []int{1000, 2000}, // only 2 column widths, but 4 columns
 	}
 	_, err = doc.CreateTable(config)
 	if err == nil {
-		t.Error("期望创建失败，但成功了")
+		t.Error("expected creation to fail, but it succeeded")
 	}
 }
 
-// TestAddTable 测试将表格添加到文档
+// TestAddTable tests adding a table to the document
 func TestAddTable(t *testing.T) {
 	doc := New()
 
@@ -104,17 +104,17 @@ func TestAddTable(t *testing.T) {
 	table, err := doc.AddTable(config)
 
 	if err != nil {
-		t.Fatalf("添加表格失败: %v", err)
+		t.Fatalf("failed to add table: %v", err)
 	}
 
 	if len(doc.Body.GetTables()) != initialTableCount+1 {
-		t.Errorf("期望表格数量%d，实际%d", initialTableCount+1, len(doc.Body.GetTables()))
+		t.Errorf("expected table count %d, got %d", initialTableCount+1, len(doc.Body.GetTables()))
 	}
 
-	_ = table // 使用table变量避免编译警告
+	_ = table // use table variable to avoid compiler warning
 }
 
-// TestTableCellOperations 测试单元格操作
+// TestTableCellOperations tests cell operations
 func TestTableCellOperations(t *testing.T) {
 	doc := New()
 
@@ -126,37 +126,37 @@ func TestTableCellOperations(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试设置单元格内容
+	// Test setting cell content
 	err = table.SetCellText(0, 0, "测试内容")
 	if err != nil {
-		t.Errorf("设置单元格内容失败: %v", err)
+		t.Errorf("failed to set cell content: %v", err)
 	}
 
-	// 测试获取单元格内容
+	// Test getting cell content
 	cellText, err := table.GetCellText(0, 0)
 	if err != nil {
-		t.Errorf("获取单元格内容失败: %v", err)
+		t.Errorf("failed to get cell content: %v", err)
 	}
 	if cellText != "测试内容" {
-		t.Errorf("期望单元格内容'测试内容'，实际'%s'", cellText)
+		t.Errorf("expected cell content '测试内容', got '%s'", cellText)
 	}
 
-	// 测试无效的单元格索引
+	// Test invalid cell index
 	err = table.SetCellText(5, 5, "无效")
 	if err == nil {
-		t.Error("期望设置无效单元格失败，但成功了")
+		t.Error("expected setting invalid cell to fail, but it succeeded")
 	}
 
 	_, err = table.GetCellText(5, 5)
 	if err == nil {
-		t.Error("期望获取无效单元格失败，但成功了")
+		t.Error("expected getting invalid cell to fail, but it succeeded")
 	}
 }
 
-// TestInsertRow 测试插入行功能
+// TestInsertRow tests row insertion functionality
 func TestInsertRow(t *testing.T) {
 	doc := New()
 
@@ -172,42 +172,42 @@ func TestInsertRow(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
 	initialRowCount := table.GetRowCount()
 
-	// 在中间插入行
+	// Insert row in the middle
 	err = table.InsertRow(1, []string{"A1.5", "B1.5", "C1.5"})
 	if err != nil {
-		t.Errorf("插入行失败: %v", err)
+		t.Errorf("failed to insert row: %v", err)
 	}
 
 	if table.GetRowCount() != initialRowCount+1 {
-		t.Errorf("期望行数%d，实际%d", initialRowCount+1, table.GetRowCount())
+		t.Errorf("expected %d rows, got %d", initialRowCount+1, table.GetRowCount())
 	}
 
-	// 验证插入的内容
+	// Verify inserted content
 	cellText, err := table.GetCellText(1, 0)
 	if err != nil {
-		t.Errorf("获取插入行内容失败: %v", err)
+		t.Errorf("failed to get inserted row content: %v", err)
 	}
 	if cellText != "A1.5" {
-		t.Errorf("期望插入行内容'A1.5'，实际'%s'", cellText)
+		t.Errorf("expected inserted row content 'A1.5', got '%s'", cellText)
 	}
 
-	// 测试在末尾添加行
+	// Test appending row at the end
 	err = table.AppendRow([]string{"A末", "B末", "C末"})
 	if err != nil {
-		t.Errorf("添加行失败: %v", err)
+		t.Errorf("failed to append row: %v", err)
 	}
 
 	if table.GetRowCount() != initialRowCount+2 {
-		t.Errorf("期望行数%d，实际%d", initialRowCount+2, table.GetRowCount())
+		t.Errorf("expected %d rows, got %d", initialRowCount+2, table.GetRowCount())
 	}
 }
 
-// TestInsertRowInvalidCases 测试插入行的无效情况
+// TestInsertRowInvalidCases tests invalid row insertion cases
 func TestInsertRowInvalidCases(t *testing.T) {
 	doc := New()
 
@@ -219,28 +219,28 @@ func TestInsertRowInvalidCases(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试无效位置
+	// Test invalid position
 	err = table.InsertRow(-1, []string{"A", "B", "C"})
 	if err == nil {
-		t.Error("期望插入无效位置失败，但成功了")
+		t.Error("expected inserting at invalid position to fail, but it succeeded")
 	}
 
 	err = table.InsertRow(10, []string{"A", "B", "C"})
 	if err == nil {
-		t.Error("期望插入无效位置失败，但成功了")
+		t.Error("expected inserting at invalid position to fail, but it succeeded")
 	}
 
-	// 测试数据列数过多
+	// Test too many data columns
 	err = table.InsertRow(1, []string{"A", "B", "C", "D", "E"})
 	if err == nil {
-		t.Error("期望插入过多列数据失败，但成功了")
+		t.Error("expected inserting too many columns to fail, but it succeeded")
 	}
 }
 
-// TestDeleteRow 测试删除行功能
+// TestDeleteRow tests row deletion functionality
 func TestDeleteRow(t *testing.T) {
 	doc := New()
 
@@ -258,32 +258,32 @@ func TestDeleteRow(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
 	initialRowCount := table.GetRowCount()
 
-	// 删除第2行（索引1）
+	// Delete 2nd row (index 1)
 	err = table.DeleteRow(1)
 	if err != nil {
-		t.Errorf("删除行失败: %v", err)
+		t.Errorf("failed to delete row: %v", err)
 	}
 
 	if table.GetRowCount() != initialRowCount-1 {
-		t.Errorf("期望行数%d，实际%d", initialRowCount-1, table.GetRowCount())
+		t.Errorf("expected %d rows, got %d", initialRowCount-1, table.GetRowCount())
 	}
 
-	// 验证删除后的内容（原第3行现在应该是第2行）
+	// Verify content after deletion (original 3rd row should now be 2nd row)
 	cellText, err := table.GetCellText(1, 0)
 	if err != nil {
-		t.Errorf("获取删除后内容失败: %v", err)
+		t.Errorf("failed to get content after deletion: %v", err)
 	}
 	if cellText != "A3" {
-		t.Errorf("期望删除后内容'A3'，实际'%s'", cellText)
+		t.Errorf("expected content after deletion 'A3', got '%s'", cellText)
 	}
 }
 
-// TestDeleteRowInvalidCases 测试删除行的无效情况
+// TestDeleteRowInvalidCases tests invalid row deletion cases
 func TestDeleteRowInvalidCases(t *testing.T) {
 	doc := New()
 
@@ -295,31 +295,31 @@ func TestDeleteRowInvalidCases(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试删除唯一的行
+	// Test deleting the only row
 	err = table.DeleteRow(0)
 	if err == nil {
-		t.Error("期望删除唯一行失败，但成功了")
+		t.Error("expected deleting the only row to fail, but it succeeded")
 	}
 
-	// 添加一行以便测试无效索引
+	// Add a row to test invalid index
 	table.AppendRow([]string{"A", "B", "C"})
 
-	// 测试无效索引
+	// Test invalid index
 	err = table.DeleteRow(-1)
 	if err == nil {
-		t.Error("期望删除无效索引失败，但成功了")
+		t.Error("expected deleting with invalid index to fail, but it succeeded")
 	}
 
 	err = table.DeleteRow(10)
 	if err == nil {
-		t.Error("期望删除无效索引失败，但成功了")
+		t.Error("expected deleting with invalid index to fail, but it succeeded")
 	}
 }
 
-// TestDeleteRows 测试删除多行功能
+// TestDeleteRows tests deleting multiple rows
 func TestDeleteRows(t *testing.T) {
 	doc := New()
 
@@ -338,33 +338,33 @@ func TestDeleteRows(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
 	initialRowCount := table.GetRowCount()
 
-	// 删除第2到第4行（索引1到3）
+	// Delete rows 2 to 4 (index 1 to 3)
 	err = table.DeleteRows(1, 3)
 	if err != nil {
-		t.Errorf("删除多行失败: %v", err)
+		t.Errorf("failed to delete multiple rows: %v", err)
 	}
 
 	expectedRowCount := initialRowCount - 3
 	if table.GetRowCount() != expectedRowCount {
-		t.Errorf("期望行数%d，实际%d", expectedRowCount, table.GetRowCount())
+		t.Errorf("expected %d rows, got %d", expectedRowCount, table.GetRowCount())
 	}
 
-	// 验证剩余内容
+	// Verify remaining content
 	cellText, err := table.GetCellText(1, 0)
 	if err != nil {
-		t.Errorf("获取删除后内容失败: %v", err)
+		t.Errorf("failed to get content after deletion: %v", err)
 	}
 	if cellText != "A5" {
-		t.Errorf("期望删除后内容'A5'，实际'%s'", cellText)
+		t.Errorf("expected content after deletion 'A5', got '%s'", cellText)
 	}
 }
 
-// TestInsertColumn 测试插入列功能
+// TestInsertColumn tests column insertion functionality
 func TestInsertColumn(t *testing.T) {
 	doc := New()
 
@@ -381,42 +381,42 @@ func TestInsertColumn(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
 	initialColCount := table.GetColumnCount()
 
-	// 在中间插入列
+	// Insert column in the middle
 	err = table.InsertColumn(1, []string{"C1", "C2", "C3"}, 1000)
 	if err != nil {
-		t.Errorf("插入列失败: %v", err)
+		t.Errorf("failed to insert column: %v", err)
 	}
 
 	if table.GetColumnCount() != initialColCount+1 {
-		t.Errorf("期望列数%d，实际%d", initialColCount+1, table.GetColumnCount())
+		t.Errorf("expected %d columns, got %d", initialColCount+1, table.GetColumnCount())
 	}
 
-	// 验证插入的内容
+	// Verify inserted content
 	cellText, err := table.GetCellText(0, 1)
 	if err != nil {
-		t.Errorf("获取插入列内容失败: %v", err)
+		t.Errorf("failed to get inserted column content: %v", err)
 	}
 	if cellText != "C1" {
-		t.Errorf("期望插入列内容'C1'，实际'%s'", cellText)
+		t.Errorf("expected inserted column content 'C1', got '%s'", cellText)
 	}
 
-	// 测试在末尾添加列
+	// Test appending column at the end
 	err = table.AppendColumn([]string{"D1", "D2", "D3"}, 1000)
 	if err != nil {
-		t.Errorf("添加列失败: %v", err)
+		t.Errorf("failed to append column: %v", err)
 	}
 
 	if table.GetColumnCount() != initialColCount+2 {
-		t.Errorf("期望列数%d，实际%d", initialColCount+2, table.GetColumnCount())
+		t.Errorf("expected %d columns, got %d", initialColCount+2, table.GetColumnCount())
 	}
 }
 
-// TestDeleteColumn 测试删除列功能
+// TestDeleteColumn tests column deletion functionality
 func TestDeleteColumn(t *testing.T) {
 	doc := New()
 
@@ -433,32 +433,32 @@ func TestDeleteColumn(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
 	initialColCount := table.GetColumnCount()
 
-	// 删除第2列（索引1）
+	// Delete 2nd column (index 1)
 	err = table.DeleteColumn(1)
 	if err != nil {
-		t.Errorf("删除列失败: %v", err)
+		t.Errorf("failed to delete column: %v", err)
 	}
 
 	if table.GetColumnCount() != initialColCount-1 {
-		t.Errorf("期望列数%d，实际%d", initialColCount-1, table.GetColumnCount())
+		t.Errorf("expected %d columns, got %d", initialColCount-1, table.GetColumnCount())
 	}
 
-	// 验证删除后的内容（原第3列现在应该是第2列）
+	// Verify content after deletion (original 3rd column should now be 2nd column)
 	cellText, err := table.GetCellText(0, 1)
 	if err != nil {
-		t.Errorf("获取删除后内容失败: %v", err)
+		t.Errorf("failed to get content after deletion: %v", err)
 	}
 	if cellText != "C1" {
-		t.Errorf("期望删除后内容'C1'，实际'%s'", cellText)
+		t.Errorf("expected content after deletion 'C1', got '%s'", cellText)
 	}
 }
 
-// TestDeleteColumns 测试删除多列功能
+// TestDeleteColumns tests deleting multiple columns
 func TestDeleteColumns(t *testing.T) {
 	doc := New()
 
@@ -474,33 +474,33 @@ func TestDeleteColumns(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
 	initialColCount := table.GetColumnCount()
 
-	// 删除第2到第4列（索引1到3）
+	// Delete columns 2 to 4 (index 1 to 3)
 	err = table.DeleteColumns(1, 3)
 	if err != nil {
-		t.Errorf("删除多列失败: %v", err)
+		t.Errorf("failed to delete multiple columns: %v", err)
 	}
 
 	expectedColCount := initialColCount - 3
 	if table.GetColumnCount() != expectedColCount {
-		t.Errorf("期望列数%d，实际%d", expectedColCount, table.GetColumnCount())
+		t.Errorf("expected %d columns, got %d", expectedColCount, table.GetColumnCount())
 	}
 
-	// 验证剩余内容
+	// Verify remaining content
 	cellText, err := table.GetCellText(0, 1)
 	if err != nil {
-		t.Errorf("获取删除后内容失败: %v", err)
+		t.Errorf("failed to get content after deletion: %v", err)
 	}
 	if cellText != "E1" {
-		t.Errorf("期望删除后内容'E1'，实际'%s'", cellText)
+		t.Errorf("expected content after deletion 'E1', got '%s'", cellText)
 	}
 }
 
-// TestClearTable 测试清空表格功能
+// TestClearTable tests clearing table content
 func TestClearTable(t *testing.T) {
 	doc := New()
 
@@ -516,35 +516,35 @@ func TestClearTable(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 清空表格
+	// Clear the table
 	table.ClearTable()
 
-	// 验证所有单元格都为空
+	// Verify all cells are empty
 	for i := 0; i < table.GetRowCount(); i++ {
 		for j := 0; j < table.GetColumnCount(); j++ {
 			cellText, err := table.GetCellText(i, j)
 			if err != nil {
-				t.Errorf("获取清空后单元格内容失败: %v", err)
+				t.Errorf("failed to get cell content after clearing: %v", err)
 			}
 			if cellText != "" {
-				t.Errorf("期望清空后单元格为空，实际'%s'", cellText)
+				t.Errorf("expected cell to be empty after clearing, got '%s'", cellText)
 			}
 		}
 	}
 
-	// 验证表格结构保持不变
+	// Verify table structure is preserved
 	if table.GetRowCount() != 2 {
-		t.Errorf("期望清空后行数2，实际%d", table.GetRowCount())
+		t.Errorf("expected 2 rows after clearing, got %d", table.GetRowCount())
 	}
 	if table.GetColumnCount() != 2 {
-		t.Errorf("期望清空后列数2，实际%d", table.GetColumnCount())
+		t.Errorf("expected 2 columns after clearing, got %d", table.GetColumnCount())
 	}
 }
 
-// TestCopyTable 测试复制表格功能
+// TestCopyTable tests table copy functionality
 func TestCopyTable(t *testing.T) {
 	doc := New()
 
@@ -560,52 +560,52 @@ func TestCopyTable(t *testing.T) {
 
 	originalTable, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建原始表格失败: %v", err)
+		t.Fatalf("failed to create original table: %v", err)
 	}
 
-	// 复制表格
+	// Copy the table
 	copiedTable := originalTable.CopyTable()
 	if copiedTable == nil {
-		t.Fatal("复制表格失败")
+		t.Fatal("failed to copy table")
 	}
 
-	// 验证复制的表格结构
+	// Verify copied table structure
 	if copiedTable.GetRowCount() != originalTable.GetRowCount() {
-		t.Errorf("复制表格行数不匹配：期望%d，实际%d",
+		t.Errorf("copied table row count mismatch: expected %d, got %d",
 			originalTable.GetRowCount(), copiedTable.GetRowCount())
 	}
 	if copiedTable.GetColumnCount() != originalTable.GetColumnCount() {
-		t.Errorf("复制表格列数不匹配：期望%d，实际%d",
+		t.Errorf("copied table column count mismatch: expected %d, got %d",
 			originalTable.GetColumnCount(), copiedTable.GetColumnCount())
 	}
 
-	// 验证复制的表格内容
+	// Verify copied table content
 	for i := 0; i < originalTable.GetRowCount(); i++ {
 		for j := 0; j < originalTable.GetColumnCount(); j++ {
 			originalText, _ := originalTable.GetCellText(i, j)
 			copiedText, _ := copiedTable.GetCellText(i, j)
 			if originalText != copiedText {
-				t.Errorf("复制表格内容不匹配：位置(%d,%d) 期望'%s'，实际'%s'",
+				t.Errorf("copied table content mismatch: position(%d,%d) expected '%s', got '%s'",
 					i, j, originalText, copiedText)
 			}
 		}
 	}
 
-	// 修改复制的表格，验证独立性
+	// Modify the copied table to verify independence
 	err = copiedTable.SetCellText(0, 0, "修改后")
 	if err != nil {
-		t.Errorf("修改复制表格失败: %v", err)
+		t.Errorf("failed to modify copied table: %v", err)
 	}
 
 	originalText, _ := originalTable.GetCellText(0, 0)
 	copiedText, _ := copiedTable.GetCellText(0, 0)
 
 	if originalText == copiedText {
-		t.Error("复制的表格不是独立的，修改影响了原表格")
+		t.Error("copied table is not independent, modification affected the original table")
 	}
 }
 
-// TestTableWithCustomColumnWidths 测试自定义列宽的表格
+// TestTableWithCustomColumnWidths tests table with custom column widths
 func TestTableWithCustomColumnWidths(t *testing.T) {
 	doc := New()
 
@@ -622,24 +622,24 @@ func TestTableWithCustomColumnWidths(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建自定义列宽表格失败: %v", err)
+		t.Fatalf("failed to create table with custom column widths: %v", err)
 	}
 
-	// 验证表格创建成功
+	// Verify table created successfully
 	if table.GetRowCount() != 2 {
-		t.Errorf("期望行数2，实际%d", table.GetRowCount())
+		t.Errorf("expected 2 rows, got %d", table.GetRowCount())
 	}
 	if table.GetColumnCount() != 3 {
-		t.Errorf("期望列数3，实际%d", table.GetColumnCount())
+		t.Errorf("expected 3 columns, got %d", table.GetColumnCount())
 	}
 
-	// 验证网格列数量
+	// Verify grid column count
 	if len(table.Grid.Cols) != 3 {
-		t.Errorf("期望网格列数3，实际%d", len(table.Grid.Cols))
+		t.Errorf("expected 3 grid columns, got %d", len(table.Grid.Cols))
 	}
 }
 
-// TestTableElementType 测试表格元素类型
+// TestTableElementType tests table element type
 func TestTableElementType(t *testing.T) {
 	doc := New()
 
@@ -651,22 +651,22 @@ func TestTableElementType(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试表格元素类型
+	// Test table element type
 	if table.ElementType() != "table" {
-		t.Errorf("期望表格元素类型'table'，实际'%s'", table.ElementType())
+		t.Errorf("expected table element type 'table', got '%s'", table.ElementType())
 	}
 
-	// 测试段落元素类型
+	// Test paragraph element type
 	para := doc.AddParagraph("测试段落")
 	if para.ElementType() != "paragraph" {
-		t.Errorf("期望段落元素类型'paragraph'，实际'%s'", para.ElementType())
+		t.Errorf("expected paragraph element type 'paragraph', got '%s'", para.ElementType())
 	}
 }
 
-// TestCellFormattedText 测试单元格富文本功能
+// TestCellFormattedText tests cell rich text functionality
 func TestCellFormattedText(t *testing.T) {
 	doc := New()
 
@@ -678,10 +678,10 @@ func TestCellFormattedText(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试设置富文本内容
+	// Test setting rich text content
 	format := &TextFormat{
 		Bold:       true,
 		Italic:     true,
@@ -692,26 +692,26 @@ func TestCellFormattedText(t *testing.T) {
 
 	err = table.SetCellFormattedText(0, 0, "富文本测试", format)
 	if err != nil {
-		t.Errorf("设置富文本内容失败: %v", err)
+		t.Errorf("failed to set rich text content: %v", err)
 	}
 
-	// 验证内容
+	// Verify content
 	cellText, err := table.GetCellText(0, 0)
 	if err != nil {
-		t.Errorf("获取单元格内容失败: %v", err)
+		t.Errorf("failed to get cell content: %v", err)
 	}
 	if cellText != "富文本测试" {
-		t.Errorf("期望内容'富文本测试'，实际'%s'", cellText)
+		t.Errorf("expected content '富文本测试', got '%s'", cellText)
 	}
 
-	// 测试添加格式化文本
+	// Test appending formatted text
 	err = table.AddCellFormattedText(0, 0, " 追加文本", &TextFormat{Bold: false, FontColor: "00FF00"})
 	if err != nil {
-		t.Errorf("添加格式化文本失败: %v", err)
+		t.Errorf("failed to add formatted text: %v", err)
 	}
 }
 
-// TestCellFormat 测试单元格格式设置
+// TestCellFormat tests cell format settings
 func TestCellFormat(t *testing.T) {
 	doc := New()
 
@@ -723,16 +723,16 @@ func TestCellFormat(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 设置单元格内容
+	// Set cell content
 	err = table.SetCellText(0, 0, "格式测试")
 	if err != nil {
-		t.Errorf("设置单元格内容失败: %v", err)
+		t.Errorf("failed to set cell content: %v", err)
 	}
 
-	// 测试设置单元格格式
+	// Test setting cell format
 	format := &CellFormat{
 		TextFormat: &TextFormat{
 			Bold:     true,
@@ -744,29 +744,29 @@ func TestCellFormat(t *testing.T) {
 
 	err = table.SetCellFormat(0, 0, format)
 	if err != nil {
-		t.Errorf("设置单元格格式失败: %v", err)
+		t.Errorf("failed to set cell format: %v", err)
 	}
 
-	// 获取并验证格式
+	// Get and verify format
 	retrievedFormat, err := table.GetCellFormat(0, 0)
 	if err != nil {
-		t.Errorf("获取单元格格式失败: %v", err)
+		t.Errorf("failed to get cell format: %v", err)
 	}
 
 	if retrievedFormat.HorizontalAlign != CellAlignCenter {
-		t.Errorf("期望水平对齐'center'，实际'%s'", retrievedFormat.HorizontalAlign)
+		t.Errorf("expected horizontal alignment 'center', got '%s'", retrievedFormat.HorizontalAlign)
 	}
 
 	if retrievedFormat.VerticalAlign != CellVAlignCenter {
-		t.Errorf("期望垂直对齐'center'，实际'%s'", retrievedFormat.VerticalAlign)
+		t.Errorf("expected vertical alignment 'center', got '%s'", retrievedFormat.VerticalAlign)
 	}
 
 	if retrievedFormat.TextFormat == nil || !retrievedFormat.TextFormat.Bold {
-		t.Error("期望文字格式为粗体")
+		t.Error("expected text format to be bold")
 	}
 }
 
-// TestCellMergeHorizontal 测试水平合并单元格
+// TestCellMergeHorizontal tests horizontal cell merging
 func TestCellMergeHorizontal(t *testing.T) {
 	doc := New()
 
@@ -783,47 +783,47 @@ func TestCellMergeHorizontal(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
 	initialColCount := table.GetColumnCount()
 
-	// 合并第一行的第2到第4列（索引1到3）
+	// Merge columns 2 to 4 (index 1 to 3) in the first row
 	err = table.MergeCellsHorizontal(0, 1, 3)
 	if err != nil {
-		t.Errorf("水平合并单元格失败: %v", err)
+		t.Errorf("failed to merge cells horizontally: %v", err)
 	}
 
-	// 验证合并后第一行的列数减少
+	// Verify first row column count decreased after merging
 	if len(table.Rows[0].Cells) != initialColCount-2 {
-		t.Errorf("期望第一行列数%d，实际%d", initialColCount-2, len(table.Rows[0].Cells))
+		t.Errorf("expected first row column count %d, got %d", initialColCount-2, len(table.Rows[0].Cells))
 	}
 
-	// 验证合并状态
+	// Verify merge status
 	isMerged, err := table.IsCellMerged(0, 1)
 	if err != nil {
-		t.Errorf("检查合并状态失败: %v", err)
+		t.Errorf("failed to check merge status: %v", err)
 	}
 	if !isMerged {
-		t.Error("期望单元格已合并")
+		t.Error("expected cell to be merged")
 	}
 
-	// 获取合并信息
+	// Get merge info
 	mergeInfo, err := table.GetMergedCellInfo(0, 1)
 	if err != nil {
-		t.Errorf("获取合并信息失败: %v", err)
+		t.Errorf("failed to get merge info: %v", err)
 	}
 
 	if !mergeInfo["is_merged"].(bool) {
-		t.Error("期望单元格处于合并状态")
+		t.Error("expected cell to be in merged state")
 	}
 
 	if mergeInfo["horizontal_span"].(int) != 3 {
-		t.Errorf("期望水平跨度3，实际%d", mergeInfo["horizontal_span"].(int))
+		t.Errorf("expected horizontal span 3, got %d", mergeInfo["horizontal_span"].(int))
 	}
 }
 
-// TestCellMergeVertical 测试垂直合并单元格
+// TestCellMergeVertical tests vertical cell merging
 func TestCellMergeVertical(t *testing.T) {
 	doc := New()
 
@@ -841,35 +841,35 @@ func TestCellMergeVertical(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 合并第2列的第1到第3行（索引0到2）
+	// Merge rows 1 to 3 (index 0 to 2) in column 2
 	err = table.MergeCellsVertical(0, 2, 1)
 	if err != nil {
-		t.Errorf("垂直合并单元格失败: %v", err)
+		t.Errorf("failed to merge cells vertically: %v", err)
 	}
 
-	// 验证合并状态
+	// Verify merge status
 	isMerged, err := table.IsCellMerged(0, 1)
 	if err != nil {
-		t.Errorf("检查合并状态失败: %v", err)
+		t.Errorf("failed to check merge status: %v", err)
 	}
 	if !isMerged {
-		t.Error("期望单元格已合并")
+		t.Error("expected cell to be merged")
 	}
 
-	// 验证被合并的单元格也有合并标记
+	// Verify merged cells also have merge markers
 	isMerged, err = table.IsCellMerged(1, 1)
 	if err != nil {
-		t.Errorf("检查合并状态失败: %v", err)
+		t.Errorf("failed to check merge status: %v", err)
 	}
 	if !isMerged {
-		t.Error("期望被合并单元格也有合并标记")
+		t.Error("expected merged cell to also have merge marker")
 	}
 }
 
-// TestCellMergeRange 测试区域合并
+// TestCellMergeRange tests range merging
 func TestCellMergeRange(t *testing.T) {
 	doc := New()
 
@@ -881,26 +881,26 @@ func TestCellMergeRange(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 合并2x2区域（行0-1，列1-2）
+	// Merge 2x2 range (rows 0-1, columns 1-2)
 	err = table.MergeCellsRange(0, 1, 1, 2)
 	if err != nil {
-		t.Errorf("区域合并失败: %v", err)
+		t.Errorf("failed to merge range: %v", err)
 	}
 
-	// 验证合并状态
+	// Verify merge status
 	isMerged, err := table.IsCellMerged(0, 1)
 	if err != nil {
-		t.Errorf("检查合并状态失败: %v", err)
+		t.Errorf("failed to check merge status: %v", err)
 	}
 	if !isMerged {
-		t.Error("期望单元格已合并")
+		t.Error("expected cell to be merged")
 	}
 }
 
-// TestUnmergeCells 测试取消合并
+// TestUnmergeCells tests unmerging cells
 func TestUnmergeCells(t *testing.T) {
 	doc := New()
 
@@ -912,41 +912,41 @@ func TestUnmergeCells(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 先进行水平合并
+	// First perform horizontal merge
 	err = table.MergeCellsHorizontal(0, 0, 1)
 	if err != nil {
-		t.Errorf("水平合并失败: %v", err)
+		t.Errorf("failed to merge horizontally: %v", err)
 	}
 
-	// 验证合并状态
+	// Verify merge status
 	isMerged, err := table.IsCellMerged(0, 0)
 	if err != nil {
-		t.Errorf("检查合并状态失败: %v", err)
+		t.Errorf("failed to check merge status: %v", err)
 	}
 	if !isMerged {
-		t.Error("期望单元格已合并")
+		t.Error("expected cell to be merged")
 	}
 
-	// 取消合并
+	// Unmerge cells
 	err = table.UnmergeCells(0, 0)
 	if err != nil {
-		t.Errorf("取消合并失败: %v", err)
+		t.Errorf("failed to unmerge cells: %v", err)
 	}
 
-	// 验证取消合并后的状态
+	// Verify status after unmerging
 	isMerged, err = table.IsCellMerged(0, 0)
 	if err != nil {
-		t.Errorf("检查合并状态失败: %v", err)
+		t.Errorf("failed to check merge status: %v", err)
 	}
 	if isMerged {
-		t.Error("期望单元格已取消合并")
+		t.Error("expected cell to be unmerged")
 	}
 }
 
-// TestCellContentOperations 测试单元格内容操作
+// TestCellContentOperations tests cell content operations
 func TestCellContentOperations(t *testing.T) {
 	doc := New()
 
@@ -958,57 +958,57 @@ func TestCellContentOperations(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 设置格式化内容
+	// Set formatted content
 	format := &TextFormat{
 		Bold:     true,
 		FontSize: 12,
 	}
 	err = table.SetCellFormattedText(0, 0, "测试内容", format)
 	if err != nil {
-		t.Errorf("设置格式化内容失败: %v", err)
+		t.Errorf("failed to set formatted content: %v", err)
 	}
 
-	// 清空内容但保留格式
+	// Clear content but preserve format
 	err = table.ClearCellContent(0, 0)
 	if err != nil {
-		t.Errorf("清空单元格内容失败: %v", err)
+		t.Errorf("failed to clear cell content: %v", err)
 	}
 
-	// 验证内容已清空
+	// Verify content is cleared
 	content, err := table.GetCellText(0, 0)
 	if err != nil {
-		t.Errorf("获取单元格内容失败: %v", err)
+		t.Errorf("failed to get cell content: %v", err)
 	}
 	if content != "" {
-		t.Errorf("期望内容为空，实际'%s'", content)
+		t.Errorf("expected content to be empty, got '%s'", content)
 	}
 
-	// 重新设置内容
+	// Set content again
 	err = table.SetCellText(0, 0, "新内容")
 	if err != nil {
-		t.Errorf("设置新内容失败: %v", err)
+		t.Errorf("failed to set new content: %v", err)
 	}
 
-	// 清空格式但保留内容
+	// Clear format but preserve content
 	err = table.ClearCellFormat(0, 0)
 	if err != nil {
-		t.Errorf("清空单元格格式失败: %v", err)
+		t.Errorf("failed to clear cell format: %v", err)
 	}
 
-	// 验证内容保留
+	// Verify content is preserved
 	content, err = table.GetCellText(0, 0)
 	if err != nil {
-		t.Errorf("获取单元格内容失败: %v", err)
+		t.Errorf("failed to get cell content: %v", err)
 	}
 	if content != "新内容" {
-		t.Errorf("期望内容'新内容'，实际'%s'", content)
+		t.Errorf("expected content '新内容', got '%s'", content)
 	}
 }
 
-// TestCellMergeInvalidCases 测试合并的无效情况
+// TestCellMergeInvalidCases tests invalid merge cases
 func TestCellMergeInvalidCases(t *testing.T) {
 	doc := New()
 
@@ -1020,44 +1020,44 @@ func TestCellMergeInvalidCases(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试无效的水平合并
+	// Test invalid horizontal merge
 	err = table.MergeCellsHorizontal(0, 0, 0)
 	if err == nil {
-		t.Error("期望相同列合并失败，但成功了")
+		t.Error("expected same-column merge to fail, but it succeeded")
 	}
 
 	err = table.MergeCellsHorizontal(0, 1, 0)
 	if err == nil {
-		t.Error("期望反向合并失败，但成功了")
+		t.Error("expected reverse merge to fail, but it succeeded")
 	}
 
-	// 测试无效的垂直合并
+	// Test invalid vertical merge
 	err = table.MergeCellsVertical(0, 0, 0)
 	if err == nil {
-		t.Error("期望相同行合并失败，但成功了")
+		t.Error("expected same-row merge to fail, but it succeeded")
 	}
 
 	err = table.MergeCellsVertical(1, 0, 0)
 	if err == nil {
-		t.Error("期望反向合并失败，但成功了")
+		t.Error("expected reverse merge to fail, but it succeeded")
 	}
 
-	// 测试无效的索引
+	// Test invalid index
 	err = table.MergeCellsHorizontal(-1, 0, 1)
 	if err == nil {
-		t.Error("期望无效行索引失败，但成功了")
+		t.Error("expected invalid row index to fail, but it succeeded")
 	}
 
 	err = table.MergeCellsVertical(0, 1, -1)
 	if err == nil {
-		t.Error("期望无效列索引失败，但成功了")
+		t.Error("expected invalid column index to fail, but it succeeded")
 	}
 }
 
-// TestCellPadding 测试单元格内边距
+// TestCellPadding tests cell padding
 func TestCellPadding(t *testing.T) {
 	doc := New()
 
@@ -1069,23 +1069,23 @@ func TestCellPadding(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试设置内边距
+	// Test setting padding
 	err = table.SetCellPadding(0, 0, 10)
 	if err != nil {
-		t.Errorf("设置单元格内边距失败: %v", err)
+		t.Errorf("failed to set cell padding: %v", err)
 	}
 
-	// 测试无效索引
+	// Test invalid index
 	err = table.SetCellPadding(5, 5, 10)
 	if err == nil {
-		t.Error("期望无效索引失败，但成功了")
+		t.Error("expected invalid index to fail, but it succeeded")
 	}
 }
 
-// TestCellTextDirection 测试单元格文字方向设置
+// TestCellTextDirection tests cell text direction settings
 func TestCellTextDirection(t *testing.T) {
 	doc := New()
 
@@ -1097,10 +1097,10 @@ func TestCellTextDirection(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试设置不同的文字方向
+	// Test setting different text directions
 	testCases := []struct {
 		name      string
 		direction CellTextDirection
@@ -1117,32 +1117,32 @@ func TestCellTextDirection(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// 设置文字内容
+			// Set cell text
 			err := table.SetCellText(tc.row, tc.col, tc.name)
 			if err != nil {
-				t.Errorf("设置单元格文本失败: %v", err)
+				t.Errorf("failed to set cell text: %v", err)
 			}
 
-			// 设置文字方向
+			// Set text direction
 			err = table.SetCellTextDirection(tc.row, tc.col, tc.direction)
 			if err != nil {
-				t.Errorf("设置文字方向失败: %v", err)
+				t.Errorf("failed to set text direction: %v", err)
 			}
 
-			// 验证文字方向
+			// Verify text direction
 			actualDirection, err := table.GetCellTextDirection(tc.row, tc.col)
 			if err != nil {
-				t.Errorf("获取文字方向失败: %v", err)
+				t.Errorf("failed to get text direction: %v", err)
 			}
 
 			if actualDirection != tc.direction {
-				t.Errorf("文字方向不匹配，期望: %s，实际: %s", tc.direction, actualDirection)
+				t.Errorf("text direction mismatch, expected: %s, got: %s", tc.direction, actualDirection)
 			}
 		})
 	}
 }
 
-// TestCellFormatWithTextDirection 测试通过CellFormat设置文字方向
+// TestCellFormatWithTextDirection tests setting text direction via CellFormat
 func TestCellFormatWithTextDirection(t *testing.T) {
 	doc := New()
 
@@ -1154,10 +1154,10 @@ func TestCellFormatWithTextDirection(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 通过CellFormat设置完整格式，包括文字方向
+	// Set full format via CellFormat, including text direction
 	format := &CellFormat{
 		TextFormat: &TextFormat{
 			Bold:     true,
@@ -1165,39 +1165,39 @@ func TestCellFormatWithTextDirection(t *testing.T) {
 		},
 		HorizontalAlign: CellAlignCenter,
 		VerticalAlign:   CellVAlignCenter,
-		TextDirection:   TextDirectionTB, // 从上到下
+		TextDirection:   TextDirectionTB, // top to bottom
 	}
 
 	err = table.SetCellText(0, 0, "竖排文字")
 	if err != nil {
-		t.Errorf("设置单元格文本失败: %v", err)
+		t.Errorf("failed to set cell text: %v", err)
 	}
 
 	err = table.SetCellFormat(0, 0, format)
 	if err != nil {
-		t.Errorf("设置单元格格式失败: %v", err)
+		t.Errorf("failed to set cell format: %v", err)
 	}
 
-	// 验证格式是否正确设置
+	// Verify format is set correctly
 	retrievedFormat, err := table.GetCellFormat(0, 0)
 	if err != nil {
-		t.Errorf("获取单元格格式失败: %v", err)
+		t.Errorf("failed to get cell format: %v", err)
 	}
 
 	if retrievedFormat.TextDirection != TextDirectionTB {
-		t.Errorf("文字方向不匹配，期望: %s，实际: %s", TextDirectionTB, retrievedFormat.TextDirection)
+		t.Errorf("text direction mismatch, expected: %s, got: %s", TextDirectionTB, retrievedFormat.TextDirection)
 	}
 
 	if retrievedFormat.HorizontalAlign != CellAlignCenter {
-		t.Errorf("水平对齐不匹配，期望: %s，实际: %s", CellAlignCenter, retrievedFormat.HorizontalAlign)
+		t.Errorf("horizontal alignment mismatch, expected: %s, got: %s", CellAlignCenter, retrievedFormat.HorizontalAlign)
 	}
 
 	if retrievedFormat.VerticalAlign != CellVAlignCenter {
-		t.Errorf("垂直对齐不匹配，期望: %s，实际: %s", CellVAlignCenter, retrievedFormat.VerticalAlign)
+		t.Errorf("vertical alignment mismatch, expected: %s, got: %s", CellVAlignCenter, retrievedFormat.VerticalAlign)
 	}
 }
 
-// TestTextDirectionConstants 测试文字方向常量
+// TestTextDirectionConstants tests text direction constants
 func TestTextDirectionConstants(t *testing.T) {
 	directions := []CellTextDirection{
 		TextDirectionLR,
@@ -1219,12 +1219,12 @@ func TestTextDirectionConstants(t *testing.T) {
 
 	for i, direction := range directions {
 		if string(direction) != expectedValues[i] {
-			t.Errorf("文字方向常量值不匹配，期望: %s，实际: %s", expectedValues[i], string(direction))
+			t.Errorf("text direction constant value mismatch, expected: %s, got: %s", expectedValues[i], string(direction))
 		}
 	}
 }
 
-// TestRowHeight 测试行高设置功能
+// TestRowHeight tests row height settings
 func TestRowHeight(t *testing.T) {
 	doc := New()
 
@@ -1236,10 +1236,10 @@ func TestRowHeight(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试设置固定行高
+	// Test setting exact row height
 	heightConfig := &RowHeightConfig{
 		Height: 30,
 		Rule:   RowHeightExact,
@@ -1247,24 +1247,24 @@ func TestRowHeight(t *testing.T) {
 
 	err = table.SetRowHeight(0, heightConfig)
 	if err != nil {
-		t.Errorf("设置行高失败: %v", err)
+		t.Errorf("failed to set row height: %v", err)
 	}
 
-	// 测试获取行高
+	// Test getting row height
 	retrievedConfig, err := table.GetRowHeight(0)
 	if err != nil {
-		t.Errorf("获取行高失败: %v", err)
+		t.Errorf("failed to get row height: %v", err)
 	}
 
 	if retrievedConfig.Height != 30 {
-		t.Errorf("期望行高30，实际%d", retrievedConfig.Height)
+		t.Errorf("expected row height 30, got %d", retrievedConfig.Height)
 	}
 
 	if retrievedConfig.Rule != RowHeightExact {
-		t.Errorf("期望行高规则%s，实际%s", RowHeightExact, retrievedConfig.Rule)
+		t.Errorf("expected row height rule %s, got %s", RowHeightExact, retrievedConfig.Rule)
 	}
 
-	// 测试批量设置行高
+	// Test batch setting row height
 	batchConfig := &RowHeightConfig{
 		Height: 25,
 		Rule:   RowHeightMinimum,
@@ -1272,36 +1272,36 @@ func TestRowHeight(t *testing.T) {
 
 	err = table.SetRowHeightRange(1, 2, batchConfig)
 	if err != nil {
-		t.Errorf("批量设置行高失败: %v", err)
+		t.Errorf("failed to batch set row height: %v", err)
 	}
 
-	// 验证批量设置结果
+	// Verify batch setting results
 	for i := 1; i <= 2; i++ {
 		config, err := table.GetRowHeight(i)
 		if err != nil {
-			t.Errorf("获取第%d行高度失败: %v", i, err)
+			t.Errorf("failed to get row %d height: %v", i, err)
 		}
 		if config.Height != 25 {
-			t.Errorf("第%d行期望高度25，实际%d", i, config.Height)
+			t.Errorf("row %d expected height 25, got %d", i, config.Height)
 		}
 		if config.Rule != RowHeightMinimum {
-			t.Errorf("第%d行期望规则%s，实际%s", i, RowHeightMinimum, config.Rule)
+			t.Errorf("row %d expected rule %s, got %s", i, RowHeightMinimum, config.Rule)
 		}
 	}
 
-	// 测试无效索引
+	// Test invalid index
 	err = table.SetRowHeight(10, heightConfig)
 	if err == nil {
-		t.Error("期望设置无效行索引失败，但成功了")
+		t.Error("expected setting invalid row index to fail, but it succeeded")
 	}
 
 	_, err = table.GetRowHeight(10)
 	if err == nil {
-		t.Error("期望获取无效行索引失败，但成功了")
+		t.Error("expected getting invalid row index to fail, but it succeeded")
 	}
 }
 
-// TestTableLayout 测试表格布局和定位功能
+// TestTableLayout tests table layout and positioning
 func TestTableLayout(t *testing.T) {
 	doc := New()
 
@@ -1313,10 +1313,10 @@ func TestTableLayout(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试设置表格布局
+	// Test setting table layout
 	layoutConfig := &TableLayoutConfig{
 		Alignment: TableAlignCenter,
 		TextWrap:  TextWrapNone,
@@ -1325,28 +1325,28 @@ func TestTableLayout(t *testing.T) {
 
 	err = table.SetTableLayout(layoutConfig)
 	if err != nil {
-		t.Errorf("设置表格布局失败: %v", err)
+		t.Errorf("failed to set table layout: %v", err)
 	}
 
-	// 测试获取表格布局
+	// Test getting table layout
 	retrievedLayout := table.GetTableLayout()
 	if retrievedLayout.Alignment != TableAlignCenter {
-		t.Errorf("期望对齐方式%s，实际%s", TableAlignCenter, retrievedLayout.Alignment)
+		t.Errorf("expected alignment %s, got %s", TableAlignCenter, retrievedLayout.Alignment)
 	}
 
-	// 测试快捷方法设置对齐
+	// Test shortcut method for setting alignment
 	err = table.SetTableAlignment(TableAlignRight)
 	if err != nil {
-		t.Errorf("设置表格对齐失败: %v", err)
+		t.Errorf("failed to set table alignment: %v", err)
 	}
 
 	retrievedLayout = table.GetTableLayout()
 	if retrievedLayout.Alignment != TableAlignRight {
-		t.Errorf("期望对齐方式%s，实际%s", TableAlignRight, retrievedLayout.Alignment)
+		t.Errorf("expected alignment %s, got %s", TableAlignRight, retrievedLayout.Alignment)
 	}
 }
 
-// TestTablePageBreak 测试表格分页控制功能
+// TestTablePageBreak tests table page break control
 func TestTablePageBreak(t *testing.T) {
 	doc := New()
 
@@ -1358,66 +1358,66 @@ func TestTablePageBreak(t *testing.T) {
 
 	table, err := doc.CreateTable(config)
 	if err != nil {
-		t.Fatalf("创建表格失败: %v", err)
+		t.Fatalf("failed to create table: %v", err)
 	}
 
-	// 测试设置行禁止跨页分割
+	// Test setting row keep together (no page split)
 	err = table.SetRowKeepTogether(0, true)
 	if err != nil {
-		t.Errorf("设置行禁止跨页分割失败: %v", err)
+		t.Errorf("failed to set row keep together: %v", err)
 	}
 
-	// 测试检查行是否禁止跨页分割
+	// Test checking if row keeps together
 	keepTogether, err := table.IsRowKeepTogether(0)
 	if err != nil {
-		t.Errorf("检查行跨页分割设置失败: %v", err)
+		t.Errorf("failed to check row keep together setting: %v", err)
 	}
 	if !keepTogether {
-		t.Error("期望行禁止跨页分割为true，实际为false")
+		t.Error("expected row keep together to be true, got false")
 	}
 
-	// 测试设置标题行
+	// Test setting header row
 	err = table.SetRowAsHeader(0, true)
 	if err != nil {
-		t.Errorf("设置标题行失败: %v", err)
+		t.Errorf("failed to set header row: %v", err)
 	}
 
-	// 测试检查是否为标题行
+	// Test checking if row is header
 	isHeader, err := table.IsRowHeader(0)
 	if err != nil {
-		t.Errorf("检查标题行设置失败: %v", err)
+		t.Errorf("failed to check header row setting: %v", err)
 	}
 	if !isHeader {
-		t.Error("期望第0行为标题行，实际不是")
+		t.Error("expected row 0 to be a header row, but it is not")
 	}
 
-	// 测试设置标题行范围
+	// Test setting header row range
 	err = table.SetHeaderRows(0, 1)
 	if err != nil {
-		t.Errorf("设置标题行范围失败: %v", err)
+		t.Errorf("failed to set header row range: %v", err)
 	}
 
-	// 验证标题行范围设置
+	// Verify header row range setting
 	for i := 0; i <= 1; i++ {
 		isHeader, err := table.IsRowHeader(i)
 		if err != nil {
-			t.Errorf("检查第%d行标题行设置失败: %v", i, err)
+			t.Errorf("failed to check row %d header setting: %v", i, err)
 		}
 		if !isHeader {
-			t.Errorf("期望第%d行为标题行，实际不是", i)
+			t.Errorf("expected row %d to be a header row, but it is not", i)
 		}
 	}
 
-	// 测试表格分页信息
+	// Test table break info
 	breakInfo := table.GetTableBreakInfo()
 	if breakInfo["total_rows"] != 4 {
-		t.Errorf("期望总行数4，实际%v", breakInfo["total_rows"])
+		t.Errorf("expected total rows 4, got %v", breakInfo["total_rows"])
 	}
 	if breakInfo["header_rows"] != 2 {
-		t.Errorf("期望标题行数2，实际%v", breakInfo["header_rows"])
+		t.Errorf("expected header rows 2, got %v", breakInfo["header_rows"])
 	}
 
-	// 测试表格分页配置
+	// Test table page break config
 	pageBreakConfig := &TablePageBreakConfig{
 		KeepWithNext:    true,
 		KeepLines:       true,
@@ -1427,88 +1427,88 @@ func TestTablePageBreak(t *testing.T) {
 
 	err = table.SetTablePageBreak(pageBreakConfig)
 	if err != nil {
-		t.Errorf("设置表格分页配置失败: %v", err)
+		t.Errorf("failed to set table page break config: %v", err)
 	}
 
-	// 测试行与下一行保持在同一页
+	// Test row keep with next
 	err = table.SetRowKeepWithNext(1, true)
 	if err != nil {
-		t.Errorf("设置行与下一行保持在同一页失败: %v", err)
+		t.Errorf("failed to set row keep with next: %v", err)
 	}
 
-	// 测试无效索引
+	// Test invalid index
 	err = table.SetRowKeepTogether(10, true)
 	if err == nil {
-		t.Error("期望设置无效行索引失败，但成功了")
+		t.Error("expected setting invalid row index to fail, but it succeeded")
 	}
 
 	err = table.SetRowAsHeader(10, true)
 	if err == nil {
-		t.Error("期望设置无效行索引失败，但成功了")
+		t.Error("expected setting invalid row index to fail, but it succeeded")
 	}
 
 	_, err = table.IsRowHeader(10)
 	if err == nil {
-		t.Error("期望检查无效行索引失败，但成功了")
+		t.Error("expected checking invalid row index to fail, but it succeeded")
 	}
 
 	_, err = table.IsRowKeepTogether(10)
 	if err == nil {
-		t.Error("期望检查无效行索引失败，但成功了")
+		t.Error("expected checking invalid row index to fail, but it succeeded")
 	}
 }
 
-// TestRowHeightConstants 测试行高规则常量
+// TestRowHeightConstants tests row height rule constants
 func TestRowHeightConstants(t *testing.T) {
-	// 验证行高规则常量定义正确
+	// Verify row height rule constants are correctly defined
 	if RowHeightAuto != "auto" {
-		t.Errorf("期望RowHeightAuto为'auto'，实际'%s'", RowHeightAuto)
+		t.Errorf("expected RowHeightAuto to be 'auto', got '%s'", RowHeightAuto)
 	}
 	if RowHeightMinimum != "atLeast" {
-		t.Errorf("期望RowHeightMinimum为'atLeast'，实际'%s'", RowHeightMinimum)
+		t.Errorf("expected RowHeightMinimum to be 'atLeast', got '%s'", RowHeightMinimum)
 	}
 	if RowHeightExact != "exact" {
-		t.Errorf("期望RowHeightExact为'exact'，实际'%s'", RowHeightExact)
+		t.Errorf("expected RowHeightExact to be 'exact', got '%s'", RowHeightExact)
 	}
 }
 
-// TestTableAlignmentConstants 测试表格对齐常量
+// TestTableAlignmentConstants tests table alignment constants
 func TestTableAlignmentConstants(t *testing.T) {
-	// 验证表格对齐常量定义正确
+	// Verify table alignment constants are correctly defined
 	if TableAlignLeft != "left" {
-		t.Errorf("期望TableAlignLeft为'left'，实际'%s'", TableAlignLeft)
+		t.Errorf("expected TableAlignLeft to be 'left', got '%s'", TableAlignLeft)
 	}
 	if TableAlignCenter != "center" {
-		t.Errorf("期望TableAlignCenter为'center'，实际'%s'", TableAlignCenter)
+		t.Errorf("expected TableAlignCenter to be 'center', got '%s'", TableAlignCenter)
 	}
 	if TableAlignRight != "right" {
-		t.Errorf("期望TableAlignRight为'right'，实际'%s'", TableAlignRight)
+		t.Errorf("expected TableAlignRight to be 'right', got '%s'", TableAlignRight)
 	}
 }
 
-// TestTableRowPropertiesExtensions 测试TableRowProperties扩展方法
+// TestTableRowPropertiesExtensions tests TableRowProperties extension methods
 func TestTableRowPropertiesExtensions(t *testing.T) {
 	trp := &TableRowProperties{}
 
-	// 测试SetCantSplit方法
+	// Test SetCantSplit method
 	trp.SetCantSplit(true)
 	if trp.CantSplit == nil || trp.CantSplit.Val != "1" {
-		t.Error("设置CantSplit失败")
+		t.Error("failed to set CantSplit")
 	}
 
 	trp.SetCantSplit(false)
 	if trp.CantSplit != nil {
-		t.Error("清除CantSplit失败")
+		t.Error("failed to clear CantSplit")
 	}
 
-	// 测试SetTblHeader方法
+	// Test SetTblHeader method
 	trp.SetTblHeader(true)
 	if trp.TblHeader == nil || trp.TblHeader.Val != "1" {
-		t.Error("设置TblHeader失败")
+		t.Error("failed to set TblHeader")
 	}
 
 	trp.SetTblHeader(false)
 	if trp.TblHeader != nil {
-		t.Error("清除TblHeader失败")
+		t.Error("failed to clear TblHeader")
 	}
 }

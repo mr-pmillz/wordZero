@@ -1,4 +1,4 @@
-// Package document 模板图片保留测试
+// Package document template image preservation tests
 package document
 
 import (
@@ -7,9 +7,9 @@ import (
 	"testing"
 )
 
-// TestTemplateImagePreservation 测试模板替换后图片和格式是否保留
+// TestTemplateImagePreservation tests whether images and formatting are preserved after template replacement
 func TestTemplateImagePreservation(t *testing.T) {
-	// 创建一个最小的有效PNG图片数据用于测试
+	// Create a minimal valid PNG image data for testing
 	testImageData := []byte{
 		0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
 		0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
@@ -22,14 +22,14 @@ func TestTemplateImagePreservation(t *testing.T) {
 		0x42, 0x60, 0x82,
 	}
 
-	// 步骤1：创建一个包含图片和格式的模板文档
-	t.Log("步骤1: 创建包含图片和格式的模板文档")
+	// Step 1: Create a template document with images and formatting
+	t.Log("Step 1: Create template document with images and formatting")
 	templateDoc := New()
 
-	// 添加带模板变量的标题
+	// Add heading with template variable
 	templateDoc.AddHeadingParagraph("文档标题: {{title}}", 1)
 
-	// 添加带格式的段落
+	// Add formatted paragraph
 	formattedPara := templateDoc.AddFormattedParagraph("作者: {{author}}", &TextFormat{
 		Bold:      true,
 		FontSize:  14,
@@ -38,7 +38,7 @@ func TestTemplateImagePreservation(t *testing.T) {
 	})
 	formattedPara.SetAlignment(AlignCenter)
 
-	// 添加图片
+	// Add image
 	imageConfig := &ImageConfig{
 		Position:  ImagePositionInline,
 		Alignment: AlignCenter,
@@ -47,22 +47,22 @@ func TestTemplateImagePreservation(t *testing.T) {
 
 	imageInfo, err := templateDoc.AddImageFromData(testImageData, "test_image.png", ImageFormatPNG, 1, 1, imageConfig)
 	if err != nil {
-		t.Fatalf("添加图片失败: %v", err)
+		t.Fatalf("failed to add image: %v", err)
 	}
-	t.Logf("已添加图片，ID: %s", imageInfo.ID)
+	t.Logf("added image, ID: %s", imageInfo.ID)
 
-	// 添加另一个带模板变量的段落
+	// Add another paragraph with template variable
 	templateDoc.AddParagraph("日期: {{date}}")
 
-	// 保存模板文档
+	// Save template document
 	templatePath := "test_template_with_image.docx"
 	err = templateDoc.Save(templatePath)
 	if err != nil {
-		t.Fatalf("保存模板文档失败: %v", err)
+		t.Fatalf("failed to save template document: %v", err)
 	}
 	defer os.Remove(templatePath)
 
-	// 统计初始文档中的图片元素
+	// Count image elements in initial document
 	initialImageCount := 0
 	for _, elem := range templateDoc.Body.Elements {
 		if para, ok := elem.(*Paragraph); ok {
@@ -73,97 +73,97 @@ func TestTemplateImagePreservation(t *testing.T) {
 			}
 		}
 	}
-	t.Logf("初始文档包含 %d 个图片元素", initialImageCount)
+	t.Logf("initial document contains %d image elements", initialImageCount)
 
-	// 步骤2：重新打开模板文档
-	t.Log("步骤2: 重新打开模板文档")
+	// Step 2: Reopen the template document
+	t.Log("Step 2: Reopen template document")
 	openedDoc, err := Open(templatePath)
 	if err != nil {
-		t.Fatalf("打开模板文档失败: %v", err)
+		t.Fatalf("failed to open template document: %v", err)
 	}
 
-	// 检查打开文档中的媒体文件
+	// Check media files in opened document
 	openedHasImageMedia := false
 	for partName := range openedDoc.parts {
 		if len(partName) > 11 && partName[:11] == "word/media/" {
 			openedHasImageMedia = true
-			t.Logf("打开的文档包含媒体文件: %s", partName)
+			t.Logf("opened document contains media file: %s", partName)
 		}
 	}
 	if !openedHasImageMedia {
-		t.Logf("警告: 打开的文档中未找到媒体文件")
+		t.Logf("warning: no media files found in opened document")
 	}
 
-	// 步骤3：使用模板引擎进行变量替换
-	t.Log("步骤3: 使用模板引擎进行变量替换")
+	// Step 3: Use template engine for variable replacement
+	t.Log("Step 3: Use template engine for variable replacement")
 	engine := NewTemplateEngine()
 
 	_, err = engine.LoadTemplateFromDocument("test_template", openedDoc)
 	if err != nil {
-		t.Fatalf("加载模板失败: %v", err)
+		t.Fatalf("failed to load template: %v", err)
 	}
 
-	// 准备数据
+	// Prepare data
 	data := NewTemplateData()
 	data.SetVariable("title", "测试报告")
 	data.SetVariable("author", "张三")
 	data.SetVariable("date", "2025年1月1日")
 
-	// 渲染模板
+	// Render template
 	resultDoc, err := engine.RenderTemplateToDocument("test_template", data)
 	if err != nil {
-		t.Fatalf("渲染模板失败: %v", err)
+		t.Fatalf("failed to render template: %v", err)
 	}
 
-	// 步骤4：检查结果文档
-	t.Log("步骤4: 检查结果文档")
+	// Step 4: Check result document
+	t.Log("Step 4: Check result document")
 
-	// 检查结果文档中的图片元素
+	// Check image elements in result document
 	resultImageCount := 0
 	for _, elem := range resultDoc.Body.Elements {
 		if para, ok := elem.(*Paragraph); ok {
 			for _, run := range para.Runs {
 				if run.Drawing != nil {
 					resultImageCount++
-					t.Logf("结果文档中找到图片元素")
+					t.Logf("found image element in result document")
 				}
 			}
 		}
 	}
 
-	// 检查结果文档中的媒体文件
+	// Check media files in result document
 	resultHasImageMedia := false
 	for partName := range resultDoc.parts {
 		if len(partName) > 11 && partName[:11] == "word/media/" {
 			resultHasImageMedia = true
-			t.Logf("结果文档包含媒体文件: %s", partName)
+			t.Logf("result document contains media file: %s", partName)
 		}
 	}
 
-	// 验证图片元素是否保留
+	// Verify image elements are preserved
 	if resultImageCount == 0 {
-		t.Errorf("模板渲染后图片元素丢失。初始: %d, 结果: %d", initialImageCount, resultImageCount)
+		t.Errorf("image elements lost after template rendering. initial: %d, result: %d", initialImageCount, resultImageCount)
 	} else {
-		t.Logf("✓ 图片元素已保留: %d", resultImageCount)
+		t.Logf("image elements preserved: %d", resultImageCount)
 	}
 
-	// 验证媒体文件是否保留
+	// Verify media files are preserved
 	if !resultHasImageMedia {
-		t.Errorf("模板渲染后媒体文件丢失")
+		t.Errorf("media files lost after template rendering")
 	} else {
-		t.Logf("✓ 媒体文件已保留")
+		t.Logf("media files preserved")
 	}
 
-	// 保存结果文档
+	// Save result document
 	resultPath := "test_template_rendered.docx"
 	err = resultDoc.Save(resultPath)
 	if err != nil {
-		t.Fatalf("保存结果文档失败: %v", err)
+		t.Fatalf("failed to save result document: %v", err)
 	}
 	defer os.Remove(resultPath)
 
-	// 步骤5：验证变量替换是否成功
-	t.Log("步骤5: 验证变量替换")
+	// Step 5: Verify variable replacement succeeded
+	t.Log("Step 5: Verify variable replacement")
 	foundTitle := false
 	foundAuthor := false
 	for _, elem := range resultDoc.Body.Elements {
@@ -182,11 +182,11 @@ func TestTemplateImagePreservation(t *testing.T) {
 	}
 
 	if !foundTitle {
-		t.Logf("警告: 标题变量未被替换")
+		t.Logf("warning: title variable was not replaced")
 	}
 	if !foundAuthor {
-		t.Logf("警告: 作者变量未被替换")
+		t.Logf("warning: author variable was not replaced")
 	}
 
-	t.Log("TestTemplateImagePreservation 测试完成")
+	t.Log("TestTemplateImagePreservation test complete")
 }

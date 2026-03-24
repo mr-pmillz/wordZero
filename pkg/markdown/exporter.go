@@ -9,27 +9,27 @@ import (
 	"github.com/zerx-lab/wordZero/pkg/document"
 )
 
-// WordToMarkdownExporter Word到Markdown导出器接口
+// WordToMarkdownExporter defines the interface for Word-to-Markdown export.
 type WordToMarkdownExporter interface {
-	// ExportToFile 导出Word文档到Markdown文件
+	// ExportToFile exports a Word document to a Markdown file.
 	ExportToFile(docxPath, mdPath string, options *ExportOptions) error
 
-	// ExportToString 导出Word文档到Markdown字符串
+	// ExportToString exports a Word document to a Markdown string.
 	ExportToString(doc *document.Document, options *ExportOptions) (string, error)
 
-	// ExportToBytes 导出Word文档到Markdown字节数组
+	// ExportToBytes exports a Word document to Markdown bytes.
 	ExportToBytes(doc *document.Document, options *ExportOptions) ([]byte, error)
 
-	// BatchExport 批量导出
+	// BatchExport performs batch export.
 	BatchExport(inputs []string, outputDir string, options *ExportOptions) error
 }
 
-// Exporter Word到Markdown导出器实现
+// Exporter is the Word-to-Markdown exporter implementation.
 type Exporter struct {
 	opts *ExportOptions
 }
 
-// NewExporter 创建新的导出器实例
+// NewExporter creates a new exporter instance.
 func NewExporter(opts *ExportOptions) *Exporter {
 	if opts == nil {
 		opts = DefaultExportOptions()
@@ -37,15 +37,15 @@ func NewExporter(opts *ExportOptions) *Exporter {
 	return &Exporter{opts: opts}
 }
 
-// ExportToFile 导出Word文档到Markdown文件
+// ExportToFile exports a Word document to a Markdown file.
 func (e *Exporter) ExportToFile(docxPath, mdPath string, options *ExportOptions) error {
-	// 加载Word文档
+	// Load Word document
 	doc, err := document.Open(docxPath)
 	if err != nil {
 		return NewExportError("DocumentOpen", fmt.Sprintf("failed to open document: %v", err), err)
 	}
 
-	// 设置图片输出路径
+	// Set image output path
 	if options == nil {
 		options = e.opts
 	}
@@ -53,13 +53,13 @@ func (e *Exporter) ExportToFile(docxPath, mdPath string, options *ExportOptions)
 		options.ImageOutputDir = filepath.Dir(mdPath)
 	}
 
-	// 转换为Markdown
+	// Convert to Markdown
 	markdown, err := e.ExportToString(doc, options)
 	if err != nil {
 		return err
 	}
 
-	// 写入文件
+	// Write to file
 	err = os.WriteFile(mdPath, []byte(markdown), 0644)
 	if err != nil {
 		return NewExportError("FileWrite", fmt.Sprintf("failed to write markdown file: %v", err), err)
@@ -68,7 +68,7 @@ func (e *Exporter) ExportToFile(docxPath, mdPath string, options *ExportOptions)
 	return nil
 }
 
-// ExportToString 导出Word文档到Markdown字符串
+// ExportToString exports a Word document to a Markdown string.
 func (e *Exporter) ExportToString(doc *document.Document, options *ExportOptions) (string, error) {
 	bytes, err := e.ExportToBytes(doc, options)
 	if err != nil {
@@ -77,7 +77,7 @@ func (e *Exporter) ExportToString(doc *document.Document, options *ExportOptions
 	return string(bytes), nil
 }
 
-// ExportToBytes 导出Word文档到Markdown字节数组
+// ExportToBytes exports a Word document to Markdown bytes.
 func (e *Exporter) ExportToBytes(doc *document.Document, options *ExportOptions) ([]byte, error) {
 	if options != nil {
 		e.opts = options
@@ -93,9 +93,9 @@ func (e *Exporter) ExportToBytes(doc *document.Document, options *ExportOptions)
 	return writer.Write()
 }
 
-// BatchExport 批量导出
+// BatchExport exports multiple files in batch.
 func (e *Exporter) BatchExport(inputs []string, outputDir string, options *ExportOptions) error {
-	// 确保输出目录存在
+	// Ensure the output directory exists
 	err := os.MkdirAll(outputDir, 0755)
 	if err != nil {
 		return NewExportError("DirectoryCreate", fmt.Sprintf("failed to create output directory: %v", err), err)
@@ -103,16 +103,16 @@ func (e *Exporter) BatchExport(inputs []string, outputDir string, options *Expor
 
 	total := len(inputs)
 	for i, input := range inputs {
-		// 报告进度
+		// Report progress
 		if options != nil && options.ProgressCallback != nil {
 			options.ProgressCallback(i+1, total)
 		}
 
-		// 生成输出文件名
+		// Generate output filename
 		base := strings.TrimSuffix(filepath.Base(input), filepath.Ext(input))
 		output := filepath.Join(outputDir, base+".md")
 
-		// 导出单个文件
+		// Export a single file
 		err := e.ExportToFile(input, output, options)
 		if err != nil {
 			if options != nil && options.ErrorCallback != nil {
@@ -127,7 +127,7 @@ func (e *Exporter) BatchExport(inputs []string, outputDir string, options *Expor
 	return nil
 }
 
-// DefaultExportOptions 返回默认的导出配置
+// DefaultExportOptions returns the default export configuration.
 func DefaultExportOptions() *ExportOptions {
 	return &ExportOptions{
 		UseGFMTables:        true,
@@ -154,7 +154,7 @@ func DefaultExportOptions() *ExportOptions {
 	}
 }
 
-// HighQualityExportOptions 返回高质量导出配置
+// HighQualityExportOptions returns a high-quality export configuration.
 func HighQualityExportOptions() *ExportOptions {
 	opts := DefaultExportOptions()
 	opts.ExtractImages = true
@@ -167,13 +167,13 @@ func HighQualityExportOptions() *ExportOptions {
 	return opts
 }
 
-// BidirectionalConverter 双向转换器
+// BidirectionalConverter is a bidirectional converter between Markdown and Word.
 type BidirectionalConverter struct {
 	mdToWord *Converter
 	wordToMd *Exporter
 }
 
-// NewBidirectionalConverter 创建双向转换器
+// NewBidirectionalConverter creates a new bidirectional converter.
 func NewBidirectionalConverter(mdOpts *ConvertOptions, exportOpts *ExportOptions) *BidirectionalConverter {
 	return &BidirectionalConverter{
 		mdToWord: NewConverter(mdOpts),
@@ -181,7 +181,7 @@ func NewBidirectionalConverter(mdOpts *ConvertOptions, exportOpts *ExportOptions
 	}
 }
 
-// AutoConvert 自动检测文件类型并转换
+// AutoConvert automatically detects the file type and converts accordingly.
 func (bc *BidirectionalConverter) AutoConvert(inputPath, outputPath string) error {
 	ext := strings.ToLower(filepath.Ext(inputPath))
 

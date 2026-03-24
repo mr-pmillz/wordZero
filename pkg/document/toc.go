@@ -1,4 +1,4 @@
-// Package document 提供Word文档目录生成功能
+// Package document provides table of contents generation for Word documents.
 package document
 
 import (
@@ -7,65 +7,65 @@ import (
 	"strings"
 )
 
-// TOCConfig 目录配置
+// TOCConfig holds table of contents configuration.
 type TOCConfig struct {
-	Title        string // 目录标题，默认为"目录"
-	MaxLevel     int    // 最大级别，默认为3（显示1-3级标题）
-	ShowPageNum  bool   // 是否显示页码，默认为true
-	RightAlign   bool   // 页码是否右对齐，默认为true
-	UseHyperlink bool   // 是否使用超链接，默认为true
-	DotLeader    bool   // 是否使用点状引导线，默认为true
+	Title        string // TOC title, defaults to "Table of Contents"
+	MaxLevel     int    // Maximum heading level, defaults to 3 (displays levels 1-3)
+	ShowPageNum  bool   // Whether to show page numbers, defaults to true
+	RightAlign   bool   // Whether to right-align page numbers, defaults to true
+	UseHyperlink bool   // Whether to use hyperlinks, defaults to true
+	DotLeader    bool   // Whether to use dot leaders, defaults to true
 }
 
-// TOCEntry 目录条目
+// TOCEntry represents a single table of contents entry.
 type TOCEntry struct {
-	Text       string // 条目文本
-	Level      int    // 级别（1-9）
-	PageNum    int    // 页码
-	BookmarkID string // 书签ID（用于超链接）
+	Text       string // Entry text
+	Level      int    // Heading level (1-9)
+	PageNum    int    // Page number
+	BookmarkID string // Bookmark ID (used for hyperlinks)
 }
 
-// TOCField 目录域
+// TOCField represents a table of contents field.
 type TOCField struct {
 	XMLName xml.Name `xml:"w:fldSimple"`
 	Instr   string   `xml:"w:instr,attr"`
 	Runs    []Run    `xml:"w:r"`
 }
 
-// Hyperlink 超链接结构
+// Hyperlink represents a hyperlink structure.
 type Hyperlink struct {
 	XMLName xml.Name `xml:"w:hyperlink"`
 	Anchor  string   `xml:"w:anchor,attr,omitempty"`
 	Runs    []Run    `xml:"w:r"`
 }
 
-// BookmarkEnd 书签结束
+// BookmarkEnd represents a bookmark end element.
 type BookmarkEnd struct {
 	XMLName xml.Name `xml:"w:bookmarkEnd"`
 	ID      string   `xml:"w:id,attr"`
 }
 
-// ElementType 返回书签结束元素类型
+// ElementType returns the element type for a bookmark end.
 func (b *BookmarkEnd) ElementType() string {
 	return "bookmarkEnd"
 }
 
-// BookmarkStart 书签开始
+// BookmarkStart represents a bookmark start element.
 type BookmarkStart struct {
 	XMLName xml.Name `xml:"w:bookmarkStart"`
 	ID      string   `xml:"w:id,attr"`
 	Name    string   `xml:"w:name,attr"`
 }
 
-// ElementType 返回书签开始元素类型
+// ElementType returns the element type for a bookmark start.
 func (b *BookmarkStart) ElementType() string {
 	return "bookmarkStart"
 }
 
-// DefaultTOCConfig 返回默认目录配置
+// DefaultTOCConfig returns the default table of contents configuration.
 func DefaultTOCConfig() *TOCConfig {
 	return &TOCConfig{
-		Title:        "目录",
+		Title:        "Table of Contents",
 		MaxLevel:     3,
 		ShowPageNum:  true,
 		RightAlign:   true,
@@ -74,69 +74,69 @@ func DefaultTOCConfig() *TOCConfig {
 	}
 }
 
-// GenerateTOC 生成目录
+// GenerateTOC generates a table of contents for the document.
 func (d *Document) GenerateTOC(config *TOCConfig) error {
 	if config == nil {
 		config = DefaultTOCConfig()
 	}
 
-	// 收集标题信息
+	// Collect heading information
 	entries := d.collectHeadings(config.MaxLevel)
 
-	// 创建目录SDT
+	// Create the TOC SDT
 	tocSDT := d.CreateTOCSDT(config.Title, config.MaxLevel)
 
-	// 为每个标题条目添加到目录中
+	// Add each heading entry to the TOC
 	for i, entry := range entries {
 		entryID := fmt.Sprintf("14746%d", 3000+i)
 		tocSDT.AddTOCEntry(entry.Text, entry.Level, entry.PageNum, entryID)
 	}
 
-	// 完成目录SDT构建
+	// Finalize the TOC SDT structure
 	tocSDT.FinalizeTOCSDT()
 
-	// 添加到文档中
+	// Append to the document
 	d.Body.Elements = append(d.Body.Elements, tocSDT)
 
 	return nil
 }
 
-// UpdateTOC 更新目录
+// UpdateTOC updates the existing table of contents.
 func (d *Document) UpdateTOC() error {
-	// 查找现有目录SDT
+	// Find the existing TOC SDT
 	tocSDT, tocIndex := d.findTOCSDT()
 	if tocSDT == nil {
-		// 如果没有找到SDT类型的TOC，尝试查找段落类型的TOC
+		// If no SDT-type TOC found, try finding a paragraph-type TOC
 		tocStart := d.findTOCStart()
 		if tocStart == -1 {
-			return fmt.Errorf("未找到目录")
+			return fmt.Errorf("table of contents not found")
 		}
 
-		// 删除现有目录条目
+		// Remove existing TOC entries
 		d.removeTOCEntries(tocStart)
 
-		// 重新生成目录条目
+		// Regenerate TOC entries
 		config := DefaultTOCConfig()
 		entries := d.collectHeadings(config.MaxLevel)
 		for _, entry := range entries {
 			if err := d.addTOCEntry(entry, config); err != nil {
-				return fmt.Errorf("更新目录条目失败: %v", err)
+				return fmt.Errorf("failed to update TOC entry: %v", err)
 			}
 		}
 		return nil
 	}
 
-	// 处理SDT类型的TOC
-	// 使用默认TOC配置
+	// Handle SDT-type TOC
+	// Use default TOC configuration
 	config := DefaultTOCConfig()
 
-	// 重新收集标题信息
+	// Re-collect heading information
 	entries := d.collectHeadings(config.MaxLevel)
 
-	// 清空SDT内容并重建
+	// Clear and rebuild SDT content
 	tocSDT.Content.Elements = []interface{}{}
 
-	// 添加目录标题段落
+	// Add TOC title paragraph
 	titlePara := &Paragraph{
 		Properties: &ParagraphProperties{
 			Spacing: &Spacing{
@@ -162,7 +162,7 @@ func (d *Document) UpdateTOC() error {
 		},
 	}
 
-	// 添加书签开始
+	// Add bookmark start
 	bookmarkStart := &BookmarkStart{
 		ID:   "0",
 		Name: "_Toc11693_WPSOffice_Type3",
@@ -170,63 +170,63 @@ func (d *Document) UpdateTOC() error {
 
 	tocSDT.Content.Elements = append(tocSDT.Content.Elements, bookmarkStart, titlePara)
 
-	// 为每个标题条目添加到目录中
+	// Add each heading entry to the TOC
 	for i, entry := range entries {
 		entryID := fmt.Sprintf("14746%d", 3000+i)
 		tocSDT.AddTOCEntry(entry.Text, entry.Level, entry.PageNum, entryID)
 	}
 
-	// 完成目录SDT构建
+	// Finalize the TOC SDT structure
 	tocSDT.FinalizeTOCSDT()
 
-	// 更新文档中的SDT
+	// Update the SDT in the document
 	d.Body.Elements[tocIndex] = tocSDT
 
 	return nil
 }
 
-// AddHeadingWithBookmark 添加带书签的标题
+// AddHeadingWithBookmark adds a heading with a bookmark to the document.
 func (d *Document) AddHeadingWithBookmark(text string, level int, bookmarkName string) *Paragraph {
 	if bookmarkName == "" {
 		bookmarkName = fmt.Sprintf("_Toc_%s", strings.ReplaceAll(text, " ", "_"))
 	}
 
-	// 添加书签开始
+	// Add bookmark start
 	bookmarkID := fmt.Sprintf("%d", len(d.Body.Elements))
 	bookmark := &BookmarkStart{
 		ID:   bookmarkID,
 		Name: bookmarkName,
 	}
 
-	// 创建标题段落
+	// Create heading paragraph
 	paragraph := d.AddHeadingParagraph(text, level)
 
-	// 在段落的Run中插入书签
+	// Insert bookmark into the paragraph's Runs
 	if len(paragraph.Runs) > 0 {
-		// 在第一个Run前插入书签开始
+		// Insert bookmark start before the first Run
 		bookmarkRun := Run{
 			Properties: &RunProperties{},
 		}
-		// 这里需要一个特殊的XML序列化处理来插入书签元素
+		// This requires special XML serialization handling to insert bookmark elements
 		paragraph.Runs = append([]Run{bookmarkRun}, paragraph.Runs...)
 	}
 
-	// 添加书签结束
+	// Add bookmark end
 	bookmarkEnd := &BookmarkEnd{
 		ID: bookmarkID,
 	}
 
-	// 将书签添加到文档中（简化处理）
-	_ = bookmark // 标记已使用
+	// Add bookmark to the document (simplified handling)
+	_ = bookmark // mark as used
 	d.Body.Elements = append(d.Body.Elements, bookmarkEnd)
 
 	return paragraph
 }
 
-// collectHeadings 收集标题信息
+// collectHeadings collects heading information from the document.
 func (d *Document) collectHeadings(maxLevel int) []TOCEntry {
 	var entries []TOCEntry
-	pageNum := 1 // 简化处理，实际需要计算真实页码
+	pageNum := 1 // Simplified; actual implementation would calculate real page numbers
 
 	for _, element := range d.Body.Elements {
 		if paragraph, ok := element.(*Paragraph); ok {
@@ -249,16 +249,16 @@ func (d *Document) collectHeadings(maxLevel int) []TOCEntry {
 	return entries
 }
 
-// getHeadingLevel 获取段落的标题级别
+// getHeadingLevel returns the heading level of a paragraph.
 func (d *Document) getHeadingLevel(paragraph *Paragraph) int {
 	if paragraph.Properties != nil && paragraph.Properties.ParagraphStyle != nil {
 		styleVal := paragraph.Properties.ParagraphStyle.Val
 
-		// 根据样式ID映射标题级别 - 支持数字ID
+		// Map heading level by style ID - supports numeric IDs
 		switch styleVal {
-		case "1": // heading 1 (有些文档使用1作为标题1)
+		case "1": // heading 1 (some documents use 1 for heading 1)
 			return 1
-		case "2": // heading 1 (Word默认使用2作为标题1)
+		case "2": // heading 1 (Word defaults to 2 for heading 1)
 			return 1
 		case "3": // heading 2
 			return 2
@@ -278,7 +278,7 @@ func (d *Document) getHeadingLevel(paragraph *Paragraph) int {
 			return 9
 		}
 
-		// 支持标准样式名称匹配
+		// Support standard style name matching
 		switch styleVal {
 		case "Heading1", "heading1", "Title1":
 			return 1
@@ -300,9 +300,9 @@ func (d *Document) getHeadingLevel(paragraph *Paragraph) int {
 			return 9
 		}
 
-		// 支持通用模式匹配（处理Heading后面跟数字的情况）
+		// Support generic pattern matching (handle "Heading" followed by a number)
 		if strings.HasPrefix(strings.ToLower(styleVal), "heading") {
-			// 提取数字部分
+			// Extract the numeric portion
 			numStr := strings.TrimPrefix(strings.ToLower(styleVal), "heading")
 			if numStr != "" {
 				if level := parseInt(numStr); level >= 1 && level <= 9 {
@@ -314,7 +314,7 @@ func (d *Document) getHeadingLevel(paragraph *Paragraph) int {
 	return 0
 }
 
-// parseInt 简单的字符串转整数函数
+// parseInt is a simple string-to-integer conversion function.
 func parseInt(s string) int {
 	switch s {
 	case "1":
@@ -340,7 +340,7 @@ func parseInt(s string) int {
 	}
 }
 
-// extractParagraphText 提取段落文本
+// extractParagraphText extracts the text content from a paragraph.
 func (d *Document) extractParagraphText(paragraph *Paragraph) string {
 	var text strings.Builder
 	for _, run := range paragraph.Runs {
@@ -349,9 +349,9 @@ func (d *Document) extractParagraphText(paragraph *Paragraph) string {
 	return text.String()
 }
 
-// insertTOCField 插入目录域
+// insertTOCField inserts a TOC field into the document.
 func (d *Document) insertTOCField(config *TOCConfig) error {
-	// 构建TOC指令
+	// Build the TOC instruction
 	instr := fmt.Sprintf("TOC \\o \"1-%d\"", config.MaxLevel)
 	if config.UseHyperlink {
 		instr += " \\h"
@@ -360,29 +360,29 @@ func (d *Document) insertTOCField(config *TOCConfig) error {
 		instr += " \\n"
 	}
 
-	// 创建目录域段落
+	// Create the TOC field paragraph
 	tocPara := &Paragraph{
 		Properties: &ParagraphProperties{
 			ParagraphStyle: &ParagraphStyle{Val: "TOC1"},
 		},
 	}
 
-	// 添加域开始
+	// Add field begin
 	fieldStart := Run{
 		Properties: &RunProperties{},
-		Text:       Text{Content: ""}, // 域开始标记
+		Text:       Text{Content: ""}, // Field begin marker
 	}
 
-	// 添加域指令
+	// Add field instruction
 	fieldInstr := Run{
 		Properties: &RunProperties{},
 		Text:       Text{Content: instr},
 	}
 
-	// 添加域结束
+	// Add field end
 	fieldEnd := Run{
 		Properties: &RunProperties{},
-		Text:       Text{Content: ""}, // 域结束标记
+		Text:       Text{Content: ""}, // Field end marker
 	}
 
 	tocPara.Runs = append(tocPara.Runs, fieldStart, fieldInstr, fieldEnd)
@@ -391,9 +391,9 @@ func (d *Document) insertTOCField(config *TOCConfig) error {
 	return nil
 }
 
-// addTOCEntry 添加目录条目
+// addTOCEntry adds a table of contents entry to the document.
 func (d *Document) addTOCEntry(entry TOCEntry, config *TOCConfig) error {
-	// 创建目录条目段落
+	// Create the TOC entry paragraph
 	entryPara := &Paragraph{
 		Properties: &ParagraphProperties{
 			ParagraphStyle: &ParagraphStyle{Val: fmt.Sprintf("TOC%d", entry.Level)},
@@ -401,30 +401,30 @@ func (d *Document) addTOCEntry(entry TOCEntry, config *TOCConfig) error {
 	}
 
 	if config.UseHyperlink {
-		// 创建超链接
+		// Create hyperlink
 		hyperlink := &Hyperlink{
 			Anchor: entry.BookmarkID,
 		}
 
-		// 标题文本
+		// Title text
 		titleRun := Run{
 			Properties: &RunProperties{},
 			Text:       Text{Content: entry.Text},
 		}
 		hyperlink.Runs = append(hyperlink.Runs, titleRun)
 
-		// 如果显示页码，添加引导线和页码
+		// If showing page numbers, add leader and page number
 		if config.ShowPageNum {
 			if config.DotLeader {
-				// 添加点状引导线
+				// Add dot leader
 				leaderRun := Run{
 					Properties: &RunProperties{},
-					Text:       Text{Content: strings.Repeat(".", 20)}, // 简化处理
+					Text:       Text{Content: strings.Repeat(".", 20)}, // Simplified handling
 				}
 				hyperlink.Runs = append(hyperlink.Runs, leaderRun)
 			}
 
-			// 添加页码
+			// Add page number
 			pageRun := Run{
 				Properties: &RunProperties{},
 				Text:       Text{Content: fmt.Sprintf("%d", entry.PageNum)},
@@ -432,9 +432,9 @@ func (d *Document) addTOCEntry(entry TOCEntry, config *TOCConfig) error {
 			hyperlink.Runs = append(hyperlink.Runs, pageRun)
 		}
 
-		// 将超链接添加到段落中
-		// 这里需要特殊处理，因为Hyperlink不是标准的Run
-		// 简化处理，直接作为文本添加
+		// Add hyperlink to paragraph
+		// This needs special handling since Hyperlink is not a standard Run
+		// Simplified: add directly as text
 		hyperlinkRun := Run{
 			Properties: &RunProperties{},
 			Text:       Text{Content: entry.Text},
@@ -449,7 +449,7 @@ func (d *Document) addTOCEntry(entry TOCEntry, config *TOCConfig) error {
 			entryPara.Runs = append(entryPara.Runs, pageRun)
 		}
 	} else {
-		// 不使用超链接的简单文本
+		// Plain text without hyperlinks
 		titleRun := Run{
 			Properties: &RunProperties{},
 			Text:       Text{Content: entry.Text},
@@ -469,7 +469,7 @@ func (d *Document) addTOCEntry(entry TOCEntry, config *TOCConfig) error {
 	return nil
 }
 
-// findTOCStart 查找目录开始位置
+// findTOCStart finds the starting position of the table of contents.
 func (d *Document) findTOCStart() int {
 	for i, element := range d.Body.Elements {
 		if paragraph, ok := element.(*Paragraph); ok {
@@ -483,7 +483,7 @@ func (d *Document) findTOCStart() int {
 	return -1
 }
 
-// findTOCSDT 查找目录SDT结构
+// findTOCSDT finds the TOC SDT structure in the document.
 func (d *Document) findTOCSDT() (*SDT, int) {
 	for i, element := range d.Body.Elements {
 		sdt, ok := element.(*SDT)
@@ -491,7 +491,7 @@ func (d *Document) findTOCSDT() (*SDT, int) {
 			continue
 		}
 
-		// 检查是否是目录SDT
+		// Check if this is a TOC SDT
 		if sdt.Properties == nil || sdt.Properties.DocPartObj == nil {
 			continue
 		}
@@ -507,21 +507,21 @@ func (d *Document) findTOCSDT() (*SDT, int) {
 	return nil, -1
 }
 
-// removeTOCEntries 删除现有目录条目
+// removeTOCEntries removes existing table of contents entries.
 func (d *Document) removeTOCEntries(startIndex int) {
-	// 简化处理：从startIndex开始查找并删除所有TOC样式的段落
+	// Simplified: find and remove all TOC-styled paragraphs starting from startIndex
 	var newElements []interface{}
 
-	// 保留start之前的元素
+	// Retain elements before startIndex
 	newElements = append(newElements, d.Body.Elements[:startIndex]...)
 
-	// 跳过TOC相关的元素
+	// Skip TOC-related elements
 	for i := startIndex; i < len(d.Body.Elements); i++ {
 		element := d.Body.Elements[i]
 		if paragraph, ok := element.(*Paragraph); ok {
 			if paragraph.Properties != nil && paragraph.Properties.ParagraphStyle != nil {
 				if !strings.HasPrefix(paragraph.Properties.ParagraphStyle.Val, "TOC") {
-					// 不是TOC样式，保留后续所有元素
+					// Not a TOC style, retain all subsequent elements
 					newElements = append(newElements, d.Body.Elements[i:]...)
 					break
 				}
@@ -532,19 +532,19 @@ func (d *Document) removeTOCEntries(startIndex int) {
 	d.Body.Elements = newElements
 }
 
-// SetTOCStyle 设置目录样式
+// SetTOCStyle sets the style for a specific TOC level.
 func (d *Document) SetTOCStyle(level int, style *TextFormat) error {
 	if level < 1 || level > 9 {
-		return fmt.Errorf("目录级别必须在1-9之间")
+		return fmt.Errorf("TOC level must be between 1 and 9")
 	}
 
 	styleName := fmt.Sprintf("TOC%d", level)
 
-	// 通过样式管理器设置目录样式
+	// Set TOC style via the style manager
 	styleManager := d.GetStyleManager()
 
-	// 创建段落样式（这里需要与样式系统集成）
-	// 简化处理，实际需要创建完整的样式定义
+	// Create paragraph style (needs integration with the style system)
+	// Simplified; actual implementation requires a complete style definition
 	_ = styleManager
 	_ = styleName
 	_ = style
@@ -552,41 +552,41 @@ func (d *Document) SetTOCStyle(level int, style *TextFormat) error {
 	return nil
 }
 
-// AutoGenerateTOC 自动生成目录，检测现有文档中的标题
+// AutoGenerateTOC automatically generates a TOC by detecting headings in the document.
 func (d *Document) AutoGenerateTOC(config *TOCConfig) error {
 	if config == nil {
 		config = DefaultTOCConfig()
 	}
 
-	// 查找现有目录位置
+	// Find existing TOC position
 	tocStart := d.findTOCStart()
 	var insertIndex int
 
 	if tocStart != -1 {
-		// 如果已有目录，删除现有目录条目
+		// If a TOC already exists, remove existing entries
 		d.removeTOCEntries(tocStart)
 		insertIndex = tocStart
 	} else {
-		// 如果没有目录，在文档开头插入
+		// If no TOC exists, insert at the beginning of the document
 		insertIndex = 0
 	}
 
-	// 收集文档中的所有标题并为它们添加书签
+	// Collect all headings and add bookmarks
 	entries := d.collectHeadingsAndAddBookmarks(config.MaxLevel)
 
 	if len(entries) == 0 {
-		return fmt.Errorf("文档中未找到标题（样式ID为2-10的段落）")
+		return fmt.Errorf("no headings found in the document (paragraphs with style IDs 2-10)")
 	}
 
-	// 使用真正的Word域字段生成目录，而不是简化的SDT
+	// Generate the TOC using real Word field codes instead of a simplified SDT
 	tocElements := d.createWordFieldTOC(config, entries)
 
-	// 将目录插入到指定位置
+	// Insert the TOC at the specified position
 	if insertIndex == 0 {
-		// 在开头插入
+		// Insert at the beginning
 		d.Body.Elements = append(tocElements, d.Body.Elements...)
 	} else {
-		// 在指定位置替换
+		// Replace at the specified position
 		newElements := make([]interface{}, 0, len(d.Body.Elements)+len(tocElements))
 		newElements = append(newElements, d.Body.Elements[:insertIndex]...)
 		newElements = append(newElements, tocElements...)
@@ -597,7 +597,7 @@ func (d *Document) AutoGenerateTOC(config *TOCConfig) error {
 	return nil
 }
 
-// GetHeadingCount 获取文档中标题的数量，用于调试
+// GetHeadingCount returns the number of headings in the document by level, useful for debugging.
 func (d *Document) GetHeadingCount() map[int]int {
 	counts := make(map[int]int)
 
@@ -613,16 +613,16 @@ func (d *Document) GetHeadingCount() map[int]int {
 	return counts
 }
 
-// ListHeadings 列出文档中所有的标题，用于调试
+// ListHeadings lists all headings in the document, useful for debugging.
 func (d *Document) ListHeadings() []TOCEntry {
-	return d.collectHeadings(9) // 获取所有级别的标题
+	return d.collectHeadings(9) // Retrieve headings at all levels
 }
 
-// createWordFieldTOC 创建使用真正Word域字段的目录
+// createWordFieldTOC creates a TOC using real Word field codes.
 func (d *Document) createWordFieldTOC(config *TOCConfig, entries []TOCEntry) []interface{} {
 	var elements []interface{}
 
-	// 创建目录SDT容器
+	// Create the TOC SDT container
 	tocSDT := &SDT{
 		Properties: &SDTProperties{
 			RunPr: &RunProperties{
@@ -649,7 +649,7 @@ func (d *Document) createWordFieldTOC(config *TOCConfig, entries []TOCEntry) []i
 		},
 	}
 
-	// 添加目录标题段落
+	// Add TOC title paragraph
 	titlePara := &Paragraph{
 		Properties: &ParagraphProperties{
 			Spacing: &Spacing{
@@ -677,10 +677,10 @@ func (d *Document) createWordFieldTOC(config *TOCConfig, entries []TOCEntry) []i
 
 	tocSDT.Content.Elements = append(tocSDT.Content.Elements, titlePara)
 
-	// 创建主TOC域段落
+	// Create the main TOC field paragraph
 	tocFieldPara := &Paragraph{
 		Properties: &ParagraphProperties{
-			ParagraphStyle: &ParagraphStyle{Val: "12"}, // TOC样式
+			ParagraphStyle: &ParagraphStyle{Val: "12"}, // TOC style
 			Tabs: &Tabs{
 				Tabs: []TabDef{
 					{
@@ -694,7 +694,7 @@ func (d *Document) createWordFieldTOC(config *TOCConfig, entries []TOCEntry) []i
 		Runs: []Run{},
 	}
 
-	// 添加TOC域开始
+	// Add TOC field begin
 	tocFieldPara.Runs = append(tocFieldPara.Runs, Run{
 		Properties: &RunProperties{
 			Bold:     &Bold{},
@@ -706,7 +706,7 @@ func (d *Document) createWordFieldTOC(config *TOCConfig, entries []TOCEntry) []i
 		},
 	})
 
-	// 添加TOC指令
+	// Add TOC instruction
 	instrContent := fmt.Sprintf("TOC \\o \"1-%d\" \\h \\u", config.MaxLevel)
 	tocFieldPara.Runs = append(tocFieldPara.Runs, Run{
 		Properties: &RunProperties{
@@ -720,7 +720,7 @@ func (d *Document) createWordFieldTOC(config *TOCConfig, entries []TOCEntry) []i
 		},
 	})
 
-	// 添加TOC域分隔符
+	// Add TOC field separator
 	tocFieldPara.Runs = append(tocFieldPara.Runs, Run{
 		Properties: &RunProperties{
 			Bold:     &Bold{},
@@ -734,13 +734,13 @@ func (d *Document) createWordFieldTOC(config *TOCConfig, entries []TOCEntry) []i
 
 	tocSDT.Content.Elements = append(tocSDT.Content.Elements, tocFieldPara)
 
-	// 为每个条目创建超链接段落
+	// Create a hyperlink paragraph for each entry
 	for _, entry := range entries {
 		entryPara := d.createTOCEntryWithFields(entry, config)
 		tocSDT.Content.Elements = append(tocSDT.Content.Elements, entryPara)
 	}
 
-	// 添加TOC域结束段落
+	// Add TOC field end paragraph
 	endPara := &Paragraph{
 		Properties: &ParagraphProperties{
 			ParagraphStyle: &ParagraphStyle{Val: "2"},
@@ -767,9 +767,9 @@ func (d *Document) createWordFieldTOC(config *TOCConfig, entries []TOCEntry) []i
 	return elements
 }
 
-// createTOCEntryWithFields 创建带域字段的目录条目
+// createTOCEntryWithFields creates a TOC entry with field codes.
 func (d *Document) createTOCEntryWithFields(entry TOCEntry, config *TOCConfig) *Paragraph {
-	// 确定目录样式ID
+	// Determine the TOC style ID
 	var styleVal string
 	switch entry.Level {
 	case 1:
@@ -798,10 +798,10 @@ func (d *Document) createTOCEntryWithFields(entry TOCEntry, config *TOCConfig) *
 		Runs: []Run{},
 	}
 
-	// 为每个条目生成唯一的书签ID
+	// Generate a unique bookmark ID for each entry
 	anchor := fmt.Sprintf("_Toc%d", generateUniqueID(entry.Text))
 
-	// 创建超链接域开始
+	// Create hyperlink field begin
 	para.Runs = append(para.Runs, Run{
 		Properties: &RunProperties{
 			Color: &Color{Val: "2F5496"},
@@ -811,7 +811,7 @@ func (d *Document) createTOCEntryWithFields(entry TOCEntry, config *TOCConfig) *
 		},
 	})
 
-	// 添加超链接指令
+	// Add hyperlink instruction
 	para.Runs = append(para.Runs, Run{
 		InstrText: &InstrText{
 			Space:   "preserve",
@@ -819,24 +819,24 @@ func (d *Document) createTOCEntryWithFields(entry TOCEntry, config *TOCConfig) *
 		},
 	})
 
-	// 超链接域分隔符
+	// Hyperlink field separator
 	para.Runs = append(para.Runs, Run{
 		FieldChar: &FieldChar{
 			FieldCharType: "separate",
 		},
 	})
 
-	// 添加标题文本
+	// Add heading text
 	para.Runs = append(para.Runs, Run{
 		Text: Text{Content: entry.Text},
 	})
 
-	// 添加制表符
+	// Add tab character
 	para.Runs = append(para.Runs, Run{
 		Text: Text{Content: "\t"},
 	})
 
-	// 添加页码引用域
+	// Add page reference field
 	para.Runs = append(para.Runs, Run{
 		FieldChar: &FieldChar{
 			FieldCharType: "begin",
@@ -856,19 +856,19 @@ func (d *Document) createTOCEntryWithFields(entry TOCEntry, config *TOCConfig) *
 		},
 	})
 
-	// 页码文本
+	// Page number text
 	para.Runs = append(para.Runs, Run{
 		Text: Text{Content: fmt.Sprintf("%d", entry.PageNum)},
 	})
 
-	// 页码域结束
+	// Page number field end
 	para.Runs = append(para.Runs, Run{
 		FieldChar: &FieldChar{
 			FieldCharType: "end",
 		},
 	})
 
-	// 超链接域结束
+	// Hyperlink field end
 	para.Runs = append(para.Runs, Run{
 		Properties: &RunProperties{
 			Color: &Color{Val: "2F5496"},
@@ -881,26 +881,26 @@ func (d *Document) createTOCEntryWithFields(entry TOCEntry, config *TOCConfig) *
 	return para
 }
 
-// generateUniqueID 基于文本内容生成唯一ID
+// generateUniqueID generates a unique ID based on text content.
 func generateUniqueID(text string) int {
-	// 使用简单的哈希算法生成唯一ID
+	// Use a simple hash algorithm to generate a unique ID
 	hash := 0
 	for _, char := range text {
 		hash = hash*31 + int(char)
 	}
-	// 确保是正数并限制在合理范围内
+	// Ensure the result is positive and within a reasonable range
 	if hash < 0 {
 		hash = -hash
 	}
-	return (hash % 90000) + 10000 // 生成10000-99999之间的数字
+	return (hash % 90000) + 10000 // Generate a number between 10000-99999
 }
 
-// collectHeadingsAndAddBookmarks 收集标题信息并添加书签
+// collectHeadingsAndAddBookmarks collects heading information and adds bookmarks.
 func (d *Document) collectHeadingsAndAddBookmarks(maxLevel int) []TOCEntry {
 	var entries []TOCEntry
-	pageNum := 1 // 简化处理，实际需要计算真实页码
+	pageNum := 1 // Simplified; actual implementation would calculate real page numbers
 
-	// 需要一个新的Elements切片来插入书签
+	// Build a new Elements slice to insert bookmarks
 	newElements := make([]interface{}, 0, len(d.Body.Elements)*2)
 	entryIndex := 0
 
@@ -910,7 +910,7 @@ func (d *Document) collectHeadingsAndAddBookmarks(maxLevel int) []TOCEntry {
 			if level > 0 && level <= maxLevel {
 				text := d.extractParagraphText(paragraph)
 				if text != "" {
-					// 为每个条目生成唯一的书签ID（与目录条目中使用的一致）
+					// Generate a unique bookmark ID for each entry (consistent with the TOC entries)
 					anchor := fmt.Sprintf("_Toc%d", generateUniqueID(text))
 
 					entry := TOCEntry{
@@ -921,17 +921,17 @@ func (d *Document) collectHeadingsAndAddBookmarks(maxLevel int) []TOCEntry {
 					}
 					entries = append(entries, entry)
 
-					// 在标题段落前添加书签开始标记
+					// Add bookmark start before the heading paragraph
 					bookmarkStart := &BookmarkStart{
 						ID:   fmt.Sprintf("%d", entryIndex),
 						Name: anchor,
 					}
 					newElements = append(newElements, bookmarkStart)
 
-					// 添加原段落
+					// Add the original paragraph
 					newElements = append(newElements, element)
 
-					// 在标题段落后添加书签结束标记
+					// Add bookmark end after the heading paragraph
 					bookmarkEnd := &BookmarkEnd{
 						ID: fmt.Sprintf("%d", entryIndex),
 					}
@@ -942,11 +942,11 @@ func (d *Document) collectHeadingsAndAddBookmarks(maxLevel int) []TOCEntry {
 				}
 			}
 		}
-		// 非标题段落直接添加
+		// Non-heading paragraphs are added directly
 		newElements = append(newElements, element)
 	}
 
-	// 更新文档元素
+	// Update the document elements
 	d.Body.Elements = newElements
 
 	return entries

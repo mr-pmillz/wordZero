@@ -1,4 +1,4 @@
-// Package document 错误处理
+// Package document provides error handling.
 package document
 
 import (
@@ -6,32 +6,32 @@ import (
 	"fmt"
 )
 
-// 预定义错误类型
+// Predefined error types
 var (
-	// ErrInvalidDocument 无效文档
+	// ErrInvalidDocument indicates an invalid document.
 	ErrInvalidDocument = errors.New("invalid document")
 
-	// ErrDocumentNotFound 文档未找到
+	// ErrDocumentNotFound indicates a document was not found.
 	ErrDocumentNotFound = errors.New("document not found")
 
-	// ErrInvalidFormat 无效格式
+	// ErrInvalidFormat indicates an invalid format.
 	ErrInvalidFormat = errors.New("invalid format")
 
-	// ErrCorruptedFile 文件损坏
+	// ErrCorruptedFile indicates a corrupted file.
 	ErrCorruptedFile = errors.New("corrupted file")
 
-	// ErrUnsupportedOperation 不支持的操作
+	// ErrUnsupportedOperation indicates an unsupported operation.
 	ErrUnsupportedOperation = errors.New("unsupported operation")
 )
 
-// DocumentError 文档操作错误
+// DocumentError represents a document operation error.
 type DocumentError struct {
-	Operation string // 操作名称
-	Cause     error  // 原因
-	Context   string // 上下文信息
+	Operation string // operation name
+	Cause     error  // cause
+	Context   string // context information
 }
 
-// Error 实现error接口
+// Error implements the error interface.
 func (e *DocumentError) Error() string {
 	if e.Context != "" {
 		return fmt.Sprintf("document operation failed: %s (%s): %v", e.Operation, e.Context, e.Cause)
@@ -39,12 +39,12 @@ func (e *DocumentError) Error() string {
 	return fmt.Sprintf("document operation failed: %s: %v", e.Operation, e.Cause)
 }
 
-// Unwrap 解包错误，支持errors.Is和errors.As
+// Unwrap unwraps the error, supporting errors.Is and errors.As.
 func (e *DocumentError) Unwrap() error {
 	return e.Cause
 }
 
-// NewDocumentError 创建新的文档错误
+// NewDocumentError creates a new document error.
 func NewDocumentError(operation string, cause error, context string) *DocumentError {
 	return &DocumentError{
 		Operation: operation,
@@ -53,7 +53,7 @@ func NewDocumentError(operation string, cause error, context string) *DocumentEr
 	}
 }
 
-// WrapError 包装错误，添加操作上下文
+// WrapError wraps an error with operation context.
 func WrapError(operation string, err error) error {
 	if err == nil {
 		return nil
@@ -61,7 +61,7 @@ func WrapError(operation string, err error) error {
 	return NewDocumentError(operation, err, "")
 }
 
-// WrapErrorWithContext 包装错误，添加操作和上下文信息
+// WrapErrorWithContext wraps an error with operation and context information.
 func WrapErrorWithContext(operation string, err error, context string) error {
 	if err == nil {
 		return nil
@@ -69,19 +69,19 @@ func WrapErrorWithContext(operation string, err error, context string) error {
 	return NewDocumentError(operation, err, context)
 }
 
-// ValidationError 验证错误
+// ValidationError represents a validation error.
 type ValidationError struct {
-	Field   string // 字段名
-	Value   string // 错误值
-	Message string // 错误消息
+	Field   string // field name
+	Value   string // invalid value
+	Message string // error message
 }
 
-// Error 实现error接口
+// Error implements the error interface.
 func (e *ValidationError) Error() string {
 	return fmt.Sprintf("validation error for field '%s' with value '%s': %s", e.Field, e.Value, e.Message)
 }
 
-// NewValidationError 创建新的验证错误
+// NewValidationError creates a new validation error.
 func NewValidationError(field, value, message string) *ValidationError {
 	return &ValidationError{
 		Field:   field,
