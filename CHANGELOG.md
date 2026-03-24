@@ -1,792 +1,539 @@
-# WordZero 更新日志
-
-## [Unreleased]
-
-## [v1.6.0] - 2025-12-26
-
-### 🐛 修复
-
-#### 模板页眉页脚引用修复 ✨ **重要修复**
-- **修复问题**: 解决了DOCX渲染时模板页眉页脚引用丢失的问题
-- **技术细节**: 
-  - 解析 `<w:sectPr>` 块，即使 Word 将其嵌套在段落属性中
-  - 通过新的 `setSectionProperties` 辅助方法保持读取 DOCX 文件时的关系引用
-  - 防止序列化时 `r:id` 引用被丢弃
-- **验证**: 添加了回归测试，确认重写 DOCX 后页眉页脚变量仍能正确替换
-
-#### OpenFromMemory bug 修复
-- **修复问题**: 修复了通过 `OpenFromMemory` 方法读取 Word 模板后，生成内容再保存时导致 Microsoft Office Word 无法打开文件的问题
-- **问题表现**: 使用 Office 2016 等版本打开时会提示文件错误
-- **感谢**: 感谢 @xNeo404 的贡献
-
-#### Table.GetCellText 修复
-- `Table.GetCellText` 现在返回单元格内所有段落与所有 Run 的完整文本，并以 `\n` 连接段落，修复此前只能获取第一段首个 Run 文本导致多行内容丢失的问题。
-  - 影响：如果下游代码假设无换行符，需自行 `strings.ReplaceAll(text, "\n", "")` 或按需拆分。
-  - 限制：同一段落内的 `<w:br/>` 软换行尚未单独解析（未来可扩展）。
-
----
-
-## [v1.5.0] - 2025-11-25
-
-### 🚀 新增功能
-
-#### LaTeX 数学公式支持 ✨ **新增**
-- **Markdown转Word**: 支持 LaTeX 数学公式转换
-- **技术细节**: 修复 LaTeX 命令替换顺序，防止部分替换问题
-
-#### 表格单元格复杂内容 API ✨ **新增**
-- **AddCellParagraph**: 向表格单元格添加段落
-- **AddCellFormattedParagraph**: 添加带格式的段落
-- **ClearCellParagraphs/GetCellParagraphs**: 单元格段落管理
-- **AddNestedTable**: 支持在单元格中添加嵌套表格
-- **AddCellList**: 支持多种列表类型
-- **AddCellImage/AddCellImageFromFile/AddCellImageFromData**: 单元格图片插入
-
-#### SnapToGrid 网格对齐支持 ✨ **新增**
-- **自定义样式**: 添加 SnapToGrid 字段到段落属性
-- **段落格式**: 添加 SnapToGrid 选项用于禁用网格对齐
-- **用途**: 设置为 false 可使自定义 LineSpacing 在启用网格的文档中正常工作
-
-#### 段落级文本格式化方法 ✨ **新增**
-- 添加下划线、粗体、斜体等段落级文本格式化方法
-
-#### 段落分页符 ✨ **新增**
-- **Paragraph.AddPageBreak()**: 在段落内添加分页符
-
-#### 页眉页脚格式化支持 ✨ **新增**
-- 支持带 TextFormat 和对齐选项的格式化页眉页脚
-
-#### 段落格式属性 ✨ **新增**
-- **KeepNext**: 与下段同页
-- **KeepLines**: 段中不分页
-- **PageBreakBefore**: 段前分页
-- **WidowControl**: 孤行控制
-- **OutlineLevel**: 大纲级别
-
-### 🐛 修复
-
-#### 模板引擎修复
-- 修复模板变量替换时图片丢失问题，添加 drawing 元素解析
-- 修复模板变量替换时段落编号丢失问题
-- 修复模板引擎支持页眉页脚变量
-- 修复模板渲染保持文档结构（页眉、页脚等）
-
-#### 表格功能修复
-- **AddTable/CreateTable**: 现在返回错误而非 nil，提供更好的错误处理
-- 修复模板导出时内嵌表格消失问题
-
-#### 其他修复
-- 修复浮动图片导致 Word 文档打开失败的问题
-- 修复 Markdown 转换时软换行处理问题
-- 修复非 ASCII 图片文件名导致文档损坏的问题
-- 修复嵌套 `{{#each}}` 循环渲染问题
-- 修复 `UpdateTOC` 无法定位 `GenerateTOC` 创建的目录问题
-- 修复表格单元格合并后对齐问题
-
----
-
-## [v1.4.0] - 2025-11-11
-
-### 🐛 修复
-
-感谢以下贡献者的 PR：
-- @litecn 修复 xml 规范问题
-- @CoffeeSwt 混合格式段落字体下划线和删除线问题修复
-- @xNeo404 实现从内存中打开文档的新增 `OpenFromMemory` 函数/修复 md 转 word 问题
-- @Padane22-spec 修复通过 Open 打开的文档在 Save 后无法正常打开的问题
-
----
-
-## [v1.3.9] - 2025-06-06
-
-### 🐛 修复
-
-#### 完全遵循 OOXML 规范的修复版本
-- 修复添加图片 Word 无法打开问题
-- 修复 md 转 word 代码块样式问题
-- 模板渲染增加图片占位功能
-
----
-
-## [v1.3.8] - 2025-06-05
-
-### 🔧 改进
-- 模板渲染部分代码更新，修复多处继承样式问题
-- 添加缺失的样式解析
-- 添加多语言文档支持
-
----
-
-## [v1.3.7] - 2025-06-04
-
-### 🚀 新增功能
-- 增加 markdown 导入导出功能
-- 增加 if else 模板语法支持
-
-### 🐛 修复
-- 修复模板渲染问题
-
----
-
-## [v1.3.6] - 2025-06-04
-
-### 🚀 新增功能
-
-### markdown导入导出功能
-
-#### if else 条件语句支持 ✨ **全新实现**
-- **完整条件语句系统**: 实现了模板引擎中的 `{{#if}}...{{#else}}...{{/if}}` 语法支持
-- **多种条件判断**: 支持布尔值、字符串、数字等多种数据类型的条件判断
-- **嵌套条件支持**: 支持 if else 语句与循环语句的任意嵌套组合
-- **语法特性**:
-  - `{{#if condition}}` - 条件开始
-  - `{{#else}}` - 否则分支
-  - `{{/if}}` - 条件结束
-  - 支持空值、零值的智能判断
-- **使用示例**:
-  ```
-  {{#if isVIP}}
-    尊贵的VIP客户：{{name}}
-  {{#else}}
-    普通客户：{{name}}
-  {{/if}}
-  ```
-
-### 🐛 问题修复
-
-#### 模板渲染引擎全面优化 ✨ **重要修复**
-- **修复问题**: 解决了复杂模板渲染中的多个关键问题
-- **影响范围**: 所有使用模板功能的场景，特别是包含条件语句和循环的复杂模板
-- **问题表现**: 
-  - if else 语句在某些情况下解析不正确
-  - 嵌套模板语法处理异常
-  - 条件判断逻辑不够准确
-  - 模板语法识别存在边界问题
-- **修复方案**:
-  - **语法解析优化**: 改进模板语法的正则表达式匹配逻辑
-  - **条件判断增强**: 完善布尔值、空值、零值的判断机制
-  - **嵌套处理改进**: 优化嵌套结构的解析和渲染顺序
-  - **错误处理增强**: 增加详细的错误信息和调试支持
-
-#### 模板引擎性能优化
-- **渲染效率提升**: 优化模板解析算法，提高渲染速度
-- **内存使用优化**: 减少模板渲染过程中的内存占用
-- **递归安全性**: 增强嵌套模板的递归处理安全性
-
-### 🔧 技术架构改进
-
-#### 条件语句引擎
-- **新增方法**:
-  - `renderIfElseStatements()` - 处理 if else 语句渲染
-  - `evaluateCondition()` - 条件表达式求值
-  - `findMatchingElse()` - 匹配对应的 else 分支
-  - `findMatchingEndIf()` - 匹配对应的 endif 标记
-- **类型安全**: 支持多种Go数据类型的条件判断
-- **语法兼容**: 与现有循环语法完全兼容，支持任意嵌套
-
-#### 模板解析优化
-- **正则表达式改进**: 更精确的模板语法识别
-- **解析顺序优化**: 确保嵌套结构按正确顺序处理
-- **错误恢复机制**: 语法错误时提供有用的错误信息
-
-### 🎯 功能完整性
-
-#### 条件语句特性
-- ✅ **基础条件判断**: 支持 `{{#if variable}}` 基础语法
-- ✅ **else 分支**: 支持 `{{#else}}` 否则分支
-- ✅ **嵌套条件**: 支持条件语句内嵌套其他模板语法
-- ✅ **循环内条件**: 支持在循环内使用条件语句
-- ✅ **多种数据类型**: 支持 `bool`, `string`, `int`, `float64` 等类型
-
-#### 渲染稳定性
-- ✅ **语法容错**: 对不规范的模板语法提供友好错误提示
-- ✅ **性能稳定**: 复杂模板渲染性能大幅提升
-- ✅ **内存安全**: 避免大模板渲染时的内存泄漏
-- ✅ **类型安全**: 条件判断时的类型转换安全可靠
-
-### 📚 示例程序更新
-
-#### 条件语句演示
-- 更新现有模板演示程序，增加 if else 语法示例
-- 新增复杂嵌套模板的使用案例
-- 提供不同数据类型的条件判断示例
-
-### 🔍 质量改进
-
-#### 模板引擎稳定性
-- ✅ **语法完整性**: 支持完整的条件语句语法体系
-- ✅ **嵌套兼容性**: 与现有循环、变量语法完美兼容
-- ✅ **性能优化**: 模板渲染效率显著提升
-- ✅ **错误处理**: 提供详细的模板语法错误信息
-
----
-
-## [v1.3.5] - 2025-06-04
-
-### 🐛 模板样式保持问题修复 ✨ **重要修复**
-
-#### 深度样式复制机制完善
-- **修复问题**: 解决了模板渲染中字体、字体大小、表格边框、单元格水平居中等样式丢失的问题
-- **影响范围**: 使用手动创建的Word模板文件进行变量替换的所有场景
-- **问题表现**: 
-  - 字体信息丢失（FontFamily信息未正确复制）
-  - 字体大小丢失（FontSize属性未正确保持）
-  - 表格边框样式丢失（TableBorders和TableCellBorders属性未深度复制）
-  - 单元格水平居中对齐丢失（VAlign和段落对齐属性未完整复制）
-  - 文字颜色保持正常（Color属性复制正确）
-
-#### 深度复制机制重构
-- **完整属性复制**: 重构了整个样式复制机制，确保所有样式属性的深度复制
-  - `cloneParagraph()` - 完整复制段落及其所有属性
-  - `cloneParagraphProperties()` - 深度复制段落属性（对齐、间距、缩进等）
-  - `cloneRun()` - 完整复制文本运行及其格式
-  - `cloneRunProperties()` - 深度复制文本运行属性（粗体、斜体、字体、颜色等）
-  - `cloneTable()` - 完整复制表格及其所有属性
-  - `cloneTableProperties()` - 深度复制表格属性（边框、样式、布局等）
-  - `cloneTableCellProperties()` - 深度复制单元格属性（边框、对齐、合并等）
-
-#### 字体样式修复 ✨
-- **字体族复制**: 完整复制 `FontFamily` 属性，包含 ASCII、HAnsi、EastAsia、CS 字段
-- **字体大小保持**: 正确复制 `FontSize` 属性，保持原有字体大小设置
-- **字体颜色保持**: 继续正确保持 `Color` 属性（原本已正常工作）
-
-#### 表格样式修复 ✨
-- **表格边框保持**: 深度复制 `TableBorders` 所有边框属性（上下左右、内部边框）
-- **单元格边框保持**: 深度复制 `TableCellBorders` 包括对角线边框
-- **边框详细属性**: 完整保持边框样式、粗细、颜色、主题颜色等所有属性
-
-#### 单元格对齐修复 ✨
-- **垂直对齐保持**: 正确复制 `VAlign` 属性，保持单元格垂直对齐设置
-- **水平对齐保持**: 通过段落 `Justification` 属性保持水平对齐
-- **文字方向保持**: 复制 `TextDirection` 属性，保持文字方向设置
-
-#### 其他样式属性
-- **网格跨度**: 正确复制 `GridSpan` 属性，保持单元格合并状态
-- **垂直合并**: 正确复制 `VMerge` 属性，保持行合并状态
-- **单元格边距**: 深度复制 `TableCellMarginsCell` 属性
-- **底纹样式**: 正确复制表格和单元格的底纹/背景色设置
-
-### 🔧 技术改进
-
-#### 代码结构优化
-- **模块化复制方法**: 将复杂的复制逻辑分解为多个专门的方法
-- **类型安全**: 修复了所有Go结构体类型兼容性问题
-- **深度复制**: 确保所有嵌套对象都被正确的深度复制而非浅拷贝
-
-### 🎯 修复验证
-
-#### 修复效果确认
-- ✅ **字体保持**: 模板中设置的字体族信息完全保持
-- ✅ **字体大小保持**: 所有字体大小设置正确保持  
-- ✅ **表格边框保持**: 表格和单元格边框样式完整保持
-- ✅ **单元格对齐保持**: 水平和垂直对齐设置正确保持
-- ✅ **颜色保持**: 文字颜色继续正确保持（原本正常）
-
-#### 模板兼容性
-- ✅ **程序生成模板**: enhanced_template_demo等程序生成的模板继续正常工作
-- ✅ **手动Word模板**: 从Microsoft Word或WPS手动创建的模板现在可以正确保持所有样式
-- ✅ **复杂样式模板**: 包含复杂格式设置的模板现在可以完美渲染
-
----
-
-## [v1.3.4] - 2025-06-03
-
-### 🚀 重大功能修复
-
-#### 模板功能重大重构 ✨
-- **修复问题**: 彻底解决了模板功能中样式丢失、表格处理错误的问题
-- **影响范围**: 从文档模板生成功能的完整重构，影响所有使用模板的场景
-- **错误表现**: 
-  - 普通变量样式丢失（粗体、颜色、字体等格式信息）
-  - 表格被错误转换为标签形式而非保持原始结构
-  - 文档格式在模板渲染过程中完全丢失
-  - 复杂文档结构无法正确保持
-- **重构方案**:
-  - **保持文档结构**: 不再将文档转换为纯文本，直接在原始文档结构上进行变量替换
-  - **新增深度复制**: 实现 `cloneDocument()` 方法，完整复制所有文档元素和属性
-  - **直接结构替换**: 创建 `RenderTemplateToDocument()` 主要渲染方法
-  - **段落格式保持**: 实现 `replaceVariablesInParagraph()` 保持所有文本格式
-  - **表格模板支持**: 完整的表格模板循环功能，支持 `{{#each items}}` 语法
-
-#### 表格模板功能 ✨ **全新实现**
-- **表格循环渲染**: 完整支持表格行循环模板
-- **模板语法支持**: 
-  - `{{#each items}}` - 表格数据循环
-  - `{{name}}`, `{{position}}` - 单元格变量替换
-  - `{{/each}}` - 循环结束标记
-- **样式保持**: 表头样式、单元格格式完全保持
-- **智能检测**: 自动检测表格是否包含模板语法
-- **关键功能**:
-  - `isTableTemplate()` - 检测表格模板
-  - `renderTableTemplate()` - 渲染表格模板
-  - `cloneTableRow()` - 克隆表格行保持所有属性
-
-#### 样式保持功能 ✨ **完全修复**
-- **文本格式保持**: 粗体、颜色、字体大小、对齐方式等所有格式
-- **段落属性保持**: 段落级别的格式设置完整保持
-- **运行属性保持**: 文本运行级别的所有属性（颜色、字体等）
-- **复合变量支持**: 单个段落内多个变量混合替换保持格式
-- **示例效果**:
-  ```
-  原文: 作者：{{author}} | 日期：{{date}}  (蓝色粗体)
-  结果: 作者：张开发 | 日期：2025年06月03日  (保持蓝色粗体)
-  ```
-
-### 🔧 技术架构改进
-
-#### 结构体字段类型修复
-- **Paragraph.Runs**: 从 `[]*Run` 修正为 `[]Run`
-- **Text 结构**: 从 `*Text` 修正为 `Text`
-- **TableRow.Cells**: 从 `[]*TableCell` 修正为 `[]TableCell`
-- **TableCell 字段**: 从 `Content` 修正为 `Paragraphs`
-- **类型兼容性**: 修复了大量Go结构体类型不兼容问题
-
-#### 新增核心方法
-- **`RenderTemplateToDocument()`**: 新的主要模板渲染方法
-- **`replaceVariablesInDocument()`**: 文档级变量替换
-- **`replaceVariablesInParagraph()`**: 段落级变量替换保持格式
-- **`replaceVariablesInTable()`**: 表格变量替换和模板处理
-- **`cloneDocument()`**: 深度复制文档所有元素
-- **`cloneTableRow()`**: 表格行克隆保持所有属性
-
-### 🎯 演示程序完善
-
-#### 增强模板演示
-- **新增文件**: `examples/enhanced_template_demo/enhanced_template_demo.go`
-- **三大演示**:
-  1. **样式变量模板**: 展示文本格式保持（粗体、颜色、字体、对齐）
-  2. **表格模板功能**: 表头样式和数据循环渲染
-  3. **复杂文档模板**: 多功能组合演示
-- **实际效果验证**: 
-  - 样式变量完全保持格式
-  - 表格模板正确循环生成
-  - 复杂文档结构完整保持
-
-### 🔍 质量改进
-
-#### 模板引擎稳定性
-- ✅ **格式完整性**: 模板渲染过程中所有样式和格式保持
-- ✅ **结构保持**: Word文档结构在整个模板过程中维护完整性  
-- ✅ **表格支持**: 维护表格结构和样式的表格模板循环
-- ✅ **类型安全**: 修复所有Go结构体类型兼容性问题
-- ✅ **功能完整**: 单个段落内混合格式文本的正确保持
-
----
-
-## [v1.3.3] - 2025-06-02
-
-### 🐛 问题修复
-
-#### 页面设置保存和加载问题修复 ✨ **重要修复**
-- **修复问题**: 解决了页面设置在文档保存和重新加载后丢失的问题
-- **影响范围**: 主要影响页面配置功能，包括页面尺寸、方向、边距等设置
-- **错误表现**: 
-  - 设置页面为Letter横向，保存后重新打开变成A4纵向
-  - XML结构中SectionProperties位置不正确
-  - 页面设置解析失败，返回默认配置
-- **根本原因**:
-  - `getSectionProperties()` 方法只检查Elements数组的最后一个元素
-  - 文档序列化时SectionProperties被放在body开头，违反了Word XML规范
-  - 解析时无法正确找到SectionProperties元素
-- **修复方案**:
-  - 修改 `getSectionProperties()` 方法，在整个Elements数组中查找SectionProperties
-  - 优化 `Body.MarshalXML()` 方法，确保SectionProperties始终位于body末尾
-  - 遵循OpenXML规范，将sectPr放在正确位置
-- **修复后效果**:
-  - 页面设置保存后正确加载：Letter横向 → Letter横向 ✓
-  - XML结构符合Word标准：`<w:body><w:p>...</w:p><w:sectPr>...</w:sectPr></w:body>`
-  - 所有页面配置（尺寸、方向、边距等）正确保持
-
-#### 技术细节
-- **修改文件**: 
-  - `pkg/document/page.go` - 修复 `getSectionProperties()` 方法
-  - `pkg/document/document.go` - 优化 `Body.MarshalXML()` 序列化逻辑
-- **修改内容**: 
-  - 在Elements数组中全局搜索SectionProperties而非只检查最后一个元素
-  - 序列化时分离SectionProperties和其他元素，确保sectPr在body末尾
-  - 移除位置假设，提高容错性
-- **影响功能**: 
-  - 所有页面设置功能（SetPageSettings, GetPageSettings等）
-  - 文档保存和加载的完整性
-  - XML文档结构的规范性
-
-### 🔍 质量改进
-
-#### XML结构规范性
-- ✅ **符合OpenXML规范**: SectionProperties现在正确位于body末尾
-- ✅ **文档结构完整性**: 页面设置在保存/加载过程中保持完整
-- ✅ **解析稳定性**: 即使XML结构有变化也能正确解析SectionProperties
-- ✅ **Word兼容性**: 生成的文档完全符合Microsoft Word和WPS的要求
-
-#### 测试验证
-- 通过 `TestPageSettingsIntegration` 验证修复效果
-- 使用 `TestDebugPageSettings` 进行详细调试验证
-- 确认页面设置在完整的保存/加载周期中保持正确
-
----
-
-## [v1.3.2] - 2025-06-02
-
-### 🐛 问题修复
-
-#### 模板引擎循环内条件表达式修复 ✨ **重要修复**
-- **修复问题**: 解决了模板引擎中循环内部条件表达式无法正确渲染的问题
-- **影响范围**: 主要影响使用复杂模板的场景，特别是 `{{#each}}` 循环内包含 `{{#if}}` 条件语句
-- **错误表现**: 
-  - 循环内的条件表达式保持原始模板语法，未被正确渲染
-  - 例如：`{{#if isLeader}}👑 团队负责人{{/if}}` 在循环中不生效
-- **修复方案**:
-  - 优化 `renderLoopConditionals()` 函数的布尔值转换逻辑
-  - 调整模板渲染顺序，先处理循环语句，再处理条件语句
-  - 改进条件表达式的数据类型支持（字符串、数字、布尔值等）
-- **修复后效果**:
-  - 循环内条件表达式正确渲染：`{{#each teamMembers}}{{#if isLeader}}👑 团队负责人{{/if}}{{/each}}`
-  - 支持多种数据类型的条件判断：`bool`, `string`, `int`, `int64`, `float64`
-  - 完美支持嵌套的条件和循环结构
-
-#### 技术细节
-- **修改文件**: `pkg/document/template.go`
-- **修改内容**: 
-  - 优化 `renderLoopConditionals()` 函数的类型判断逻辑
-  - 调整 `renderTemplate()` 中的渲染顺序
-  - 简化 `renderConditionals()` 函数，移除不必要的循环检测
-- **影响功能**: 
-  - 模板引擎的循环内条件渲染
-  - 复杂模板的嵌套结构处理
-  - 所有使用条件表达式的模板功能
-
-### 🔍 质量改进
-
-#### 模板引擎稳定性
-- ✅ **条件表达式完整支持**: 循环内外的条件表达式都能正确工作
-- ✅ **数据类型兼容性**: 支持多种数据类型的条件判断
-- ✅ **嵌套结构支持**: 完美支持条件语句和循环语句的任意嵌套
-- ✅ **渲染顺序优化**: 确保模板元素按正确顺序处理
-
-#### 测试验证
-- 通过 `test_loop_condition.go` 验证修复效果
-- 使用复杂模板演示验证嵌套结构
-- 确认所有模板测试用例通过
-
----
-
-## [v1.3.1] - 2025-05-30
-
-### 🐛 问题修复
-
-#### XML命名空间错误修复 ✨ **重要修复**
-- **修复问题**: 解决了生成的XML文档中 `w15:color` 元素命名空间未声明的错误
-- **影响范围**: 主要影响使用目录功能（TOC）的文档
-- **错误表现**: 
-  - XML linter 报错：`The prefix "w15" for element "w15:color" is not bound`
-  - 生成的document.xml缺少 `xmlns:w15` 命名空间声明
-- **修复方案**:
-  - 在 `serializeDocument()` 方法中添加 `w15` 命名空间声明
-  - 添加 `xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml"` 到文档根元素
-- **修复后效果**:
-  ```xml
-  <w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main" 
-              xmlns:w15="http://schemas.microsoft.com/office/word/2012/wordml">
-  ```
-
-#### 技术细节
-- **修改文件**: `pkg/document/document.go`
-- **修改内容**: 在 `documentXML` 结构体中添加 `XmlnsW15` 字段
-- **影响功能**: 
-  - 目录生成（TOC）
-  - 结构化文档标签（SDT）
-  - 所有使用 `w15:color` 的功能
-
-### 🔍 质量改进
-
-#### XML 标准合规性
-- ✅ **符合OOXML规范**: 生成的XML现在完全符合Office Open XML标准
-- ✅ **命名空间完整性**: 所有使用的XML命名空间都正确声明
-- ✅ **XML验证通过**: 生成的文档能够通过XML linter验证
-- ✅ **Word兼容性**: 与Microsoft Word和WPS完全兼容
-
-#### 测试验证
-- 通过 `advanced_features` 示例验证修复效果
-- 使用 `unzip_tool.exe` 解压验证XML结构
-- 确认所有 `w15:` 前缀元素都有正确的命名空间绑定
-
----
-
-## [v1.3.0] - 2025-01-18
-
-### ✨ 重大功能新增
-
-#### 页眉页脚功能 ✨ **全新实现**
-- **完整的页眉页脚支持**: 实现了页眉、页脚的创建和管理
-- **多种页眉页脚类型**: 
-  - `Default` - 默认页眉页脚
-  - `First` - 首页页眉页脚  
-  - `Even` - 偶数页页眉页脚
-- **页码显示功能**: 支持在页眉页脚中显示页码
-- **关键API**:
-  - `AddHeader()` - 添加页眉
-  - `AddFooter()` - 添加页脚
-  - `AddHeaderWithPageNumber()` - 添加带页码的页眉
-  - `AddFooterWithPageNumber()` - 添加带页码的页脚
-  - `SetDifferentFirstPage()` - 设置首页不同
-
-#### 目录生成功能 ✨ **全新实现**
-- **自动目录生成**: 基于标题样式自动创建目录
-- **多级目录支持**: 支持1-9级标题的目录条目
-- **目录配置选项**:
-  - 目录标题自定义
-  - 页码显示控制
-  - 超链接支持
-  - 点状引导线
-- **书签集成**: 标题自动生成书签，支持导航
-- **关键API**:
-  - `GenerateTOC()` - 生成目录
-  - `UpdateTOC()` - 更新目录
-  - `AddHeadingWithBookmark()` - 添加带书签的标题
-  - `AutoGenerateTOC()` - 自动生成目录
-  - `GetHeadingCount()` - 获取标题统计
-
-#### 脚注和尾注功能 ✨ **全新实现**
-- **脚注管理**: 完整的脚注添加、删除和配置功能
-- **尾注支持**: 文档末尾的尾注功能
-- **多种编号格式**:
-  - 十进制数字 (`decimal`)
-  - 小写/大写罗马数字 (`lowerRoman`, `upperRoman`)
-  - 小写/大写字母 (`lowerLetter`, `upperLetter`)
-  - 符号编号 (`symbol`)
-- **脚注位置控制**:
-  - 页面底部 (`pageBottom`)
-  - 文本下方 (`beneathText`)
-  - 节末尾 (`sectEnd`)
-  - 文档末尾 (`docEnd`)
-- **编号重启规则**:
-  - 连续编号 (`continuous`)
-  - 每节重启 (`eachSect`)
-  - 每页重启 (`eachPage`)
-- **关键API**:
-  - `AddFootnote()` - 添加脚注
-  - `AddEndnote()` - 添加尾注
-  - `SetFootnoteConfig()` - 设置脚注配置
-  - `GetFootnoteCount()`, `GetEndnoteCount()` - 获取数量统计
-
-#### 列表和编号功能 ✨ **全新实现**
-- **无序列表**: 支持多种项目符号
-  - 圆点符号 (`•`)
-  - 空心圆 (`○`)
-  - 方块 (`■`)
-  - 短横线 (`–`)
-  - 箭头 (`→`)
-- **有序列表**: 支持多种编号格式
-  - 十进制数字 (`decimal`)
-  - 小写/大写字母 (`lowerLetter`, `upperLetter`)
-  - 小写/大写罗马数字 (`lowerRoman`, `upperRoman`)
-- **多级列表**: 支持最多9级嵌套
-- **编号控制**: 支持重新开始编号
-- **关键API**:
-  - `AddListItem()` - 添加列表项
-  - `AddBulletList()` - 添加无序列表
-  - `AddNumberedList()` - 添加有序列表
-  - `CreateMultiLevelList()` - 创建多级列表
-  - `RestartNumbering()` - 重启编号
-
-#### 结构化文档标签（SDT） ✨ **全新实现**
-- **目录SDT结构**: 专门用于目录功能的SDT实现
-- **SDT属性管理**: 完整的SDT属性和内容控制
-- **文档部件支持**: 支持SDT占位符和文档部件
-- **关键API**:
-  - `CreateTOCSDT()` - 创建目录SDT结构
-
-#### 域字段功能 ✨ **全新实现**
-- **超链接域**: 支持文档内部超链接
-- **页码引用域**: 支持页码引用和导航
-- **域字符控制**: 完整的域开始、分隔、结束标记
-- **关键API**:
-  - `CreateHyperlinkField()` - 创建超链接域
-  - `CreatePageRefField()` - 创建页码引用域
-
-### 🏗️ 架构改进
-
-#### 新增核心文件
-- `header_footer.go` - 页眉页脚功能实现
-- `toc.go` - 目录生成功能实现
-- `footnotes.go` - 脚注尾注功能实现
-- `numbering.go` - 列表编号功能实现
-- `sdt.go` - 结构化文档标签实现
-- `field.go` - 域字段功能实现
-
-#### 文档完善
-- 新增 `pkg/document/README.md` 详细API文档更新
-- 增加了所有新功能的使用示例和配置说明
-- 新增配置结构体文档说明
-
-### 📚 示例程序
-
-#### 新增示例目录
-- `examples/page_settings/` - 页面设置演示
-- `examples/advanced_features/` - 高级功能综合演示
-  - 页眉页脚演示
-  - 目录生成演示
-  - 脚注尾注演示
-  - 列表编号演示
-
-### 🔧 配置结构体
-
-#### 新增配置类型
-- `TOCConfig` - 目录配置
-- `FootnoteConfig` - 脚注配置
-- `ListConfig` - 列表配置
-- `HeaderFooterType` - 页眉页脚类型枚举
-- `FootnoteNumberFormat` - 脚注编号格式枚举
-- `ListType` - 列表类型枚举
-- `BulletType` - 项目符号类型枚举
-
-### 📝 使用示例更新
-
-```go
-// 页眉页脚示例
-doc.AddHeader(document.HeaderFooterTypeDefault, "这是页眉")
-doc.AddFooterWithPageNumber(document.HeaderFooterTypeDefault, "第", true)
-doc.SetDifferentFirstPage(true)
-
-// 目录示例
-doc.AddHeadingWithBookmark("第一章 概述", 1, "chapter1")
-tocConfig := document.DefaultTOCConfig()
-doc.GenerateTOC(tocConfig)
-
-// 脚注示例
-doc.AddFootnote("正文内容", "脚注内容")
-doc.AddEndnote("更多说明", "尾注内容")
-
-// 列表示例
-doc.AddBulletList("列表项1", 0, document.BulletTypeDot)
-doc.AddNumberedList("第一项", 0, document.ListTypeDecimal)
-```
-
-### 🎯 兼容性保证
-
-- ✅ **API向下兼容**: 所有现有API保持不变
-- ✅ **无破坏性变更**: 现有代码无需修改
-- ✅ **渐进增强**: 新功能作为可选功能提供
-
-### 🔍 技术改进
-
-#### 功能模块化
-- 每个新功能独立文件实现，降低代码耦合
-- 统一的错误处理和日志记录
-- 符合Word OOXML标准的实现
-
-#### 代码质量
-- 完整的单元测试覆盖
-- 详细的API文档和注释
-- 规范的Go代码风格
-
----
-
-## [v1.2.0] - 2025-05-29
-
-### ✨ 新增功能
-
-#### 表格默认样式改进
-- **表格默认边框样式**: 新创建的表格现在默认包含单线边框样式，无需手动设置
-- **参考标准格式**: 默认样式参考了 Word 标准表格格式（tmp_test 目录中的参考实现）
-- **详细规格**:
-  - 边框样式：`single`（单线）
-  - 边框粗细：`4`（1/8磅单位）
-  - 边框颜色：`auto`（自动）
-  - 边框间距：`0`
-  - 表格布局：`autofit`（自动调整）
-  - 单元格边距：左右各 `108 dxa`
-
-#### 功能特性
-- ✅ **向下兼容**: 现有代码无需修改，自动享受新的默认样式
-- ✅ **样式覆盖**: 仍然支持通过 `SetTableBorders()` 等方法自定义样式
-- ✅ **无边框选项**: 可通过 `RemoveTableBorders()` 方法回到原来的无边框效果
-- ✅ **标准匹配**: 与 Microsoft Word 创建的表格样式保持一致
-
-### 🔧 改进内容
-
-#### 代码改进
-- 修改 `CreateTable()` 函数，在表格属性中增加默认边框配置
-- 添加表格布局和单元格边距的默认设置
-- 保持原有 API 接口不变，确保兼容性
-
-#### 测试完善
-- 新增 `TestTableDefaultStyle` 测试，验证默认样式正确应用
-- 新增 `TestDefaultStyleMatchesTmpTest` 测试，确保与参考格式匹配
-- 新增 `TestDefaultStyleOverride` 测试，验证样式覆盖功能
-
-#### 示例程序
-- 新增 `examples/table_default_style/` 演示程序
-- 展示新默认样式、原无边框效果对比、自定义样式覆盖等功能
-
-### 📝 文档更新
-
-#### README.md
-- 更新表格功能说明，增加默认样式特性描述
-- 标注新增功能和改进点
-
-#### pkg/document/README.md
-- 更新 `CreateTable` 方法说明，增加默认样式信息
-
-### 🎯 影响范围
-
-#### 用户体验改进
-- **即开即用**: 新创建的表格具有专业的外观，无需额外设置
-- **标准化**: 确保表格样式与 Word 标准一致
-- **灵活性**: 保持完整的自定义能力
-
-#### 开发者友好
-- **API 稳定**: 无破坏性变更，现有代码继续工作
-- **渐进增强**: 新功能作为默认行为提供，不影响现有逻辑
-
-### 🔍 技术细节
-
-#### 参考实现
-基于 `tmp_test/word/document.xml` 中的表格定义：
-```xml
-<w:tblBorders>
-  <w:top w:val="single" w:color="auto" w:sz="4" w:space="0"/>
-  <w:left w:val="single" w:color="auto" w:sz="4" w:space="0"/>
-  <w:bottom w:val="single" w:color="auto" w:sz="4" w:space="0"/>
-  <w:right w:val="single" w:color="auto" w:sz="4" w:space="0"/>
-  <w:insideH w:val="single" w:color="auto" w:sz="4" w:space="0"/>
-  <w:insideV w:val="single" w:color="auto" w:sz="4" w:space="0"/>
-</w:tblBorders>
-```
-
-#### 实现位置
-- 文件：`pkg/document/table.go`
-- 函数：`CreateTable()`
-- 影响：所有通过 `AddTable()` 创建的新表格
-
----
-
-## [v1.1.0] - 2025-05-28
-
-### 🎨 表格样式系统
-- 完整的表格边框设置功能
-- 表格和单元格背景颜色支持
-- 多种边框样式（单线、双线、虚线、点线等）
-- 奇偶行颜色交替功能
-
-### 📐 表格布局功能
-- 表格尺寸控制（宽度、高度、列宽）
-- 表格对齐和定位
-- 单元格合并功能
-- 行高设置和分页控制
-
-### 🎯 样式管理系统
-- 18种预定义样式支持
-- 样式继承机制
-- 自定义样式创建
-- 样式查询和批量操作 API
-
----
-
-## [v1.0.0] - 2025-05-27
-
-### 🚀 初始版本
-- 基础文档创建和操作功能
-- 文本格式化支持
-- 段落管理和样式设置
-- 基础表格创建和单元格操作 
+# Changelog
+
+All notable changes to this project will be documented [here](https://github.com/mr-pmillz/wordZero/blob/main/CHANGELOG.md?ref_type=heads)
+
+## [1.7.1](https://github.com/mr-pmillz/wordZero/compare/v1.7.0...v1.7.1) - 2026-03-24
+
+### ✨ New features
+
+- Ci: add GitHub Release job with changelog, fix Go version - ([415664d](https://github.com/mr-pmillz/wordZero/commit/415664d6ee69b9e70d4f45dc046013c44ba76876))
+
+### ⚙️ Miscellaneous
+
+- - Replace changelog-only job with release job that creates a GitHub - ([415664d](https://github.com/mr-pmillz/wordZero/commit/415664d6ee69b9e70d4f45dc046013c44ba76876))
+-   Release via gh CLI with git-cliff release notes, then commits - ([415664d](https://github.com/mr-pmillz/wordZero/commit/415664d6ee69b9e70d4f45dc046013c44ba76876))
+-   full CHANGELOG.md to main - ([415664d](https://github.com/mr-pmillz/wordZero/commit/415664d6ee69b9e70d4f45dc046013c44ba76876))
+- - Fix Go version from non-existent 1.25 to 1.24 - ([415664d](https://github.com/mr-pmillz/wordZero/commit/415664d6ee69b9e70d4f45dc046013c44ba76876))
+- - Use env vars instead of expression interpolation in run blocks - ([415664d](https://github.com/mr-pmillz/wordZero/commit/415664d6ee69b9e70d4f45dc046013c44ba76876))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([415664d](https://github.com/mr-pmillz/wordZero/commit/415664d6ee69b9e70d4f45dc046013c44ba76876))
+
+## [1.7.0] - 2026-03-24
+
+### ✨ New features
+
+- - gocognit: add nolint for complex XML parsing and template rendering functions - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - gosec: add nolint for false-positive credential detection in message maps - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- Docs: add CLAUDE.md files for each major package/directory - ([fc1829b](https://github.com/mr-pmillz/wordZero/commit/fc1829b27db4c79d5727a8ca744320fa82358684))
+- Docs: add CLAUDE.md with project guidance and OOXML gotchas - ([183ccfa](https://github.com/mr-pmillz/wordZero/commit/183ccfa232acb77bd09ca7a4459fedd6ead73081))
+- Add LaTeX math formula support for Markdown to Word conversion (#75) - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- * Add support for LaTeX math formula conversion in markdown to Word - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- Add SnapToGrid support to fix custom line spacing in Chinese documents (#73) - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- * Add SnapToGrid support for custom styles and paragraphs - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Add cloning support for SnapToGrid in style inheritance - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Added supporting parsers for all nested drawing element structures - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- - Add AddCellList method with support for various list types - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- * Fix template engine to support header/footer variables - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- Add formatted header/footer support with TextFormat and alignment (#62) - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- * Add formatted header/footer support with TextFormat and alignment options - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- * Fix nested table support in template export - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - Add Tables []Table field to TableCell struct to support nested tables - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - Update Break struct comment to accurately reflect page break support only - ([4a5918e](https://github.com/mr-pmillz/wordZero/commit/4a5918e5e13412bb4489321fabd8d69778e4a679))
+
+### ✨: New features
+
+- Feat: Add complex table cell content APIs (paragraphs, nested tables, lists, images) (#70) - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- Feat: 实现从内存中打开文档的 新增 OpenFromMemory 函数 - ([0a7ed25](https://github.com/mr-pmillz/wordZero/commit/0a7ed250715c144680720412dc83c6242bf972c5))
+- Feat: 实现从内存中打开文档的 新增 OpenFromMemory 函数 - ([eb54f6e](https://github.com/mr-pmillz/wordZero/commit/eb54f6ec0edacbbd39ada84fa4c198d0bfaa1fc3))
+
+### 🐛 Bug fixes
+
+- Fix: resolve all golangci-lint issues and add CI/Makefile - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- Lint fixes (141 issues resolved across 45 files): - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - staticcheck: fix underscore names, nil checks, unused type assertions, receiver names - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- Fix: proper OOXML footnote references with Word/LibreOffice compatibility - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- Refactor: translate codebase to English, fix bugs, remove precompiled binary - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- - Fix global state bug: move globalNumberingManager to per-Document field, - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- * Fix template engine bugs for Issue #91 and #88 - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- * Address code review comments: fix formatting, extract helper method, improve comments - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- * Address code review feedback: fix font color handling and add ID comments - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- - Test includes clear success/failure messages for bug verification - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- * Clean up code: fix string conversion and format Chinese filename tests - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- * Add test for exact issue scenario from bug report - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- Fix: 修改md转word问题 - ([0039dd8](https://github.com/mr-pmillz/wordZero/commit/0039dd8437e5cd30b6d7b460b8f207aecd0202ea))
+- Fix: 修改md转word问题 - ([fecd576](https://github.com/mr-pmillz/wordZero/commit/fecd5768e919786d1196487ba5cc54b0d642299c))
+
+### 🛠 Improvements
+
+- Update readme - ([e73c8f6](https://github.com/mr-pmillz/wordZero/commit/e73c8f64808182affb23c810502f6308cc93340f))
+- Update wiki - ([e8bfd98](https://github.com/mr-pmillz/wordZero/commit/e8bfd9806dbc684ed7dac0877b2836286af7de84))
+- Update readme file - ([3742c55](https://github.com/mr-pmillz/wordZero/commit/3742c55690a863905ffc902f9607bd4bb19c8489))
+- Update readme file - ([40c9076](https://github.com/mr-pmillz/wordZero/commit/40c90763b6fa486b5ad392738380e5bc216eef01))
+- Update - ([62c19b9](https://github.com/mr-pmillz/wordZero/commit/62c19b95bf9250c496e0a9fc8dfd3666f2be9f52))
+
+### ⚙️ Miscellaneous
+
+- - errorlint: use %w instead of %v in fmt.Errorf for proper error wrapping - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - dupl: deduplicate header/footer/footnote helpers; nolint structural duplicates - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - goconst: extract repeated strings into constants (XML attrs, test values, URLs) - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - gocritic: convert if-else chains to switch, fix else-if patterns, assignOp - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - unused: remove dead code (unused functions in template.go, toc.go, renderer.go) - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - whitespace: remove unnecessary leading/trailing newlines - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - goprintffuncname: rename logInfo/logError to logInfof/logErrorf - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- CI/CD and tooling: - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - Add .github/workflows/ci.yml (build, test, lint, changelog generation) - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - Add Makefile with build, test, lint, fmt, vet, check, clean targets - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - Add .golangci-lint.yml with 14 linters configured - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - Add cliff.toml for changelog generation - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - Fix CI go-version from non-existent 1.25 to 1.24 - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- - Scope test/vet targets to pkg/... and test/... (skip broken examples) - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([d95a62b](https://github.com/mr-pmillz/wordZero/commit/d95a62be3a9b894837a92bf62a2ed989da0a85f4))
+- Chore: update module path from zerx-lab/wordZero to mr-pmillz/wordZero - ([d4a54d8](https://github.com/mr-pmillz/wordZero/commit/d4a54d88e46bc6d9699aa02e2c9d11b23112c92b))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([d4a54d8](https://github.com/mr-pmillz/wordZero/commit/d4a54d88e46bc6d9699aa02e2c9d11b23112c92b))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([fc1829b](https://github.com/mr-pmillz/wordZero/commit/fc1829b27db4c79d5727a8ca744320fa82358684))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([183ccfa](https://github.com/mr-pmillz/wordZero/commit/183ccfa232acb77bd09ca7a4459fedd6ead73081))
+- Replace fake text markers ([1], [尾注1]) with standard OOXML elements: - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Use <w:footnoteReference>/<w:endnoteReference> in document body - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Use <w:footnoteRef>/<w:endnoteRef> self-references in footnote content - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Use <w:separator>/<w:continuationSeparator> for separator footnotes - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Add FootnoteText/FootnoteReference/EndnoteText/EndnoteReference styles - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Add RunStyle, VerticalAlignment, Separator, ContinuationSeparator types - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Fix relationships: footnotes/endnotes/settings now correctly placed in - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+-   word/_rels/document.xml.rels instead of root _rels/.rels - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Add AddFootnoteToParagraph/AddEndnoteToParagraph convenience methods - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Update unit tests to verify proper OOXML structure - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([1bf009c](https://github.com/mr-pmillz/wordZero/commit/1bf009ccd6bba87acce4217bb2b85a0e4bda79b2))
+- - Translate all Chinese comments, error messages, and log strings to English - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+-   across 46 .go files in pkg/document/, pkg/style/, pkg/markdown/ - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- - Add bilingual message catalog (messages.go) with MsgKey-based logging - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- - Change default log language from Chinese to English - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- - Fix build error: move examples/markdown_demo files into subdirectories - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+-   to resolve multiple main declarations - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+-   matching the existing FootnoteManager pattern - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- - Add filepath.Clean() in AddImageFromFile for path sanitization - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- - Remove precompiled paragraph_format_demo binary, add to .gitignore - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- - Add footnotes_test.go and logger_language_test.go - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- All tests pass. No logic changes to library code. - ([15a2f16](https://github.com/mr-pmillz/wordZero/commit/15a2f16fc5ee9899d6d0809ed8972914f6255209))
+- Manual validation testing for all project features (#92) - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- Issue #91: Table image placeholders not being replaced - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - Added processImagePlaceholdersInTable function to handle image - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+-   placeholders inside table cells - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - Previously only top-level paragraphs were processed for images - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- Issue #88: {{#each}} loop output incorrectly styled as bold - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - Removed hardcoded Bold and font family settings in processDocumentLevelLoops - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - Loop output now preserves original paragraph styles instead of - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+-   forcing bold "仿宋" font - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- * Add comprehensive validation test suite - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - main.go: 34 feature validation tests - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - issue_reproduction.go: Issue #91/#88 reproduction tests - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - comprehensive_issue_check.go: Multi-issue validation - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - docx_validator.py: Python OOXML validator - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - validate_with_external_tools.sh: External tool validation script - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - run_validation.sh: Test runner script - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- Tests verify: - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - Document creation, formatting, tables, images - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - Template engine (variables, loops, conditionals) - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - Headers/footers, footnotes, TOC, lists - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- - Markdown conversion, page settings - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- --------- - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- Co-authored-by: Claude <noreply@anthropic.com> - ([5912554](https://github.com/mr-pmillz/wordZero/commit/5912554659e7fc7f9dab517cb15eb35eb1bed103))
+- Update repository path from ZeroHawkeye/wordZero to zerx-lab/wordZero (#90) - ([b0345be](https://github.com/mr-pmillz/wordZero/commit/b0345be6b21a400bdda2a70dd091b28cf0923d6e))
+- * Initial plan - ([b0345be](https://github.com/mr-pmillz/wordZero/commit/b0345be6b21a400bdda2a70dd091b28cf0923d6e))
+- * Update repository path from ZeroHawkeye to zerx-lab - ([b0345be](https://github.com/mr-pmillz/wordZero/commit/b0345be6b21a400bdda2a70dd091b28cf0923d6e))
+- Co-authored-by: zerx-lab <161401688+zerx-lab@users.noreply.github.com> - ([b0345be](https://github.com/mr-pmillz/wordZero/commit/b0345be6b21a400bdda2a70dd091b28cf0923d6e))
+- --------- - ([b0345be](https://github.com/mr-pmillz/wordZero/commit/b0345be6b21a400bdda2a70dd091b28cf0923d6e))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([b0345be](https://github.com/mr-pmillz/wordZero/commit/b0345be6b21a400bdda2a70dd091b28cf0923d6e))
+- Co-authored-by: zerx-lab <161401688+zerx-lab@users.noreply.github.com> - ([b0345be](https://github.com/mr-pmillz/wordZero/commit/b0345be6b21a400bdda2a70dd091b28cf0923d6e))
+- Fix Go 1.19+ compatibility: Remove Go 1.22 syntax and downgrade goldmark (#87) - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- * Initial plan - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- * Fix Go 1.22 syntax for backward compatibility with Go 1.19+ - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- * Downgrade goldmark to v1.7.8 for Go 1.19+ compatibility - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- * Remove backup file - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- --------- - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([021687f](https://github.com/mr-pmillz/wordZero/commit/021687f3bc6b477196043aeb8f36cc592447b72a))
+- Update CHANGELOG.md and README for v1.6.0 release (#85) - ([ced2667](https://github.com/mr-pmillz/wordZero/commit/ced266718f44a7a3d64494818e27531bbdd6d62d))
+- * Initial plan - ([ced2667](https://github.com/mr-pmillz/wordZero/commit/ced266718f44a7a3d64494818e27531bbdd6d62d))
+- * Update CHANGELOG.md and README files for v1.6.0 release - ([ced2667](https://github.com/mr-pmillz/wordZero/commit/ced266718f44a7a3d64494818e27531bbdd6d62d))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([ced2667](https://github.com/mr-pmillz/wordZero/commit/ced266718f44a7a3d64494818e27531bbdd6d62d))
+- --------- - ([ced2667](https://github.com/mr-pmillz/wordZero/commit/ced266718f44a7a3d64494818e27531bbdd6d62d))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([ced2667](https://github.com/mr-pmillz/wordZero/commit/ced266718f44a7a3d64494818e27531bbdd6d62d))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([ced2667](https://github.com/mr-pmillz/wordZero/commit/ced266718f44a7a3d64494818e27531bbdd6d62d))
+- Preserve template header/footer references during DOCX rendering (#76) (#77) - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+- *Initial Plan - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+- * Parse `<w:sectPr>` blocks even when Word nests them inside paragraph - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+-   properties and surface them through a new `setSectionProperties` helper so - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+-   relationships when reading DOCX files, preventing `r:id` references from - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+-   being dropped during serialization - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+- * Add a regression test that rewrites a DOCX to place section - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+-   properties inside a paragraph and confirms header/footer variables are - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+-   still replaced - ([ba4fdb2](https://github.com/mr-pmillz/wordZero/commit/ba4fdb29eec94847b85d906af7a7fc828f594ab7))
+- 修复OpenFromMemory的bug(#81) (#83) - ([12e509c](https://github.com/mr-pmillz/wordZero/commit/12e509c2449f2ff37db4d33c5cf7f1febc2c67b2))
+- Co-authored-by: xNeo404 <xNeo404> - ([12e509c](https://github.com/mr-pmillz/wordZero/commit/12e509c2449f2ff37db4d33c5cf7f1febc2c67b2))
+- * Initial plan - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- * Fix LaTeX command replacement order to prevent partial replacements - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- --------- - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0a2b79d](https://github.com/mr-pmillz/wordZero/commit/0a2b79d74adb14ce7776c2c0cb800123ef3959ea))
+- Add documentation for table cell image functionality (#74) - ([1a679b9](https://github.com/mr-pmillz/wordZero/commit/1a679b9967e6eb793735ca7581b592467f41a1da))
+- * Initial plan - ([1a679b9](https://github.com/mr-pmillz/wordZero/commit/1a679b9967e6eb793735ca7581b592467f41a1da))
+- * Add documentation for table cell image functionality to README - ([1a679b9](https://github.com/mr-pmillz/wordZero/commit/1a679b9967e6eb793735ca7581b592467f41a1da))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([1a679b9](https://github.com/mr-pmillz/wordZero/commit/1a679b9967e6eb793735ca7581b592467f41a1da))
+- --------- - ([1a679b9](https://github.com/mr-pmillz/wordZero/commit/1a679b9967e6eb793735ca7581b592467f41a1da))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([1a679b9](https://github.com/mr-pmillz/wordZero/commit/1a679b9967e6eb793735ca7581b592467f41a1da))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([1a679b9](https://github.com/mr-pmillz/wordZero/commit/1a679b9967e6eb793735ca7581b592467f41a1da))
+- * Initial plan - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Add SnapToGrid field to ParagraphProperties in both style and document packages - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Add SnapToGrid option to QuickParagraphConfig for custom style creation - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Add SnapToGrid option to ParagraphFormatConfig for paragraph formatting - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Add SetSnapToGrid method to Paragraph for direct control - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Add test for SnapToGrid functionality - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- This allows users to disable grid alignment (设置为false可禁用网格对齐), which is - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- Necessary to make custom LineSpacing work correctly when document has grid enabled. - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- * Improve documentation for SnapToGrid and LineSpacing - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Add clearer documentation for LineSpacing conversion (multiplier × 240 = OOXML units) - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- - Add comments explaining intentional type duplication between packages - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- * Update pkg/style/style.go - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com> - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- --------- - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- Co-authored-by: Copilot <175728472+Copilot@users.noreply.github.com> - ([c0fd8f8](https://github.com/mr-pmillz/wordZero/commit/c0fd8f8a4f4296dbc98eb0d098b2c16393934c95))
+- Initial plan (#72) - ([21b3a1e](https://github.com/mr-pmillz/wordZero/commit/21b3a1e5b2afe9d2b4448d66a0372f0c46d5c8e6))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([21b3a1e](https://github.com/mr-pmillz/wordZero/commit/21b3a1e5b2afe9d2b4448d66a0372f0c46d5c8e6))
+- Fix template replacement losing images by adding drawing element parsing (#71) - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- * Initial plan - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- * Fix template replacement preserving images and formatting - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- - Added parseDrawingElement method to parse drawing (image) elements when opening documents - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- - Added parseInlineDrawing and parseAnchorDrawing for both inline and floating images - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- - Added test case TestTemplateImagePreservation to verify image preservation - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- - Template replacement now correctly preserves images and their formatting - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- * Address code review comments: use strings.Contains and fix xmlns parsing - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- --------- - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([881891c](https://github.com/mr-pmillz/wordZero/commit/881891c296ed19e8d2b7c242bc08c6dfd143a719))
+- * Initial plan - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- * Implement complex table cell content features for issue #27 - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- - Add AddCellParagraph method to add paragraphs to table cells - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- - Add AddCellFormattedParagraph for formatted paragraphs in cells - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- - Add ClearCellParagraphs and GetCellParagraphs methods - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- - Add AddNestedTable method for nested tables in cells - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- - Add AddCellImage, AddCellImageFromFile, AddCellImageFromData methods - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- - Add comprehensive tests for all new features - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- - Add complex_table_demo example demonstrating all features - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- * Remove accidental binary and update .gitignore - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- --------- - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([90f24b7](https://github.com/mr-pmillz/wordZero/commit/90f24b746ddb249c463930d79f1b6c6fc0509628))
+- Return error from AddTable and CreateTable instead of nil (#69) - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- * Initial plan - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- * Add error return to AddTable and CreateTable functions - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- - Modified CreateTable to return (*Table, error) instead of *Table - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- - Modified AddTable to return (*Table, error) instead of *Table - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- - Updated all test files to handle the new error return - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- - Updated markdown renderer to handle the new error return - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- - Added proper validation errors for invalid table configurations - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- * Update examples and fix test indentation for AddTable/CreateTable changes - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- --------- - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e2f4402](https://github.com/mr-pmillz/wordZero/commit/e2f4402c5d51ee495d825f58ad5437248c0daa40))
+- Fix template variable replacement losing paragraph numbering (#68) - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- * Initial plan - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- * Fix template variable replacement losing numbering format - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- - Add parsing for numPr (numbering properties) in parseParagraphProperties - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- - Add new parseNumberingProperties function to extract ilvl and numId - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- - Add test TestTemplateNumberingPropertiesPreservation to verify numbering is preserved - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- --------- - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e2588d6](https://github.com/mr-pmillz/wordZero/commit/e2588d68a6436d4ff70573ff31c392dc8d9ae031))
+- [WIP] Fix unavailability of text underlining feature (#67) - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- * Initial plan - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- * Add paragraph-level text formatting methods for underline, bold, italic, etc. - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- * Fix test cleanup to use defer for proper resource management - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- --------- - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([4ce3c24](https://github.com/mr-pmillz/wordZero/commit/4ce3c24a54131c8cfd2e06171ac4777b21c0aeb1))
+- Add Paragraph.AddPageBreak() and document page break functionality (#65) - ([e7ac6f9](https://github.com/mr-pmillz/wordZero/commit/e7ac6f9ab1fff827ab56029949ef16219ce694dd))
+- * Initial plan - ([e7ac6f9](https://github.com/mr-pmillz/wordZero/commit/e7ac6f9ab1fff827ab56029949ef16219ce694dd))
+- * Add Paragraph.AddPageBreak() method and enhance page break documentation - ([e7ac6f9](https://github.com/mr-pmillz/wordZero/commit/e7ac6f9ab1fff827ab56029949ef16219ce694dd))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e7ac6f9](https://github.com/mr-pmillz/wordZero/commit/e7ac6f9ab1fff827ab56029949ef16219ce694dd))
+- --------- - ([e7ac6f9](https://github.com/mr-pmillz/wordZero/commit/e7ac6f9ab1fff827ab56029949ef16219ce694dd))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([e7ac6f9](https://github.com/mr-pmillz/wordZero/commit/e7ac6f9ab1fff827ab56029949ef16219ce694dd))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e7ac6f9](https://github.com/mr-pmillz/wordZero/commit/e7ac6f9ab1fff827ab56029949ef16219ce694dd))
+- [WIP] Fix document structure issue when rendering Word templates (#64) - ([2ae1941](https://github.com/mr-pmillz/wordZero/commit/2ae1941406c4e7dd63850c05d4fcda76db78fe95))
+- * Initial plan - ([2ae1941](https://github.com/mr-pmillz/wordZero/commit/2ae1941406c4e7dd63850c05d4fcda76db78fe95))
+- * Fix template rendering to preserve document structure (headers, footers, etc.) - ([2ae1941](https://github.com/mr-pmillz/wordZero/commit/2ae1941406c4e7dd63850c05d4fcda76db78fe95))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([2ae1941](https://github.com/mr-pmillz/wordZero/commit/2ae1941406c4e7dd63850c05d4fcda76db78fe95))
+- --------- - ([2ae1941](https://github.com/mr-pmillz/wordZero/commit/2ae1941406c4e7dd63850c05d4fcda76db78fe95))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([2ae1941](https://github.com/mr-pmillz/wordZero/commit/2ae1941406c4e7dd63850c05d4fcda76db78fe95))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([2ae1941](https://github.com/mr-pmillz/wordZero/commit/2ae1941406c4e7dd63850c05d4fcda76db78fe95))
+- Fix template engine to recognize variables in headers and footers (#63) - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- * Initial plan - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- * Address code review feedback - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- --------- - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([f4bcba5](https://github.com/mr-pmillz/wordZero/commit/f4bcba52238286a42e9578a587f46962b575356d))
+- * Initial plan - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- --------- - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([e0ac449](https://github.com/mr-pmillz/wordZero/commit/e0ac449c09a64d3ead8db02978f7b9f26309d6be))
+- Fix floating images causing Word document open failures (#61) - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- * Initial plan - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- * Initial analysis of floating image issue - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- * Fix floating image XML structure - remove empty text elements - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- * Address code review feedback and add floating images demo - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- * Add documentation for floating image fix - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- * Delete docs/floating_image_fix.md - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- --------- - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([9b97a02](https://github.com/mr-pmillz/wordZero/commit/9b97a025d1309543bf46514985052d2f7a414ca6))
+- [WIP] Fix disappearing inner table in template export (#60) - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- * Initial plan - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - Add custom MarshalXML for TableCell to ensure proper XML ordering - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - Update cloneTableCell to deep clone nested tables - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - Update replaceVariablesInTable to recursively process nested tables - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - Add test case for nested table template rendering - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - All existing tests pass - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- * Add real-world nested table scenario test - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - Add comprehensive test simulating the issue scenario (resume with family members table) - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - Test validates nested tables are preserved during template rendering - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- - All tests pass successfully - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- --------- - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([32b12ba](https://github.com/mr-pmillz/wordZero/commit/32b12bad4f774af0172a3c5fb31ee62f07908a0e))
+- [WIP] Fix issue with converting markdown containing line breaks to docx (#59) - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- * Initial plan - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- * Fix markdown soft line break handling in Word conversion - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- - Add space after text nodes with soft line breaks - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- - Handle soft line breaks in both regular content and task lists - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- - Add comprehensive test cases for soft line break scenarios - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- * Add soft linebreak demo example - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- - Create comprehensive demo showing soft linebreak fix - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- - Demonstrate various scenarios including tables and formatting - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- - Include the original issue scenario for verification - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- --------- - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([f582b3f](https://github.com/mr-pmillz/wordZero/commit/f582b3f1a6e57c6fdb96dd760f3cac5b93b9c42b))
+- [WIP] Update documentation for page break methods (#58) - ([7637e60](https://github.com/mr-pmillz/wordZero/commit/7637e60d51ef93bc83a8765784e1fb66e2cbee82))
+- * Initial plan - ([7637e60](https://github.com/mr-pmillz/wordZero/commit/7637e60d51ef93bc83a8765784e1fb66e2cbee82))
+- * Add AddPageBreak() method to API documentation - ([7637e60](https://github.com/mr-pmillz/wordZero/commit/7637e60d51ef93bc83a8765784e1fb66e2cbee82))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([7637e60](https://github.com/mr-pmillz/wordZero/commit/7637e60d51ef93bc83a8765784e1fb66e2cbee82))
+- --------- - ([7637e60](https://github.com/mr-pmillz/wordZero/commit/7637e60d51ef93bc83a8765784e1fb66e2cbee82))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([7637e60](https://github.com/mr-pmillz/wordZero/commit/7637e60d51ef93bc83a8765784e1fb66e2cbee82))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([7637e60](https://github.com/mr-pmillz/wordZero/commit/7637e60d51ef93bc83a8765784e1fb66e2cbee82))
+- Fix Word document corruption when using non-ASCII image filenames (#57) - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- * Initial plan - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- * Fix Chinese filename issue in images - convert to ASCII-safe filenames - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- --------- - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([c73a896](https://github.com/mr-pmillz/wordZero/commit/c73a8967100dd6cbed28df5cc399550b26b4742a))
+- Add Copilot instructions for repository (#56) - ([7510126](https://github.com/mr-pmillz/wordZero/commit/75101265f7d7a1fc1e8440f632ab67bdcd05c1a4))
+- * Initial plan - ([7510126](https://github.com/mr-pmillz/wordZero/commit/75101265f7d7a1fc1e8440f632ab67bdcd05c1a4))
+- * Add Copilot instructions for repository - ([7510126](https://github.com/mr-pmillz/wordZero/commit/75101265f7d7a1fc1e8440f632ab67bdcd05c1a4))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([7510126](https://github.com/mr-pmillz/wordZero/commit/75101265f7d7a1fc1e8440f632ab67bdcd05c1a4))
+- --------- - ([7510126](https://github.com/mr-pmillz/wordZero/commit/75101265f7d7a1fc1e8440f632ab67bdcd05c1a4))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([7510126](https://github.com/mr-pmillz/wordZero/commit/75101265f7d7a1fc1e8440f632ab67bdcd05c1a4))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([7510126](https://github.com/mr-pmillz/wordZero/commit/75101265f7d7a1fc1e8440f632ab67bdcd05c1a4))
+- [WIP] Fix alignment issue after merging cells in table (#54) - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- * Initial plan - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- * Add comprehensive tests for table dynamic row insertion and merging - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- * Address code review feedback - improve test code quality - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- --------- - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([976e0c9](https://github.com/mr-pmillz/wordZero/commit/976e0c97f5bf28c91dea76801a7b554d25eeddda))
+- Fix UpdateTOC failing to locate TOC created by GenerateTOC (#53) - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- * Initial plan - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- * Add test case to reproduce UpdateTOC issue - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- * Fix UpdateTOC to work with SDT-based TOC from GenerateTOC - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- * Address code review feedback - improve error handling and readability - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- --------- - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([0713edc](https://github.com/mr-pmillz/wordZero/commit/0713edcf599c21ae6578d6c00e9abfb53a399d43))
+- Fix nested {{#each}} loop rendering in template engine (#52) - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- * Initial plan - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- * Fix nested loop rendering in template engine - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- * Add nested loop demo and documentation - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- * Remove historical problem explanation from README - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- --------- - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- Co-authored-by: copilot-swe-agent[bot] <198982749+Copilot@users.noreply.github.com> - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([43fdc66](https://github.com/mr-pmillz/wordZero/commit/43fdc66808429552c7ada9fa63406d7f4d259141))
+- Merge pull request #51 from ZeroHawkeye/copilot/fix-function-issues - ([3246c76](https://github.com/mr-pmillz/wordZero/commit/3246c76e00f3ca5b630855b5fd94d404482577ec))
+- Add comprehensive paragraph formatting properties (KeepNext, KeepLines, PageBreakBefore, WidowControl, OutlineLevel) - ([3246c76](https://github.com/mr-pmillz/wordZero/commit/3246c76e00f3ca5b630855b5fd94d404482577ec))
+- Delete IMPLEMENTATION_SUMMARY.md - ([7e3f6d4](https://github.com/mr-pmillz/wordZero/commit/7e3f6d460faf9f46dd209a04130f9a40930cdeae))
+- Add implementation summary document - ([51aae3c](https://github.com/mr-pmillz/wordZero/commit/51aae3cf0de65dabc170de503189f29bc08130b4))
+- - Create comprehensive technical summary - ([51aae3c](https://github.com/mr-pmillz/wordZero/commit/51aae3cf0de65dabc170de503189f29bc08130b4))
+- - Document all changes, tests, and improvements - ([51aae3c](https://github.com/mr-pmillz/wordZero/commit/51aae3cf0de65dabc170de503189f29bc08130b4))
+- - Provide usage examples and scenarios - ([51aae3c](https://github.com/mr-pmillz/wordZero/commit/51aae3cf0de65dabc170de503189f29bc08130b4))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([51aae3c](https://github.com/mr-pmillz/wordZero/commit/51aae3cf0de65dabc170de503189f29bc08130b4))
+- Fix Justification struct to add omitempty tag - ([627ce1b](https://github.com/mr-pmillz/wordZero/commit/627ce1b5094ea41fc0fb1f041c9874748dc9317c))
+- - Add omitempty to Justification.Val field for XML schema consistency - ([627ce1b](https://github.com/mr-pmillz/wordZero/commit/627ce1b5094ea41fc0fb1f041c9874748dc9317c))
+- - Ensures valid XML generation for default/empty alignment values - ([627ce1b](https://github.com/mr-pmillz/wordZero/commit/627ce1b5094ea41fc0fb1f041c9874748dc9317c))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([627ce1b](https://github.com/mr-pmillz/wordZero/commit/627ce1b5094ea41fc0fb1f041c9874748dc9317c))
+- Update documentation for paragraph formatting features - ([fd5cb2f](https://github.com/mr-pmillz/wordZero/commit/fd5cb2f7e22426e116e8dfdba9d98dcb2c983a6b))
+- - Add paragraph_format_demo README - ([fd5cb2f](https://github.com/mr-pmillz/wordZero/commit/fd5cb2f7e22426e116e8dfdba9d98dcb2c983a6b))
+- - Update README_zh.md with new features - ([fd5cb2f](https://github.com/mr-pmillz/wordZero/commit/fd5cb2f7e22426e116e8dfdba9d98dcb2c983a6b))
+- - Add new example to examples list - ([fd5cb2f](https://github.com/mr-pmillz/wordZero/commit/fd5cb2f7e22426e116e8dfdba9d98dcb2c983a6b))
+- - Update feature descriptions - ([fd5cb2f](https://github.com/mr-pmillz/wordZero/commit/fd5cb2f7e22426e116e8dfdba9d98dcb2c983a6b))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([fd5cb2f](https://github.com/mr-pmillz/wordZero/commit/fd5cb2f7e22426e116e8dfdba9d98dcb2c983a6b))
+- Add comprehensive paragraph formatting features - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- - Add new paragraph properties: KeepNext, KeepLines, PageBreakBefore, WidowControl, OutlineLevel - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- - Implement individual setter methods for each property - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- - Add ParagraphFormatConfig struct for comprehensive formatting - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- - Add SetParagraphFormat method for one-call configuration - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- - Remove duplicate type definitions from table.go - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- - Add comprehensive test coverage for all new features - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- - Create paragraph_format_demo example - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- - Update documentation with new features - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([5871f85](https://github.com/mr-pmillz/wordZero/commit/5871f85e5e58f764b5141785be0a0cdf821a4cb4))
+- Initial plan - ([4720df1](https://github.com/mr-pmillz/wordZero/commit/4720df1d14127643e2c0f9361a7fa4f7c02963ea))
+- Merge pull request #50 from ZeroHawkeye/copilot/add-pagination-and-delete-functionality - ([a94181b](https://github.com/mr-pmillz/wordZero/commit/a94181ba317480561e0d432b077bbb13de9111bb))
+- Add document pagination and paragraph deletion APIs - ([a94181b](https://github.com/mr-pmillz/wordZero/commit/a94181ba317480561e0d432b077bbb13de9111bb))
+- Final refinements based on code review - ([4a5918e](https://github.com/mr-pmillz/wordZero/commit/4a5918e5e13412bb4489321fabd8d69778e4a679))
+- - Add bilingual comment to assertParagraphContent helper - ([4a5918e](https://github.com/mr-pmillz/wordZero/commit/4a5918e5e13412bb4489321fabd8d69778e4a679))
+- - Add early validation for negative index in RemoveParagraphAt - ([4a5918e](https://github.com/mr-pmillz/wordZero/commit/4a5918e5e13412bb4489321fabd8d69778e4a679))
+- - Update inline comment for Break field to be concise - ([4a5918e](https://github.com/mr-pmillz/wordZero/commit/4a5918e5e13412bb4489321fabd8d69778e4a679))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([4a5918e](https://github.com/mr-pmillz/wordZero/commit/4a5918e5e13412bb4489321fabd8d69778e4a679))
+- Add documentation and refactor test helper - ([5aca986](https://github.com/mr-pmillz/wordZero/commit/5aca986297d733a49add10841c5bc6c8cb018888))
+- - Add bilingual documentation for Break struct - ([5aca986](https://github.com/mr-pmillz/wordZero/commit/5aca986297d733a49add10841c5bc6c8cb018888))
+- - Add inline comment for Break field in Run struct - ([5aca986](https://github.com/mr-pmillz/wordZero/commit/5aca986297d733a49add10841c5bc6c8cb018888))
+- - Extract assertParagraphContent helper function to reduce test duplication - ([5aca986](https://github.com/mr-pmillz/wordZero/commit/5aca986297d733a49add10841c5bc6c8cb018888))
+- - Improve test maintainability - ([5aca986](https://github.com/mr-pmillz/wordZero/commit/5aca986297d733a49add10841c5bc6c8cb018888))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([5aca986](https://github.com/mr-pmillz/wordZero/commit/5aca986297d733a49add10841c5bc6c8cb018888))
+- Address code review feedback - ([7396140](https://github.com/mr-pmillz/wordZero/commit/7396140e2ccb71252d241d7305f82d5122737124))
+- - Remove unnecessary variable assignments in example - ([7396140](https://github.com/mr-pmillz/wordZero/commit/7396140e2ccb71252d241d7305f82d5122737124))
+- - Add bounds checking in test to prevent potential panics - ([7396140](https://github.com/mr-pmillz/wordZero/commit/7396140e2ccb71252d241d7305f82d5122737124))
+- - Optimize RemoveParagraphAt to use single iteration instead of double iteration - ([7396140](https://github.com/mr-pmillz/wordZero/commit/7396140e2ccb71252d241d7305f82d5122737124))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([7396140](https://github.com/mr-pmillz/wordZero/commit/7396140e2ccb71252d241d7305f82d5122737124))
+- Update documentation for pagination and deletion features - ([fb4a663](https://github.com/mr-pmillz/wordZero/commit/fb4a6633000d200cc56995bb826e862855bac812))
+- - Add pagination and paragraph deletion to features list in both README files - ([fb4a663](https://github.com/mr-pmillz/wordZero/commit/fb4a6633000d200cc56995bb826e862855bac812))
+- - Add code examples showing how to use the new features - ([fb4a663](https://github.com/mr-pmillz/wordZero/commit/fb4a6633000d200cc56995bb826e862855bac812))
+- - Update examples list to include pagination_deletion_demo - ([fb4a663](https://github.com/mr-pmillz/wordZero/commit/fb4a6633000d200cc56995bb826e862855bac812))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([fb4a663](https://github.com/mr-pmillz/wordZero/commit/fb4a6633000d200cc56995bb826e862855bac812))
+- Add document pagination and paragraph deletion features - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- - Add Break structure for page breaks in Run - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- - Implement AddPageBreak() method to add page breaks to documents - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- - Implement RemoveParagraph() method to delete paragraphs by reference - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- - Implement RemoveParagraphAt() method to delete paragraphs by index - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- - Implement RemoveElementAt() method to delete any element by index - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- - Add comprehensive tests for all new features - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- - Update template_from_file_demo to use new AddPageBreak() method - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- - Add pagination_deletion_demo example showing both features - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([debd3b1](https://github.com/mr-pmillz/wordZero/commit/debd3b14090b155174613d7d2945bdc01ae28f81))
+- Initial plan - ([ad7b502](https://github.com/mr-pmillz/wordZero/commit/ad7b502b850470ff253b299bf9b0a606e5e24b01))
+- Merge pull request #49 from ZeroHawkeye/copilot/fix-image-disappearance-issue - ([a2aca3c](https://github.com/mr-pmillz/wordZero/commit/a2aca3c53f07b6673edd4049628ff1739d2effb5))
+- Fix: Images lost when opening and re-saving Word documents - ([a2aca3c](https://github.com/mr-pmillz/wordZero/commit/a2aca3c53f07b6673edd4049628ff1739d2effb5))
+- Add README for image persistence demo - ([f4f7e64](https://github.com/mr-pmillz/wordZero/commit/f4f7e642a4b5193377f71effd4c229245aa9143b))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([f4f7e64](https://github.com/mr-pmillz/wordZero/commit/f4f7e642a4b5193377f71effd4c229245aa9143b))
+- Fix image disappearance issue when modifying and saving documents - ([24b2b48](https://github.com/mr-pmillz/wordZero/commit/24b2b48dd8d3630e6e5d4897eddc835187f236b9))
+- Co-authored-by: ZeroHawkeye <161401688+ZeroHawkeye@users.noreply.github.com> - ([24b2b48](https://github.com/mr-pmillz/wordZero/commit/24b2b48dd8d3630e6e5d4897eddc835187f236b9))
+- Initial plan - ([67fb8c1](https://github.com/mr-pmillz/wordZero/commit/67fb8c1c9e9cf070d8e326e955b2f651080f6a03))
+- Merge pull request #38 from xNeo404/main - ([0a7ed25](https://github.com/mr-pmillz/wordZero/commit/0a7ed250715c144680720412dc83c6242bf972c5))
+- 支持通过 io.ReadCloser 读取内存中的文档 - ([eb54f6e](https://github.com/mr-pmillz/wordZero/commit/eb54f6ec0edacbbd39ada84fa4c198d0bfaa1fc3))
+- Merge pull request #40 from xNeo404/fix-m2w-table - ([0039dd8](https://github.com/mr-pmillz/wordZero/commit/0039dd8437e5cd30b6d7b460b8f207aecd0202ea))
+- 1、修复md转word没有表头的问题 - ([fecd576](https://github.com/mr-pmillz/wordZero/commit/fecd5768e919786d1196487ba5cc54b0d642299c))
+- 2、修复md转word表格中粗体、斜体不生效的问题 - ([fecd576](https://github.com/mr-pmillz/wordZero/commit/fecd5768e919786d1196487ba5cc54b0d642299c))
+- Merge pull request #43 from Padane22-spec/main - ([36d5731](https://github.com/mr-pmillz/wordZero/commit/36d57311249cfff96fc502eacd05886d8e2140b1))
+- Fix: 修复通过Open打开的文档在Save后无法正常打开的问题 - ([36d5731](https://github.com/mr-pmillz/wordZero/commit/36d57311249cfff96fc502eacd05886d8e2140b1))
+- Fix: 修复通过Open打开的文档在Save后无法正常打开的问题 - ([d75c38c](https://github.com/mr-pmillz/wordZero/commit/d75c38c3d6f0169e07a3abe02afed1a774c7252c))
+- 更新文档和代码以支持字体名称的向后兼容，调整段落和图像对齐方法的错误处理 - ([da0e775](https://github.com/mr-pmillz/wordZero/commit/da0e7758bfb094760db543de9c392258d03f8ed1))
+- Merge pull request #24 from CoffeeSwt/main - ([7197afb](https://github.com/mr-pmillz/wordZero/commit/7197afba4255fa55c9c271a4d11ffed631b4ca46))
+- ✨ feat: 混合格式段落字体下划线和删除线 - ([7197afb](https://github.com/mr-pmillz/wordZero/commit/7197afba4255fa55c9c271a4d11ffed631b4ca46))
+- 修改高亮，文本字体使用中文名称 - ([33aaa5c](https://github.com/mr-pmillz/wordZero/commit/33aaa5c65cb61d9110244468f75b77e134080fe8))
+- ✨ feat: AddFormattedText函数修改 - ([bf7e854](https://github.com/mr-pmillz/wordZero/commit/bf7e854a0cd33fb26349aeb91b5a6d2396d7eb21))
+- Merge pull request #1 from ZeroHawkeye/main - ([aa0692f](https://github.com/mr-pmillz/wordZero/commit/aa0692f1c485697df9445b9a2774b9c1b3830a50))
+- Merge - ([aa0692f](https://github.com/mr-pmillz/wordZero/commit/aa0692f1c485697df9445b9a2774b9c1b3830a50))
+- ✨ feat: 混合格式段落字体下划线和删除线 - ([05106ab](https://github.com/mr-pmillz/wordZero/commit/05106ab56c8fbeb0abcf82d769cfb6a6ed1f957a))
+- 更新 GetCellText 方法，返回单元格内所有段落与 Run 的完整文本，并以换行符分隔，修复多行内容丢失的问题 - ([31118d7](https://github.com/mr-pmillz/wordZero/commit/31118d7bc525e6ad30280798865637d88625c442))
+- Merge pull request #13 from litecn/cokvr - ([34c7a6b](https://github.com/mr-pmillz/wordZero/commit/34c7a6b9e7885575f290dc65a23a3ca55be26251))
+- Numbering.xml的Relationship应添加到documentRelationships中 - ([34c7a6b](https://github.com/mr-pmillz/wordZero/commit/34c7a6b9e7885575f290dc65a23a3ca55be26251))
+- Numbering.xml的Relationship应添加到documentRelationships中 - ([c290ae9](https://github.com/mr-pmillz/wordZero/commit/c290ae949ee41aca873e04a36bbd345542250ca0))
+- 添加浮动图片XML结构修复测试和默认环绕多边形创建测试 - ([5f8098d](https://github.com/mr-pmillz/wordZero/commit/5f8098d18a30681fe52eb7e7ace341e95efd2417))
+- 完善文档功能，添加页眉和页脚支持，并优化表格行复制属性的深拷贝逻辑 - ([3b02903](https://github.com/mr-pmillz/wordZero/commit/3b02903f230e07233f5e1bb315257fced993e86e))
+- - 修复文档id不是唯一的问题，遵循ooxml规范 - ([6e28fef](https://github.com/mr-pmillz/wordZero/commit/6e28fef1b7c7a5272674a93a407a39afafcc61ea))
+- - 模板渲染部分增加图片占位功能 - ([1568633](https://github.com/mr-pmillz/wordZero/commit/1568633d69230d2e614efc7e65baaee659ff55d8))
+- - 修复大量ooxml规范问题，所有验证切换到word（wps会自动修复一些问题导致无法即使观察到） - ([31c885e](https://github.com/mr-pmillz/wordZero/commit/31c885e81ae67ab5a937897cbaef296cdcfd63ea))
+- - 修复添加图片word会打不开的问题 - ([31c885e](https://github.com/mr-pmillz/wordZero/commit/31c885e81ae67ab5a937897cbaef296cdcfd63ea))
+- - md转word优化行内代码和代码块的样式 - ([e0be01c](https://github.com/mr-pmillz/wordZero/commit/e0be01cbd934cca78ba74e922b30d88f9f71f420))
+- - 完善word的分割线实现 - ([e0be01c](https://github.com/mr-pmillz/wordZero/commit/e0be01cbd934cca78ba74e922b30d88f9f71f420))
+- - 模板渲染样式继承问题修复 - ([7afc485](https://github.com/mr-pmillz/wordZero/commit/7afc485a2ded416f4d158ea39835788a3821c5a6))
+- - 增加确实样式解析 - ([7afc485](https://github.com/mr-pmillz/wordZero/commit/7afc485a2ded416f4d158ea39835788a3821c5a6))
+- 增加多语言README - ([7a0c11f](https://github.com/mr-pmillz/wordZero/commit/7a0c11f9837452fd69793cc46839b4853732b996))
+- 更新文档和md操作示例 - ([9d30578](https://github.com/mr-pmillz/wordZero/commit/9d3057855f0acbfc765e30c36228c219aae9ba82))
+- 增加if else语法支持 - ([971f3bc](https://github.com/mr-pmillz/wordZero/commit/971f3bcca583026ba01213103a28027132557873))
+- 完善模板渲染代码 - ([971f3bc](https://github.com/mr-pmillz/wordZero/commit/971f3bcca583026ba01213103a28027132557873))
+- 增加markdown双向转换功能 - ([3002f12](https://github.com/mr-pmillz/wordZero/commit/3002f124d5f6f44a1538f6b4a0cf845b25a14f2e))
+- - 修复模板中字体没有继承问题 - ([067e7d7](https://github.com/mr-pmillz/wordZero/commit/067e7d7bfa22f6ae5ea85076ecb6a8731bf29cc7))
+- - 修复多种样式没有在模板继承中添加到问题 - ([067e7d7](https://github.com/mr-pmillz/wordZero/commit/067e7d7bfa22f6ae5ea85076ecb6a8731bf29cc7))
+- 更新日志 - ([544714e](https://github.com/mr-pmillz/wordZero/commit/544714e481ddc25d36976a5e9df0fb96c9855231))
+- 更新CHANGELOG，修复模板样式保持问题，重构样式复制机制，优化代码结构，更新README示例中的方法调用，确保API向下兼容，增加测试用例以验证修复效果。 - ([b037e83](https://github.com/mr-pmillz/wordZero/commit/b037e832c87a6dce3784456ecbfda9befb54c791))
+- 更新日志描述 - ([5ccd71e](https://github.com/mr-pmillz/wordZero/commit/5ccd71e726957c621401e7e16f85d8b1d6bde2bf))
+- 重构模板引擎，新增文档克隆和变量替换功能，优化模板渲染逻辑 - ([3be9cc3](https://github.com/mr-pmillz/wordZero/commit/3be9cc345a4f46678051b2751929228bfd8d3df8))
+- README文件的修复流程语法错误 - ([67e6333](https://github.com/mr-pmillz/wordZero/commit/67e6333a0718fea2b357b5b84245f1ec196843eb))
+- - 更新模板文件使用说明 - ([0446b86](https://github.com/mr-pmillz/wordZero/commit/0446b86c2ac3f09cb4accc4d0e92690275ff3536))
+- 更新Readme链接 - ([c7d53ef](https://github.com/mr-pmillz/wordZero/commit/c7d53efba784c7db36405d7583adb01a77f12136))
+- 更新Readme链接正确性 - ([fd47bd8](https://github.com/mr-pmillz/wordZero/commit/fd47bd8aed48d1755771c106961d689cc59a81a5))
+- - 增加基准测试 - ([3114980](https://github.com/mr-pmillz/wordZero/commit/3114980412956c08c23df7bca30f715c6bc5edc6))
+- - 修复模板继承问题 - ([3114980](https://github.com/mr-pmillz/wordZero/commit/3114980412956c08c23df7bca30f715c6bc5edc6))
+- - 优化wiki文档 - ([3114980](https://github.com/mr-pmillz/wordZero/commit/3114980412956c08c23df7bca30f715c6bc5edc6))
+- - 增加模板功能 - ([cd2e89d](https://github.com/mr-pmillz/wordZero/commit/cd2e89d59a011b99c7da9bc2e03b1f913afde861))
+- - 修复部分逻辑错误 - ([cd2e89d](https://github.com/mr-pmillz/wordZero/commit/cd2e89d59a011b99c7da9bc2e03b1f913afde861))
+- 更新子项目提交ID，从9497b6c更改为a9f0d61。 - ([5074770](https://github.com/mr-pmillz/wordZero/commit/50747701bb0f16ea854d3f84a11718a2d65f2998))
+- 更新readme图片操作说明 - ([d3a9fe4](https://github.com/mr-pmillz/wordZero/commit/d3a9fe460d2132b09ff195572f183597522c5933))
+- 增加图片操作相关实现 - ([d3a9fe4](https://github.com/mr-pmillz/wordZero/commit/d3a9fe460d2132b09ff195572f183597522c5933))
+- 删除main.go文件，移除文档处理功能的实现。 - ([f2282be](https://github.com/mr-pmillz/wordZero/commit/f2282be8bd9152750e0e4ba3c8e8dec575595659))
+- 更新go.mod文件以使用Go 1.19版本；新增main.go文件实现文档处理功能。 - ([5574a3d](https://github.com/mr-pmillz/wordZero/commit/5574a3d2e8e7d1104ad9e7fe540b1f2ee4e22bdd))
+- 在document.go中新增SetIndentation方法以设置段落缩进属性，并在document_test.go中添加相应的单元测试以验证缩进功能的正确性。 - ([a1f1bce](https://github.com/mr-pmillz/wordZero/commit/a1f1bceb40726a376913474a7df1ef6543237ed7))
+- 更新CHANGELOG.md，新增v1.3.1版本的修复和改进，包括XML命名空间错误修复和质量改进；在README.md中添加更新记录，详细描述目录功能和样式系统的改进；在pkg/document中修复XML序列化问题，确保生成的文档符合OOXML标准，并添加书签功能以支持目录生成。 - ([09f28cd](https://github.com/mr-pmillz/wordZero/commit/09f28cd0a60530f8344940e7527945cf92d98704))
+- 在README.md和pkg/document/README.md中新增单元格遍历迭代器功能的详细描述，包括迭代器的创建、遍历、重置及查找功能；在pkg/document/table.go中实现CellIterator及相关方法，支持按行列遍历和条件查找单元格。 - ([46ad019](https://github.com/mr-pmillz/wordZero/commit/46ad019f7091f4545dcbae045e91c8c9392e9334))
+- 更新CHANGELOG.md，新增v1.3.0版本的重大功能，包括页眉页脚、目录生成、脚注尾注、列表编号、结构化文档标签和域字段功能的实现；在README.md中添加相关功能的详细描述和示例；更新document.go以反映新增的高级功能。 - ([7a736f7](https://github.com/mr-pmillz/wordZero/commit/7a736f7a94b8d48fb7c8878b1107da0bfed4b986))
+- 更新.gitignore以忽略.vscode目录；在README.md中添加文档解析功能的重大改进和页面设置功能的详细描述；在document.go中添加书签功能和解析器特性，优化文档结构解析。 - ([9e39e66](https://github.com/mr-pmillz/wordZero/commit/9e39e663fb4d6ca50c85f66874a575a04609e21f))
+- 更新README.md，添加默认表格样式说明；在表格创建方法中新增默认单线边框样式及相关布局和边距设置。 - ([4995d75](https://github.com/mr-pmillz/wordZero/commit/4995d75f8a61c53cdd22f22ddb54a5fe37c1cbc1))
+- 添加文档说明 - ([c88b2b1](https://github.com/mr-pmillz/wordZero/commit/c88b2b181ae8ace6724b5c7a66909ab25cb39ec0))
+- 修正ShadingPattern常量的注释，明确底纹图案类型及其实现方式。 - ([4cadfeb](https://github.com/mr-pmillz/wordZero/commit/4cadfebdac5c78a0185b636aacaf23fd7a6b9fd9))
+- 更新README.md，完善表格操作功能。 - ([ce3f23c](https://github.com/mr-pmillz/wordZero/commit/ce3f23cb361eff009b7192e290adbce4c6b10ccc))
+- 更新README.md，新增表格功能和页面设置功能的详细描述；在document.go中添加文档主体元素接口及其实现，支持段落和表格元素类型。 - ([114dee0](https://github.com/mr-pmillz/wordZero/commit/114dee00e05a10dba82c6f98a9febca1d908e132))
+- 新增标题段落添加功能，优化样式序列化逻辑。 - ([9957fc7](https://github.com/mr-pmillz/wordZero/commit/9957fc7d57c39f302c97789607fb3715d15dc337))
+- 更新README.md中的包导入路径和安装命令，修正为正确的GitHub用户名 - ([c96371a](https://github.com/mr-pmillz/wordZero/commit/c96371a2e62103beaf0fefb1a94bf744c7619c11))
+- Merge branch 'main' of github.com:ZeroHawkeye/wordZero - ([ac1635a](https://github.com/mr-pmillz/wordZero/commit/ac1635a339d5bc6c7a98bc91ed00246387bb0ef2))
+- Initial commit - ([66fa2b9](https://github.com/mr-pmillz/wordZero/commit/66fa2b9cb885efcffb21209217ca3e2d27119d80))
+- 初始化wordZero项目 - Go Word文档操作库 - ([4451517](https://github.com/mr-pmillz/wordZero/commit/445151790299b98a86755653e793e6e768c047a1))
+
+<!-- generated by git-cliff -->
