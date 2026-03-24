@@ -140,9 +140,41 @@ func (r *RawXMLElement) MarshalXML(e *xml.Encoder, start xml.StartElement) error
 
 // Paragraph represents a paragraph
 type Paragraph struct {
-	XMLName    xml.Name             `xml:"w:p"`
-	Properties *ParagraphProperties `xml:"w:pPr,omitempty"`
-	Runs       []Run                `xml:"w:r"`
+	XMLName        xml.Name             `xml:"w:p"`
+	Properties     *ParagraphProperties `xml:"w:pPr,omitempty"`
+	Runs           []Run                `xml:"w:r"`
+	RawXMLElements []*RawXMLElement     `xml:"-"` // preserved elements (bookmarks, etc.) for round-trip
+}
+
+// MarshalXML custom serializes a Paragraph, emitting properties, runs, then raw elements.
+func (p *Paragraph) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name = xml.Name{Local: "w:p"}
+	if err := e.EncodeToken(start); err != nil {
+		return err
+	}
+
+	// Emit paragraph properties
+	if p.Properties != nil {
+		if err := e.EncodeElement(p.Properties, xml.StartElement{Name: xml.Name{Local: "w:pPr"}}); err != nil {
+			return err
+		}
+	}
+
+	// Emit runs
+	for i := range p.Runs {
+		if err := e.EncodeElement(&p.Runs[i], xml.StartElement{Name: xml.Name{Local: "w:r"}}); err != nil {
+			return err
+		}
+	}
+
+	// Emit preserved raw XML elements (bookmarks, etc.)
+	for _, raw := range p.RawXMLElements {
+		if err := e.EncodeElement(raw, xml.StartElement{Name: raw.XMLName}); err != nil {
+			return err
+		}
+	}
+
+	return e.EncodeToken(start.End())
 }
 
 // ParagraphProperties represents paragraph properties
@@ -2277,6 +2309,8 @@ func (d *Document) parseBodySubElement(decoder *xml.Decoder, startElement xml.St
 }
 
 // parseParagraph parses a paragraph
+//
+//nolint:gocognit
 func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartElement) (*Paragraph, error) {
 	paragraph := &Paragraph{
 		Runs: make([]Run, 0),
@@ -2305,8 +2339,29 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 				if run != nil {
 					paragraph.Runs = append(paragraph.Runs, *run)
 				}
+			case "hyperlink":
+				// Parse hyperlink — contains runs that should be added to the paragraph.
+				// Preserve the anchor attribute for TOC entries.
+				hyperlinkRuns, err := d.parseHyperlinkRuns(decoder, t)
+				if err != nil {
+					return nil, err
+				}
+				paragraph.Runs = append(paragraph.Runs, hyperlinkRuns...)
+			case "bookmarkStart":
+				// Preserve as raw XML for round-trip fidelity
+				raw, err := d.captureElement(decoder, t)
+				if err != nil {
+					return nil, err
+				}
+				paragraph.RawXMLElements = append(paragraph.RawXMLElements, raw)
+			case "bookmarkEnd":
+				raw, err := d.captureElement(decoder, t)
+				if err != nil {
+					return nil, err
+				}
+				paragraph.RawXMLElements = append(paragraph.RawXMLElements, raw)
 			default:
-				// Skip other elements
+				// Skip other unknown elements
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
@@ -2441,6 +2496,40 @@ func (d *Document) parseNumberingProperties(decoder *xml.Decoder) (*NumberingPro
 		case xml.EndElement:
 			if t.Name.Local == "numPr" {
 				return numPr, nil
+			}
+		}
+	}
+}
+
+// parseHyperlinkRuns parses a w:hyperlink element and returns its inner runs.
+// Hyperlinks in OOXML wrap runs — we extract them and add them to the paragraph.
+func (d *Document) parseHyperlinkRuns(decoder *xml.Decoder, startElement xml.StartElement) ([]Run, error) {
+	var runs []Run
+
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			return nil, WrapError("parse_hyperlink", err)
+		}
+
+		switch t := token.(type) {
+		case xml.StartElement:
+			if t.Name.Local == "r" {
+				run, err := d.parseRun(decoder, t)
+				if err != nil {
+					return nil, err
+				}
+				if run != nil {
+					runs = append(runs, *run)
+				}
+			} else {
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			}
+		case xml.EndElement:
+			if t.Name.Local == "hyperlink" {
+				return runs, nil
 			}
 		}
 	}
