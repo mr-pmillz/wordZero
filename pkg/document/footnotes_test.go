@@ -457,7 +457,7 @@ func TestFootnoteInitialization_Relationship(t *testing.T) {
 	doc.AddFootnote("text", "footnote")
 
 	found := false
-	for _, rel := range doc.relationships.Relationships {
+	for _, rel := range doc.documentRelationships.Relationships {
 		if strings.Contains(rel.Type, "footnotes") {
 			found = true
 			if rel.Target != "footnotes.xml" {
@@ -467,7 +467,7 @@ func TestFootnoteInitialization_Relationship(t *testing.T) {
 		}
 	}
 	if !found {
-		t.Error("footnotes relationship not found")
+		t.Error("footnotes relationship not found in document relationships")
 	}
 }
 
@@ -476,14 +476,14 @@ func TestEndnoteInitialization_Relationship(t *testing.T) {
 	doc.AddEndnote("text", "endnote")
 
 	found := false
-	for _, rel := range doc.relationships.Relationships {
+	for _, rel := range doc.documentRelationships.Relationships {
 		if strings.Contains(rel.Type, "endnotes") {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("endnotes relationship not found")
+		t.Error("endnotes relationship not found in document relationships")
 	}
 }
 
@@ -517,6 +517,17 @@ func TestFootnoteSeparatorInXML(t *testing.T) {
 	}
 	if !strings.Contains(footnotesXML, `w:id="-1"`) {
 		t.Error("footnotes.xml missing separator footnote with id=-1")
+	}
+	// Should use w:separator element, not w:footnoteRef
+	if !strings.Contains(footnotesXML, "w:separator") {
+		t.Error("separator footnote should use w:separator element")
+	}
+	// Should have continuation separator with id=0
+	if !strings.Contains(footnotesXML, `w:type="continuationSeparator"`) {
+		t.Error("footnotes.xml missing continuationSeparator")
+	}
+	if !strings.Contains(footnotesXML, `w:id="0"`) {
+		t.Error("footnotes.xml missing continuation separator with id=0")
 	}
 }
 
@@ -568,7 +579,7 @@ func TestFootnoteXML_ContainsFootnoteTextStyle(t *testing.T) {
 	}
 }
 
-func TestFootnoteReferenceHasSuperscript(t *testing.T) {
+func TestFootnoteReferenceHasRunStyle(t *testing.T) {
 	doc := New()
 	doc.AddFootnote("text", "footnote")
 
@@ -579,17 +590,16 @@ func TestFootnoteReferenceHasSuperscript(t *testing.T) {
 	if refRun.Properties == nil {
 		t.Fatal("reference run should have Properties")
 	}
-	if refRun.Properties.VerticalAlign == nil {
-		t.Fatal("reference run should have VerticalAlign")
-	}
-	if refRun.Properties.VerticalAlign.Val != "superscript" {
-		t.Errorf("expected superscript, got %s", refRun.Properties.VerticalAlign.Val)
-	}
+	// Body reference runs use rStyle only — the style itself handles superscript
 	if refRun.Properties.RunStyle == nil {
 		t.Fatal("reference run should have RunStyle")
 	}
 	if refRun.Properties.RunStyle.Val != "FootnoteReference" {
 		t.Errorf("expected RunStyle 'FootnoteReference', got '%s'", refRun.Properties.RunStyle.Val)
+	}
+	// VerticalAlign should NOT be set on body references (the style provides it)
+	if refRun.Properties.VerticalAlign != nil {
+		t.Error("body reference run should not have VerticalAlign (style provides superscript)")
 	}
 }
 
@@ -738,14 +748,14 @@ func TestFootnoteConfig_CreatesSettingsRelationship(t *testing.T) {
 	doc.SetFootnoteConfig(DefaultFootnoteConfig())
 
 	found := false
-	for _, rel := range doc.relationships.Relationships {
+	for _, rel := range doc.documentRelationships.Relationships {
 		if strings.Contains(rel.Type, "settings") {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("settings relationship not found after SetFootnoteConfig")
+		t.Error("settings relationship not found in document relationships after SetFootnoteConfig")
 	}
 }
 

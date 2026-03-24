@@ -284,10 +284,17 @@ func (d *Document) addFootnoteOrEndnote(text string, noteText string, noteType F
 	}
 
 	// Add footnote/endnote reference (using standard OOXML elements)
+	// Note: only rStyle is needed in body references — the style itself provides superscript
+	var refStyleVal string
+	if noteType == FootnoteTypeFootnote {
+		refStyleVal = "FootnoteReference"
+	} else {
+		refStyleVal = "EndnoteReference"
+	}
+
 	refRun := Run{
 		Properties: &RunProperties{
-			RunStyle:      &RunStyle{Val: "FootnoteReference"},
-			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+			RunStyle: &RunStyle{Val: refStyleVal},
 		},
 	}
 
@@ -319,8 +326,7 @@ func (d *Document) AddFootnoteToRun(run *Run, footnoteText string) error {
 
 	// Set the Run to footnote reference style
 	run.Properties = &RunProperties{
-		RunStyle:      &RunStyle{Val: "FootnoteReference"},
-		VerticalAlign: &VerticalAlignment{Val: "superscript"},
+		RunStyle: &RunStyle{Val: "FootnoteReference"},
 	}
 	run.FootnoteReference = &FootnoteReference{ID: noteID}
 	run.Text = Text{} // Footnote reference Run does not need text content
@@ -337,11 +343,10 @@ func (d *Document) AddFootnoteToParagraph(para *Paragraph, footnoteText string) 
 	noteID := strconv.Itoa(manager.nextFootnoteID)
 	manager.nextFootnoteID++
 
-	// Create footnote reference Run
+	// Create footnote reference Run (rStyle only — the style handles superscript)
 	refRun := Run{
 		Properties: &RunProperties{
-			RunStyle:      &RunStyle{Val: "FootnoteReference"},
-			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+			RunStyle: &RunStyle{Val: "FootnoteReference"},
 		},
 		FootnoteReference: &FootnoteReference{ID: noteID},
 	}
@@ -359,11 +364,10 @@ func (d *Document) AddEndnoteToParagraph(para *Paragraph, footnoteText string) e
 	noteID := strconv.Itoa(manager.nextEndnoteID)
 	manager.nextEndnoteID++
 
-	// Create endnote reference Run
+	// Create endnote reference Run (rStyle only — the style handles superscript)
 	refRun := Run{
 		Properties: &RunProperties{
-			RunStyle:      &RunStyle{Val: "EndnoteReference"},
-			VerticalAlign: &VerticalAlignment{Val: "superscript"},
+			RunStyle: &RunStyle{Val: "EndnoteReference"},
 		},
 		EndnoteReference: &EndnoteReference{ID: noteID},
 	}
@@ -426,24 +430,39 @@ func (d *Document) initializeFootnotes() {
 		Footnotes: []*Footnote{},
 	}
 
-	// Add the default separator footnote
+	// Add the default separator footnote (id=-1)
 	separatorFootnote := &Footnote{
 		Type: "separator",
 		ID:   "-1",
 		Paragraphs: []*Paragraph{
 			{
 				Properties: &ParagraphProperties{
-					ParagraphStyle: &ParagraphStyle{Val: "FootnoteText"},
+					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
 				},
 				Runs: []Run{
-					{
-						FootnoteRef: &FootnoteRef{},
-					},
+					{Separator: &Separator{}},
 				},
 			},
 		},
 	}
 	footnotes.Footnotes = append(footnotes.Footnotes, separatorFootnote)
+
+	// Add continuation separator footnote (id=0)
+	continuationFootnote := &Footnote{
+		Type: "continuationSeparator",
+		ID:   "0",
+		Paragraphs: []*Paragraph{
+			{
+				Properties: &ParagraphProperties{
+					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
+				},
+				Runs: []Run{
+					{ContinuationSeparator: &ContinuationSeparator{}},
+				},
+			},
+		},
+	}
+	footnotes.Footnotes = append(footnotes.Footnotes, continuationFootnote)
 
 	// Serialize footnotes
 	footnotesXML, err := xml.MarshalIndent(footnotes, "", "  ")
@@ -469,24 +488,39 @@ func (d *Document) initializeEndnotes() {
 		Endnotes: []*Endnote{},
 	}
 
-	// Add the default separator endnote
+	// Add the default separator endnote (id=-1)
 	separatorEndnote := &Endnote{
 		Type: "separator",
 		ID:   "-1",
 		Paragraphs: []*Paragraph{
 			{
 				Properties: &ParagraphProperties{
-					ParagraphStyle: &ParagraphStyle{Val: "EndnoteText"},
+					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
 				},
 				Runs: []Run{
-					{
-						EndnoteRef: &EndnoteRef{},
-					},
+					{Separator: &Separator{}},
 				},
 			},
 		},
 	}
 	endnotes.Endnotes = append(endnotes.Endnotes, separatorEndnote)
+
+	// Add continuation separator endnote (id=0)
+	continuationEndnote := &Endnote{
+		Type: "continuationSeparator",
+		ID:   "0",
+		Paragraphs: []*Paragraph{
+			{
+				Properties: &ParagraphProperties{
+					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
+				},
+				Runs: []Run{
+					{ContinuationSeparator: &ContinuationSeparator{}},
+				},
+			},
+		},
+	}
+	endnotes.Endnotes = append(endnotes.Endnotes, continuationEndnote)
 
 	// Serialize endnotes
 	endnotesXML, err := xml.MarshalIndent(endnotes, "", "  ")
@@ -580,24 +614,39 @@ func (d *Document) updateFootnotesFile() {
 		Footnotes: []*Footnote{},
 	}
 
-	// Add default separator
+	// Add default separator (id=-1)
 	separatorFootnote := &Footnote{
 		Type: "separator",
 		ID:   "-1",
 		Paragraphs: []*Paragraph{
 			{
 				Properties: &ParagraphProperties{
-					ParagraphStyle: &ParagraphStyle{Val: "FootnoteText"},
+					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
 				},
 				Runs: []Run{
-					{
-						FootnoteRef: &FootnoteRef{},
-					},
+					{Separator: &Separator{}},
 				},
 			},
 		},
 	}
 	footnotes.Footnotes = append(footnotes.Footnotes, separatorFootnote)
+
+	// Add continuation separator (id=0)
+	continuationFootnote := &Footnote{
+		Type: "continuationSeparator",
+		ID:   "0",
+		Paragraphs: []*Paragraph{
+			{
+				Properties: &ParagraphProperties{
+					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
+				},
+				Runs: []Run{
+					{ContinuationSeparator: &ContinuationSeparator{}},
+				},
+			},
+		},
+	}
+	footnotes.Footnotes = append(footnotes.Footnotes, continuationFootnote)
 
 	// Add all footnotes
 	for _, footnote := range manager.footnotes {
@@ -624,24 +673,39 @@ func (d *Document) updateEndnotesFile() {
 		Endnotes: []*Endnote{},
 	}
 
-	// Add default separator
+	// Add default separator (id=-1)
 	separatorEndnote := &Endnote{
 		Type: "separator",
 		ID:   "-1",
 		Paragraphs: []*Paragraph{
 			{
 				Properties: &ParagraphProperties{
-					ParagraphStyle: &ParagraphStyle{Val: "EndnoteText"},
+					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
 				},
 				Runs: []Run{
-					{
-						EndnoteRef: &EndnoteRef{},
-					},
+					{Separator: &Separator{}},
 				},
 			},
 		},
 	}
 	endnotes.Endnotes = append(endnotes.Endnotes, separatorEndnote)
+
+	// Add continuation separator (id=0)
+	continuationEndnote := &Endnote{
+		Type: "continuationSeparator",
+		ID:   "0",
+		Paragraphs: []*Paragraph{
+			{
+				Properties: &ParagraphProperties{
+					Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
+				},
+				Runs: []Run{
+					{ContinuationSeparator: &ContinuationSeparator{}},
+				},
+			},
+		},
+	}
+	endnotes.Endnotes = append(endnotes.Endnotes, continuationEndnote)
 
 	// Add all endnotes
 	for _, endnote := range manager.endnotes {
@@ -661,26 +725,27 @@ func (d *Document) updateEndnotesFile() {
 
 // addFootnoteRelationship adds the footnote relationship
 func (d *Document) addFootnoteRelationship() {
-	relationshipID := fmt.Sprintf("rId%d", len(d.relationships.Relationships)+1)
+	// +2 because rId1 is reserved for styles.xml in serializeDocumentRelationships
+	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
 
 	relationship := Relationship{
 		ID:     relationshipID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes",
 		Target: "footnotes.xml",
 	}
-	d.relationships.Relationships = append(d.relationships.Relationships, relationship)
+	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 }
 
 // addEndnoteRelationship adds the endnote relationship
 func (d *Document) addEndnoteRelationship() {
-	relationshipID := fmt.Sprintf("rId%d", len(d.relationships.Relationships)+1)
+	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
 
 	relationship := Relationship{
 		ID:     relationshipID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes",
 		Target: "endnotes.xml",
 	}
-	d.relationships.Relationships = append(d.relationships.Relationships, relationship)
+	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 }
 
 // GetFootnoteCount returns the number of footnotes
@@ -871,12 +936,12 @@ func (d *Document) saveSettings(settings *Settings) error {
 
 // addSettingsRelationship adds the settings file relationship
 func (d *Document) addSettingsRelationship() {
-	relationshipID := fmt.Sprintf("rId%d", len(d.relationships.Relationships)+1)
+	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
 
 	relationship := Relationship{
 		ID:     relationshipID,
 		Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/settings",
-		Target: "word/settings.xml",
+		Target: "settings.xml",
 	}
-	d.relationships.Relationships = append(d.relationships.Relationships, relationship)
+	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, relationship)
 }

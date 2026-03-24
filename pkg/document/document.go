@@ -192,17 +192,19 @@ type OutlineLevel struct {
 
 // Run represents a text run
 type Run struct {
-	XMLName            xml.Name           `xml:"w:r"`
-	Properties         *RunProperties     `xml:"w:rPr,omitempty"`
-	FootnoteReference  *FootnoteReference `xml:"w:footnoteReference,omitempty"`
-	EndnoteReference   *EndnoteReference  `xml:"w:endnoteReference,omitempty"`
-	FootnoteRef        *FootnoteRef       `xml:"w:footnoteRef,omitempty"`
-	EndnoteRef         *EndnoteRef        `xml:"w:endnoteRef,omitempty"`
-	Text               Text               `xml:"w:t,omitempty"`
-	Break              *Break             `xml:"w:br,omitempty"` // Page break
-	Drawing            *DrawingElement    `xml:"w:drawing,omitempty"`
-	FieldChar          *FieldChar         `xml:"w:fldChar,omitempty"`
-	InstrText          *InstrText         `xml:"w:instrText,omitempty"`
+	XMLName                xml.Name               `xml:"w:r"`
+	Properties             *RunProperties         `xml:"w:rPr,omitempty"`
+	FootnoteReference      *FootnoteReference     `xml:"w:footnoteReference,omitempty"`
+	EndnoteReference       *EndnoteReference      `xml:"w:endnoteReference,omitempty"`
+	FootnoteRef            *FootnoteRef           `xml:"w:footnoteRef,omitempty"`
+	EndnoteRef             *EndnoteRef            `xml:"w:endnoteRef,omitempty"`
+	Separator              *Separator             `xml:"w:separator,omitempty"`
+	ContinuationSeparator  *ContinuationSeparator `xml:"w:continuationSeparator,omitempty"`
+	Text                   Text                   `xml:"w:t,omitempty"`
+	Break                  *Break                 `xml:"w:br,omitempty"` // Page break
+	Drawing                *DrawingElement        `xml:"w:drawing,omitempty"`
+	FieldChar              *FieldChar             `xml:"w:fldChar,omitempty"`
+	InstrText              *InstrText             `xml:"w:instrText,omitempty"`
 }
 
 // MarshalXML performs custom XML serialization for Run.
@@ -238,6 +240,16 @@ func (r *Run) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	}
 	if r.EndnoteRef != nil {
 		if err := e.EncodeElement(r.EndnoteRef, xml.StartElement{Name: xml.Name{Local: "w:endnoteRef"}}); err != nil {
+			return err
+		}
+	}
+	if r.Separator != nil {
+		if err := e.EncodeElement(r.Separator, xml.StartElement{Name: xml.Name{Local: "w:separator"}}); err != nil {
+			return err
+		}
+	}
+	if r.ContinuationSeparator != nil {
+		if err := e.EncodeElement(r.ContinuationSeparator, xml.StartElement{Name: xml.Name{Local: "w:continuationSeparator"}}); err != nil {
 			return err
 		}
 	}
@@ -321,6 +333,16 @@ type FootnoteRef struct {
 // EndnoteRef is the endnote self-reference element (marks the number position within endnote content)
 type EndnoteRef struct {
 	XMLName xml.Name `xml:"w:endnoteRef"`
+}
+
+// Separator is the separator line element used in footnote/endnote separators
+type Separator struct {
+	XMLName xml.Name `xml:"w:separator"`
+}
+
+// ContinuationSeparator is the continuation separator element for multi-page footnotes/endnotes
+type ContinuationSeparator struct {
+	XMLName xml.Name `xml:"w:continuationSeparator"`
 }
 
 // Bold represents bold formatting
