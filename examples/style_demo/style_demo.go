@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
-	"github.com/zerx-lab/wordZero/pkg/style"
+	"github.com/mr-pmillz/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/style"
 )
 
 func main() {

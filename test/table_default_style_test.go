@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 // TestTableDefaultStyle 测试表格默认样式

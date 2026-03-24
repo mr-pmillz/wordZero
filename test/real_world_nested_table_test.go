@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 // TestRealWorldNestedTableScenario 测试真实场景：简历中的家庭成员表格

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 // TestTableDynamicRowMergeValidation 验证动态添加行后合并单元格是否会导致错位

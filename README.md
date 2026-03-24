@@ -9,9 +9,9 @@
 [![Go Version](https://img.shields.io/badge/Go-1.19+-00ADD8?style=flat&logo=go)](https://golang.org)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-Passing-green.svg)](#testing)
-[![Benchmark](https://img.shields.io/badge/Benchmark-Go%202.62ms%20%7C%20JS%209.63ms%20%7C%20Python%2055.98ms-success.svg)](https://github.com/zerx-lab/wordZero/wiki/en-Performance-Benchmarks)
-[![Performance](https://img.shields.io/badge/Performance-Golang%20Winner-brightgreen.svg)](https://github.com/zerx-lab/wordZero/wiki/en-Performance-Benchmarks)
-[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/zerx-lab/wordZero)
+[![Benchmark](https://img.shields.io/badge/Benchmark-Go%202.62ms%20%7C%20JS%209.63ms%20%7C%20Python%2055.98ms-success.svg)](https://github.com/mr-pmillz/wordZero/wiki/en-Performance-Benchmarks)
+[![Performance](https://img.shields.io/badge/Performance-Golang%20Winner-brightgreen.svg)](https://github.com/mr-pmillz/wordZero/wiki/en-Performance-Benchmarks)
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mr-pmillz/wordZero)
 
 </div>
 
@@ -53,7 +53,7 @@ If you need to work with Excel documents, we highly recommend [**Excelize**](htt
 ```go
 // WordZero + Excelize combination example
 import (
-    "github.com/zerx-lab/wordZero/pkg/document"
+    "github.com/mr-pmillz/wordZero/pkg/document"
     "github.com/qax-os/excelize/v2"
 )
 
@@ -70,7 +70,7 @@ xlsx.SetCellValue("Sheet1", "B1", "Value")
 ## Installation
 
 ```bash
-go get github.com/zerx-lab/wordZero
+go get github.com/mr-pmillz/wordZero
 ```
 
 ### Version Notes
@@ -79,10 +79,10 @@ We recommend using versioned installation:
 
 ```bash
 # Install latest version
-go get github.com/zerx-lab/wordZero@latest
+go get github.com/mr-pmillz/wordZero@latest
 
 # Install specific version
-go get github.com/zerx-lab/wordZero@v1.6.0
+go get github.com/mr-pmillz/wordZero@v1.6.0
 ```
 
 ## Quick Start
@@ -92,8 +92,8 @@ package main
 
 import (
     "log"
-    "github.com/zerx-lab/wordZero/pkg/document"
-    "github.com/zerx-lab/wordZero/pkg/style"
+    "github.com/mr-pmillz/wordZero/pkg/document"
+    "github.com/mr-pmillz/wordZero/pkg/style"
 )
 
 func main() {
@@ -177,7 +177,7 @@ package main
 
 import (
     "log"
-    "github.com/zerx-lab/wordZero/pkg/document"
+    "github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 func main() {
@@ -250,7 +250,7 @@ package main
 
 import (
     "log"
-    "github.com/zerx-lab/wordZero/pkg/markdown"
+    "github.com/mr-pmillz/wordZero/pkg/markdown"
 )
 
 func main() {
@@ -319,7 +319,7 @@ package main
 
 import (
     "log"
-    "github.com/zerx-lab/wordZero/pkg/document"
+    "github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 func main() {
@@ -355,14 +355,14 @@ func main() {
 ### 📚 Complete Documentation
 
 **Available in multiple languages**:
-- **English**: [📖 Wiki Documentation](https://github.com/zerx-lab/wordZero/wiki/en-Home)
-- **中文**: [📖 中文文档](https://github.com/zerx-lab/wordZero/wiki)
+- **English**: [📖 Wiki Documentation](https://github.com/mr-pmillz/wordZero/wiki/en-Home)
+- **中文**: [📖 中文文档](https://github.com/mr-pmillz/wordZero/wiki)
 
 **Key Documentation**:
-- [**🚀 Quick Start**](https://github.com/zerx-lab/wordZero/wiki/en-Quick-Start) - Beginner's guide
-- [**⚡ Feature Overview**](https://github.com/zerx-lab/wordZero/wiki/en-Feature-Overview) - Detailed description of all features
-- [**📊 Performance Benchmarks**](https://github.com/zerx-lab/wordZero/wiki/en-Performance-Benchmarks) - Cross-language performance comparison analysis
-- [**🏗️ Project Structure**](https://github.com/zerx-lab/wordZero/wiki/en-Project-Structure) - Project architecture and code organization
+- [**🚀 Quick Start**](https://github.com/mr-pmillz/wordZero/wiki/en-Quick-Start) - Beginner's guide
+- [**⚡ Feature Overview**](https://github.com/mr-pmillz/wordZero/wiki/en-Feature-Overview) - Detailed description of all features
+- [**📊 Performance Benchmarks**](https://github.com/mr-pmillz/wordZero/wiki/en-Performance-Benchmarks) - Cross-language performance comparison analysis
+- [**🏗️ Project Structure**](https://github.com/mr-pmillz/wordZero/wiki/en-Project-Structure) - Project architecture and code organization
 
 ### 💡 Usage Examples
 See example code in the `examples/` directory:
@@ -422,7 +422,7 @@ go run ./examples/markdown_conversion/
 - Graphics drawing functionality
 - Multi-language and internationalization support
 
-👉 **View complete feature list**: [Feature Overview](https://github.com/zerx-lab/wordZero/wiki/en-Feature-Overview)
+👉 **View complete feature list**: [Feature Overview](https://github.com/mr-pmillz/wordZero/wiki/en-Feature-Overview)
 
 ## Performance
 
@@ -434,7 +434,7 @@ WordZero excels in performance, verified through comprehensive benchmarks:
 | JavaScript | 9.63ms | 3.67× |
 | Python | 55.98ms | 21.37× |
 
-👉 **View detailed performance analysis**: [Performance Benchmarks](https://github.com/zerx-lab/wordZero/wiki/en-Performance-Benchmarks)
+👉 **View detailed performance analysis**: [Performance Benchmarks](https://github.com/mr-pmillz/wordZero/wiki/en-Performance-Benchmarks)
 
 ## Project Structure
 
@@ -453,7 +453,7 @@ wordZero/
 └── wordZero.wiki/         # Complete documentation
 ```
 
-👉 **View detailed structure description**: [Project Structure](https://github.com/zerx-lab/wordZero/wiki/en-Project-Structure)
+👉 **View detailed structure description**: [Project Structure](https://github.com/mr-pmillz/wordZero/wiki/en-Project-Structure)
 
 ### Logo and Branding
 
@@ -485,7 +485,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ---
 
 **More Resources**:
-- 📖 [Complete Documentation](https://github.com/zerx-lab/wordZero/wiki)
-- 🔧 [API Reference](https://github.com/zerx-lab/wordZero/wiki/en-API-Reference)
-- 💡 [Best Practices](https://github.com/zerx-lab/wordZero/wiki/en-Best-Practices)
+- 📖 [Complete Documentation](https://github.com/mr-pmillz/wordZero/wiki)
+- 🔧 [API Reference](https://github.com/mr-pmillz/wordZero/wiki/en-API-Reference)
+- 💡 [Best Practices](https://github.com/mr-pmillz/wordZero/wiki/en-Best-Practices)
 - 📝 [Changelog](CHANGELOG.md)

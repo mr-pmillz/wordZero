@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 // TestTableBorders 测试表格边框功能

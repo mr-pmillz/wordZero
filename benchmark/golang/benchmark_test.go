@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
-	"github.com/zerx-lab/wordZero/pkg/style"
+	"github.com/mr-pmillz/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/style"
 )
 
 // 统一的测试配置，与JavaScript和Python保持一致

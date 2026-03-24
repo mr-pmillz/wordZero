@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 // TestTemplateIntegration 模板功能集成测试

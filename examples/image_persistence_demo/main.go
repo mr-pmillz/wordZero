@@ -10,7 +10,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 // createSampleImage 创建示例图片

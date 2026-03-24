@@ -11,9 +11,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
-	"github.com/zerx-lab/wordZero/pkg/markdown"
-	"github.com/zerx-lab/wordZero/pkg/style"
+	"github.com/mr-pmillz/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/markdown"
+	"github.com/mr-pmillz/wordZero/pkg/style"
 )
 
 // TestResult represents the result of a single test

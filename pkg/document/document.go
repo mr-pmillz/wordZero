@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/zerx-lab/wordZero/pkg/style"
+	"github.com/mr-pmillz/wordZero/pkg/style"
 )
 
 // Document represents a Word document

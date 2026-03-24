@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/zerx-lab/wordZero/pkg/markdown"
+	"github.com/mr-pmillz/wordZero/pkg/markdown"
 )
 
 // 数学公式转换示例

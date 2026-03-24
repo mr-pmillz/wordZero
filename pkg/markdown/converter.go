@@ -12,7 +12,7 @@ import (
 
 	mathjax "github.com/litao91/goldmark-mathjax"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 // MarkdownConverter defines the interface for Markdown-to-Word conversion.

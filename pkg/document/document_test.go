@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/zerx-lab/wordZero/pkg/style"
+	"github.com/mr-pmillz/wordZero/pkg/style"
 )
 
 // assertParagraphContent verifies the text content of a paragraph with bounds checking

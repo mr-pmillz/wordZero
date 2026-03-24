@@ -3,7 +3,7 @@ package test
 import (
 	"testing"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/document"
 )
 
 // TestParseElementsIntegration 测试解析不同类型元素的集成测试

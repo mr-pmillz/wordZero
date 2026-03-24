@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zerx-lab/wordZero/pkg/document"
-	"github.com/zerx-lab/wordZero/pkg/style"
+	"github.com/mr-pmillz/wordZero/pkg/document"
+	"github.com/mr-pmillz/wordZero/pkg/style"
 )
 
 // TestTemplateStylePreservation 测试模板渲染时样式保持

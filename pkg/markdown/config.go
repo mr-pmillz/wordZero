@@ -1,7 +1,7 @@
 // Package markdown provides Markdown-to-Word document conversion functionality.
 package markdown
 
-import "github.com/zerx-lab/wordZero/pkg/document"
+import "github.com/mr-pmillz/wordZero/pkg/document"
 
 // ConvertOptions configures conversion options.
 type ConvertOptions struct {

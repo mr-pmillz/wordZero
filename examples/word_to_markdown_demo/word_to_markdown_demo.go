@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/zerx-lab/wordZero/pkg/markdown"
+	"github.com/mr-pmillz/wordZero/pkg/markdown"
 )
 
 func main() {

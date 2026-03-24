@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 WordZero is a Go library for creating, reading, and modifying Word (.docx) documents following the Office Open XML (OOXML) specification. Minimal dependencies — only goldmark for Markdown support.
 
-Module: `github.com/zerx-lab/wordZero`
+Module: `github.com/mr-pmillz/wordZero`
 Go version: 1.19+ (toolchain go1.24.11)
 
 ## Build & Test Commands
