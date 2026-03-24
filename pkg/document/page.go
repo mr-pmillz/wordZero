@@ -354,8 +354,8 @@ func (d *Document) getSectionProperties() *SectionProperties {
 	return sectPr
 }
 
-// setSectionProperties replaces or sets the section properties.
-func (d *Document) setSectionProperties(sectPr *SectionProperties) {
+// SetSectionProperties replaces or sets the document-level section properties.
+func (d *Document) SetSectionProperties(sectPr *SectionProperties) {
 	if sectPr == nil {
 		return
 	}

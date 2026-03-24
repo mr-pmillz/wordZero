@@ -281,6 +281,7 @@ type Run struct {
 	Drawing               *DrawingElement        `xml:"w:drawing,omitempty"`
 	FieldChar             *FieldChar             `xml:"w:fldChar,omitempty"`
 	InstrText             *InstrText             `xml:"w:instrText,omitempty"`
+	RawXMLContent         []*RawXMLElement       `xml:"-"` // preserved unknown elements for round-trip
 }
 
 // MarshalXML performs custom XML serialization for Run.
@@ -364,6 +365,13 @@ func (r *Run) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	// Serialize InstrText (if present)
 	if r.InstrText != nil {
 		if err := e.EncodeElement(r.InstrText, xml.StartElement{Name: xml.Name{Local: "w:instrText"}}); err != nil {
+			return err
+		}
+	}
+
+	// Serialize preserved raw XML content (tab, lastRenderedPageBreak, commentReference, etc.)
+	for _, raw := range r.RawXMLContent {
+		if err := e.EncodeElement(raw, xml.StartElement{Name: raw.XMLName}); err != nil {
 			return err
 		}
 	}
@@ -2339,32 +2347,15 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 				if run != nil {
 					paragraph.Runs = append(paragraph.Runs, *run)
 				}
-			case "hyperlink":
-				// Parse hyperlink — contains runs that should be added to the paragraph.
-				// Preserve the anchor attribute for TOC entries.
-				hyperlinkRuns, err := d.parseHyperlinkRuns(decoder, t)
-				if err != nil {
-					return nil, err
-				}
-				paragraph.Runs = append(paragraph.Runs, hyperlinkRuns...)
-			case "bookmarkStart":
-				// Preserve as raw XML for round-trip fidelity
-				raw, err := d.captureElement(decoder, t)
-				if err != nil {
-					return nil, err
-				}
-				paragraph.RawXMLElements = append(paragraph.RawXMLElements, raw)
-			case "bookmarkEnd":
-				raw, err := d.captureElement(decoder, t)
-				if err != nil {
-					return nil, err
-				}
-				paragraph.RawXMLElements = append(paragraph.RawXMLElements, raw)
 			default:
-				// Skip other unknown elements
-				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+				// Capture ALL other paragraph-level elements as raw XML for round-trip
+				// preservation. This includes: hyperlinks, bookmarks, SDTs, comment
+				// ranges, and any other inline elements.
+				raw, err := d.captureElement(decoder, t)
+				if err != nil {
 					return nil, err
 				}
+				paragraph.RawXMLElements = append(paragraph.RawXMLElements, raw)
 			}
 		case xml.EndElement:
 			if t.Name.Local == "p" {
@@ -2436,12 +2427,14 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 				}
 				paragraph.Properties.NumberingProperties = numPr
 			case xmlElemSectPr:
-				// Some documents store section properties within paragraph properties
+				// Section properties within paragraph properties define section breaks.
+				// Must be preserved on the paragraph, not moved to body level,
+				// to maintain correct page breaks (e.g., cover page → TOC).
 				sectPr, err := d.parseSectionProperties(decoder, t)
 				if err != nil {
 					return err
 				}
-				d.setSectionProperties(sectPr)
+				paragraph.Properties.SectionProperties = sectPr
 			default:
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return err
@@ -2496,40 +2489,6 @@ func (d *Document) parseNumberingProperties(decoder *xml.Decoder) (*NumberingPro
 		case xml.EndElement:
 			if t.Name.Local == "numPr" {
 				return numPr, nil
-			}
-		}
-	}
-}
-
-// parseHyperlinkRuns parses a w:hyperlink element and returns its inner runs.
-// Hyperlinks in OOXML wrap runs — we extract them and add them to the paragraph.
-func (d *Document) parseHyperlinkRuns(decoder *xml.Decoder, startElement xml.StartElement) ([]Run, error) {
-	var runs []Run
-
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			return nil, WrapError("parse_hyperlink", err)
-		}
-
-		switch t := token.(type) {
-		case xml.StartElement:
-			if t.Name.Local == "r" {
-				run, err := d.parseRun(decoder, t)
-				if err != nil {
-					return nil, err
-				}
-				if run != nil {
-					runs = append(runs, *run)
-				}
-			} else {
-				if err := d.skipElement(decoder, t.Name.Local); err != nil {
-					return nil, err
-				}
-			}
-		case xml.EndElement:
-			if t.Name.Local == "hyperlink" {
-				return runs, nil
 			}
 		}
 	}
@@ -2627,9 +2586,13 @@ func (d *Document) parseRun(decoder *xml.Decoder, startElement xml.StartElement)
 					return nil, err
 				}
 			default:
-				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+				// Capture unknown run elements as raw XML (tab, lastRenderedPageBreak,
+				// commentReference, noBreakHyphen, etc.)
+				raw, err := d.captureElement(decoder, t)
+				if err != nil {
 					return nil, err
 				}
+				run.RawXMLContent = append(run.RawXMLContent, raw)
 			}
 		case xml.EndElement:
 			if t.Name.Local == "r" {
@@ -3157,6 +3120,30 @@ func (d *Document) parseSectionProperties(decoder *xml.Decoder, startElement xml
 				if ref.ID != "" || ref.Type != "" {
 					sectPr.FooterReferences = append(sectPr.FooterReferences, ref)
 				}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "type":
+				// Section type (continuous, nextPage, etc.)
+				val := getAttributeValue(t.Attr, "val")
+				if val != "" {
+					sectPr.SectionType = &SectionType{Val: val}
+				}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "titlePg":
+				// Title page setting
+				sectPr.TitlePage = &TitlePage{}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "pgNumType":
+				// Page number type
+				pgNum := &PageNumType{}
+				pgNum.Fmt = getAttributeValue(t.Attr, "fmt")
+				pgNum.Start = getAttributeValue(t.Attr, "start")
+				sectPr.PageNumType = pgNum
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
