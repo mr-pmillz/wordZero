@@ -2,6 +2,7 @@
 package document
 
 import (
+	"bytes"
 	"encoding/xml"
 	"fmt"
 	"strconv"
@@ -217,10 +218,117 @@ type EndnotePos struct {
 
 // FootnoteManager manages footnotes and endnotes
 type FootnoteManager struct {
-	nextFootnoteID int
-	nextEndnoteID  int
-	footnotes      map[string]*Footnote
-	endnotes       map[string]*Endnote
+	nextFootnoteID  int
+	nextEndnoteID   int
+	footnotes       map[string]*Footnote
+	endnotes        map[string]*Endnote
+	systemFootnotes []systemNote // preserved from template (separator, continuationSeparator, continuationNotice)
+	systemEndnotes  []systemNote // preserved from template
+}
+
+// systemNote preserves a system footnote/endnote from a template document.
+// System notes have a w:type attribute (separator, continuationSeparator, continuationNotice).
+type systemNote struct {
+	ID   string
+	Type string
+	Raw  []byte // complete raw XML of the <w:footnote>/<w:endnote> element
+}
+
+// syncFootnoteManagerWithExisting scans existing footnotes.xml and endnotes.xml
+// to set the next IDs above the highest existing IDs and preserve system notes.
+func (d *Document) syncFootnoteManagerWithExisting() {
+	manager := d.getFootnoteManager()
+	if fnData, exists := d.parts["word/footnotes.xml"]; exists {
+		highestID, sysNotes := parseExistingNotes(fnData, "footnote")
+		if highestID >= manager.nextFootnoteID {
+			manager.nextFootnoteID = highestID + 1
+		}
+		manager.systemFootnotes = sysNotes
+	}
+	if enData, exists := d.parts["word/endnotes.xml"]; exists {
+		highestID, sysNotes := parseExistingNotes(enData, "endnote")
+		if highestID >= manager.nextEndnoteID {
+			manager.nextEndnoteID = highestID + 1
+		}
+		manager.systemEndnotes = sysNotes
+	}
+}
+
+// parseExistingNotes scans footnotes/endnotes XML for the highest ID and system notes.
+// elementName should be "footnote" or "endnote".
+//
+//nolint:gocognit
+func parseExistingNotes(xmlData []byte, elementName string) (int, []systemNote) {
+	highestID := 0
+	var sysNotes []systemNote
+
+	decoder := xml.NewDecoder(bytes.NewReader(xmlData))
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			break
+		}
+		start, ok := token.(xml.StartElement)
+		if !ok || start.Name.Local != elementName {
+			continue
+		}
+
+		// Extract id and type attributes
+		var noteID, noteType string
+		for _, attr := range start.Attr {
+			switch attr.Name.Local {
+			case "id":
+				noteID = attr.Value
+			case "type":
+				noteType = attr.Value
+			}
+		}
+
+		// Parse the ID as an integer
+		id, _ := strconv.Atoi(noteID)
+		if id > highestID {
+			highestID = id
+		}
+
+		// If this is a system note (has a type attribute), capture it as raw XML
+		if noteType != "" {
+			// Re-serialize the complete element to raw XML
+			var buf bytes.Buffer
+			enc := xml.NewEncoder(&buf)
+
+			// Write the start element
+			if err := enc.EncodeToken(xml.CopyToken(start)); err != nil {
+				continue
+			}
+
+			// Copy all tokens until the matching end element
+			depth := 1
+			for depth > 0 {
+				tok, err := decoder.Token()
+				if err != nil {
+					break
+				}
+				switch tok.(type) {
+				case xml.StartElement:
+					depth++
+				case xml.EndElement:
+					depth--
+				}
+				if err := enc.EncodeToken(xml.CopyToken(tok)); err != nil {
+					break
+				}
+			}
+			enc.Flush()
+
+			sysNotes = append(sysNotes, systemNote{
+				ID:   noteID,
+				Type: noteType,
+				Raw:  buf.Bytes(),
+			})
+		}
+	}
+
+	return highestID, sysNotes
 }
 
 // getFootnoteManager returns the document's footnote manager (lazy initialization)
@@ -576,69 +684,87 @@ func (d *Document) createNoteContent(noteID string, noteText string, noteType Fo
 }
 
 // updateNotesFile is a shared helper that updates either the footnotes or endnotes file.
+// It preserves system notes from the template (separator, continuationSeparator, continuationNotice)
+// and appends user-created notes after them.
 func (d *Document) updateNotesFile(noteType FootnoteType) {
 	manager := d.getFootnoteManager()
 
-	separatorParagraphs := []*Paragraph{
-		{
-			Properties: &ParagraphProperties{
-				Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-			},
-			Runs: []Run{
-				{Separator: &Separator{}},
-			},
-		},
-	}
-	continuationParagraphs := []*Paragraph{
-		{
-			Properties: &ParagraphProperties{
-				Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-			},
-			Runs: []Run{
-				{ContinuationSeparator: &ContinuationSeparator{}},
-			},
-		},
-	}
-
-	var xmlBytes []byte
-	var err error
+	var sysNotes []systemNote
+	var userNoteXMLParts [][]byte
 	var partName string
+	xmlns := "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 	if noteType == FootnoteTypeFootnote {
-		footnotes := &Footnotes{
-			Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-			Footnotes: []*Footnote{
-				{Type: "separator", ID: "-1", Paragraphs: separatorParagraphs},
-				{Type: "continuationSeparator", ID: "0", Paragraphs: continuationParagraphs},
-			},
-		}
-		for _, footnote := range manager.footnotes {
-			footnotes.Footnotes = append(footnotes.Footnotes, footnote)
-		}
-		xmlBytes, err = xml.MarshalIndent(footnotes, "", "  ")
+		sysNotes = manager.systemFootnotes
 		partName = "word/footnotes.xml"
+		for _, fn := range manager.footnotes {
+			if data, err := xml.MarshalIndent(fn, "  ", "  "); err == nil {
+				userNoteXMLParts = append(userNoteXMLParts, data)
+			}
+		}
 	} else {
-		endnotes := &Endnotes{
-			Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-			Endnotes: []*Endnote{
-				{Type: "separator", ID: "-1", Paragraphs: separatorParagraphs},
-				{Type: "continuationSeparator", ID: "0", Paragraphs: continuationParagraphs},
-			},
-		}
-		for _, endnote := range manager.endnotes {
-			endnotes.Endnotes = append(endnotes.Endnotes, endnote)
-		}
-		xmlBytes, err = xml.MarshalIndent(endnotes, "", "  ")
+		sysNotes = manager.systemEndnotes
 		partName = "word/endnotes.xml"
+		for _, en := range manager.endnotes {
+			if data, err := xml.MarshalIndent(en, "  ", "  "); err == nil {
+				userNoteXMLParts = append(userNoteXMLParts, data)
+			}
+		}
 	}
 
-	if err != nil {
-		return
+	// If no system notes were preserved from a template, generate default separators
+	if len(sysNotes) == 0 {
+		sysNotes = defaultSystemNotes(noteType)
 	}
 
-	// Add XML declaration
-	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
-	d.parts[partName] = append(xmlDeclaration, xmlBytes...)
+	// Build the XML manually to emit system notes as raw XML (preserving template structure)
+	var buf bytes.Buffer
+	buf.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
+
+	elementName := "w:footnotes"
+	if noteType == FootnoteTypeEndnote {
+		elementName = "w:endnotes"
+	}
+	fmt.Fprintf(&buf, `<%s xmlns:w="%s">`, elementName, xmlns)
+	buf.WriteString("\n")
+
+	// Emit system notes (preserved raw XML from template)
+	for _, sn := range sysNotes {
+		buf.Write(sn.Raw)
+		buf.WriteString("\n")
+	}
+
+	// Emit user notes (marshaled from structs)
+	for _, part := range userNoteXMLParts {
+		buf.Write(part)
+		buf.WriteString("\n")
+	}
+
+	fmt.Fprintf(&buf, `</%s>`, elementName)
+
+	d.parts[partName] = buf.Bytes()
+}
+
+// defaultSystemNotes generates default separator and continuation separator notes
+// for documents that don't have pre-existing system notes.
+func defaultSystemNotes(noteType FootnoteType) []systemNote {
+	elementName := "w:footnote"
+	if noteType == FootnoteTypeEndnote {
+		elementName = "w:endnote"
+	}
+
+	separatorXML := fmt.Sprintf(
+		`<%s w:type="separator" w:id="-1"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:separator/></w:r></w:p></%s>`,
+		elementName, elementName)
+
+	continuationXML := fmt.Sprintf(
+		`<%s w:type="continuationSeparator" w:id="0"><w:p><w:pPr><w:spacing w:after="0" w:line="240" w:lineRule="auto"/></w:pPr><w:r><w:continuationSeparator/></w:r></w:p></%s>`,
+		elementName, elementName)
+
+	return []systemNote{
+		{ID: "-1", Type: "separator", Raw: []byte(separatorXML)},
+		{ID: "0", Type: "continuationSeparator", Raw: []byte(continuationXML)},
+	}
 }
 
 // updateFootnotesFile updates the footnotes file

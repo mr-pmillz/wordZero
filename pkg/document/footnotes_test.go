@@ -734,6 +734,82 @@ func TestDocumentIsolation_Endnotes(t *testing.T) {
 	}
 }
 
+// --- ID Collision Avoidance ---
+
+func TestFootnoteIDStartsAboveExistingSystemNotes(t *testing.T) {
+	// Simulate a template with system footnotes at ids -1, 0, 1 (like Word templates)
+	doc := New()
+
+	// Write a fake footnotes.xml with system notes including id=1 (continuationNotice)
+	templateFootnotes := `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+  <w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>
+  <w:footnote w:type="continuationNotice" w:id="1"><w:p/></w:footnote>
+</w:footnotes>`
+	doc.parts["word/footnotes.xml"] = []byte(templateFootnotes)
+
+	// Sync the manager with existing content
+	doc.syncFootnoteManagerWithExisting()
+
+	// Next ID should be 2 (above the highest existing id=1)
+	manager := doc.getFootnoteManager()
+	if manager.nextFootnoteID != 2 {
+		t.Errorf("expected nextFootnoteID=2 after syncing with template containing id=1, got %d", manager.nextFootnoteID)
+	}
+
+	// System notes should be preserved
+	if len(manager.systemFootnotes) != 3 {
+		t.Errorf("expected 3 system footnotes (separator, continuationSeparator, continuationNotice), got %d", len(manager.systemFootnotes))
+	}
+
+	// Adding a footnote should get id=2, not id=1
+	err := doc.AddFootnote("text", "user footnote")
+	if err != nil {
+		t.Fatalf("AddFootnote failed: %v", err)
+	}
+
+	paragraphs := doc.Body.GetParagraphs()
+	lastPara := paragraphs[len(paragraphs)-1]
+	refRun := lastPara.Runs[len(lastPara.Runs)-1]
+	if refRun.FootnoteReference == nil {
+		t.Fatal("missing FootnoteReference")
+	}
+	if refRun.FootnoteReference.ID != "2" {
+		t.Errorf("expected footnote ID '2', got '%s'", refRun.FootnoteReference.ID)
+	}
+}
+
+func TestSystemFootnotesPreservedInOutput(t *testing.T) {
+	doc := New()
+
+	// Simulate template with continuationNotice
+	templateFootnotes := `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:footnotes xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
+  <w:footnote w:type="separator" w:id="-1"><w:p><w:r><w:separator/></w:r></w:p></w:footnote>
+  <w:footnote w:type="continuationSeparator" w:id="0"><w:p><w:r><w:continuationSeparator/></w:r></w:p></w:footnote>
+  <w:footnote w:type="continuationNotice" w:id="1"><w:p/></w:footnote>
+</w:footnotes>`
+	doc.parts["word/footnotes.xml"] = []byte(templateFootnotes)
+	doc.syncFootnoteManagerWithExisting()
+
+	// Add a user footnote
+	doc.AddFootnote("text", "user footnote")
+
+	// Check the output XML contains continuationNotice
+	outputXML := string(doc.parts[testFootnotesXMLPath])
+	if !strings.Contains(outputXML, "continuationNotice") {
+		t.Error("output footnotes.xml should preserve the continuationNotice system note from template")
+	}
+	// The system note with id=1 should be preserved (may be encoded with different namespace prefix)
+	if !strings.Contains(outputXML, `id="1"`) {
+		t.Errorf("output should contain system note with id=1, got:\n%s", outputXML[:min(len(outputXML), 500)])
+	}
+	if !strings.Contains(outputXML, "user footnote") {
+		t.Error("output should contain the user footnote text")
+	}
+}
+
 // --- Edge Cases ---
 
 func TestAddFootnote_EmptyText(t *testing.T) {

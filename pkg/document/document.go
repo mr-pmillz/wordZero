@@ -774,6 +774,10 @@ func openFromZipReader(zipReader *zip.Reader, filename string) (*Document, error
 	// Update nextImageID counter based on existing image relationships
 	doc.updateNextImageID()
 
+	// Sync footnote manager with existing footnotes/endnotes in the template
+	// to avoid ID collisions and preserve system notes (separator, continuationNotice, etc.)
+	doc.syncFootnoteManagerWithExisting()
+
 	return doc, nil
 }
 
