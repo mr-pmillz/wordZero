@@ -2,6 +2,35 @@
 
 All notable changes to this project will be documented [here](https://github.com/mr-pmillz/wordZero/blob/main/CHANGELOG.md?ref_type=heads)
 
+## [1.7.2](https://github.com/mr-pmillz/wordZero/compare/v1.7.1...v1.7.2) - 2026-03-24
+
+### 🐛 Bug fixes
+
+- Fix: preserve TOC/unknown elements on round-trip, fix footnote vertAlign - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+
+### ⚙️ Miscellaneous
+
+- Round-trip preservation: - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- - Add RawXMLElement type that captures unknown body elements (SDT, bookmarks, - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+-   comment ranges) as raw XML during parsing and re-emits them on save - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- - Change parseBodySubElement() to preserve unknown elements instead of - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+-   discarding them via skipElement() - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- - Add parsing for 11 run-level elements in parseRun(): fldChar, instrText, - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+-   footnoteReference, endnoteReference, footnoteRef, endnoteRef, separator, - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+-   continuationSeparator, br — all fields already existed on Run struct but - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+-   were never populated during document open - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- - Add parsing for rStyle and vertAlign in parseRunProperties() - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- Footnote fix: - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- - Remove vertAlign from createNoteContent() self-reference runs — the - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+-   FootnoteReference rStyle already provides superscript, and the redundant - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+-   vertAlign causes Word to report repair errors - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- Tests: - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- - Add TestFootnoteContentNoVerticalAlign unit test - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- - Add 6 round-trip integration tests in test/roundtrip_test.go using - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+-   external test document (skipped if not present) - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([aaf7479](https://github.com/mr-pmillz/wordZero/commit/aaf7479f46b473477bc59cbc995bd15b99baee01))
+- Chore: update changelog for v1.7.1 - ([2c8fa40](https://github.com/mr-pmillz/wordZero/commit/2c8fa405deaee1f3f0f0f4ed18ce11cc614beb1f))
+
 ## [1.7.1](https://github.com/mr-pmillz/wordZero/compare/v1.7.0...v1.7.1) - 2026-03-24
 
 ### ✨ New features
