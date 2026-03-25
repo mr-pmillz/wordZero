@@ -3335,16 +3335,27 @@ func (d *Document) serializeRelationships() {
 
 // serializeDocumentRelationships serializes document relationships
 func (d *Document) serializeDocumentRelationships() {
-	// Get existing relationships, starting from index 1 (reserved for styles.xml)
-	relationships := []Relationship{
-		{
+	var relationships []Relationship
+
+	// Check if styles.xml relationship already exists (e.g., from an opened template)
+	hasStyles := false
+	for _, rel := range d.documentRelationships.Relationships {
+		if rel.Target == "styles.xml" {
+			hasStyles = true
+			break
+		}
+	}
+
+	// Only add styles.xml relationship for new documents (not templates)
+	if !hasStyles {
+		relationships = append(relationships, Relationship{
 			ID:     "rId1",
 			Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
 			Target: "styles.xml",
-		},
+		})
 	}
 
-	// Add dynamically created document-level relationships (headers, footers, etc.)
+	// Add all document-level relationships (template originals + dynamically added)
 	relationships = append(relationships, d.documentRelationships.Relationships...)
 
 	// Create document relationships
@@ -3494,17 +3505,10 @@ func (d *Document) parseDocumentRelationships() error {
 		return WrapError("parse_document_relationships", err)
 	}
 
-	// Save parsed relationships (excluding styles.xml, which is auto-added in serializeDocumentRelationships)
-	// Filter out styles.xml relationship since it is always rId1 and auto-added on save
-	filteredRels := make([]Relationship, 0)
-	for _, rel := range relationships.Relationships {
-		if rel.Type != "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" {
-			filteredRels = append(filteredRels, rel)
-		}
-	}
-
-	d.documentRelationships.Relationships = filteredRels
-	DebugMsgf(MsgDocumentRelationshipsParsed, len(filteredRels))
+	// Preserve all parsed relationships (including styles.xml at its original rId).
+	// serializeDocumentRelationships() checks for existing styles.xml before adding one.
+	d.documentRelationships.Relationships = relationships.Relationships
+	DebugMsgf(MsgDocumentRelationshipsParsed, len(relationships.Relationships))
 	return nil
 }
 
