@@ -37,6 +37,24 @@ Uses `messages.go` message keys for bilingual output. For new log calls:
 - With args: `DebugMsgf(MsgSomeKey, arg1, arg2)` / `InfoMsgf(MsgSomeKey, arg)`
 - Add new keys to `messages.go` in both `messagesZH` and `messagesEN` maps
 
+## Round-Trip Preservation Architecture
+
+When opening existing documents, the parser preserves unknown elements at three levels:
+- **Body level**: `parseBodySubElement()` default → `captureElement()` → `RawXMLElement` in `Body.Elements`
+- **Paragraph level**: `parseParagraph()` default → `captureElement()` → `RawXMLElement` in `Paragraph.RawXMLElements`
+- **Run level**: `parseRun()` default → `captureElement()` → `RawXMLElement` in `Run.RawXMLContent`
+
+Custom `MarshalXML` on `Paragraph` and `Run` emits these raw elements after the known fields.
+
+When adding new element parsing, add an explicit `case` in the switch BEFORE the `default` capture. The `default` case is the safety net — it preserves anything we don't explicitly handle.
+
+## Common Parser Traps
+
+- `parseParagraphProperties()` must handle `w:sectPr` and store it on `paragraph.Properties.SectionProperties` (not body level)
+- `parseSectionProperties()` must handle `w:type`, `w:titlePg`, `w:pgNumType` (not skip them)
+- XML attributes with empty strings are still emitted unless `omitempty` is on the tag — critical for `PageSizeXML.Orient`
+- Go's XML encoder uses full namespace URIs, not `w:` prefixes — test element counting with `strings.Count(content, "elementName")` not `"w:elementName"`
+
 ## File Layout
 
 - `document.go` — Document, Body, Paragraph, Run, RunProperties, XML types, MarshalXML, core methods (~4000 lines)

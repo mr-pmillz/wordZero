@@ -332,8 +332,9 @@ type BlipFill struct {
 
 // Blip represents a binary large image or picture.
 type Blip struct {
-	XMLName xml.Name `xml:"a:blip"`
-	Embed   string   `xml:"r:embed,attr"`
+	XMLName  xml.Name `xml:"a:blip"`
+	Embed    string   `xml:"r:embed,attr"`
+	InnerXML string   `xml:",innerxml"` // preserves child elements like alphaModFix (transparency)
 }
 
 // Stretch represents a stretch fill.

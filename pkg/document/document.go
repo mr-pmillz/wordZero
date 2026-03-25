@@ -2435,6 +2435,38 @@ func (d *Document) parseParagraphProperties(decoder *xml.Decoder, paragraph *Par
 					return err
 				}
 				paragraph.Properties.SectionProperties = sectPr
+			case "keepNext":
+				val := getAttributeValue(t.Attr, "val")
+				paragraph.Properties.KeepNext = &KeepNext{Val: val}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return err
+				}
+			case "keepLines":
+				val := getAttributeValue(t.Attr, "val")
+				paragraph.Properties.KeepLines = &KeepLines{Val: val}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return err
+				}
+			case "widowControl":
+				val := getAttributeValue(t.Attr, "val")
+				paragraph.Properties.WidowControl = &WidowControl{Val: val}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return err
+				}
+			case "pageBreakBefore":
+				val := getAttributeValue(t.Attr, "val")
+				paragraph.Properties.PageBreakBefore = &PageBreakBefore{Val: val}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return err
+				}
+			case "outlineLvl":
+				val := getAttributeValue(t.Attr, "val")
+				if val != "" {
+					paragraph.Properties.OutlineLevel = &OutlineLevel{Val: val}
+				}
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return err
+				}
 			default:
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return err
@@ -4454,10 +4486,13 @@ func (d *Document) parseBlipFill(decoder *xml.Decoder, startElement xml.StartEle
 						blip.Embed = attr.Value
 					}
 				}
-				blipFill.Blip = blip
-				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+				// Capture inner XML to preserve child elements like alphaModFix (transparency)
+				raw, err := d.captureElement(decoder, t)
+				if err != nil {
 					return nil, err
 				}
+				blip.InnerXML = raw.InnerXML
+				blipFill.Blip = blip
 			case "stretch":
 				blipFill.Stretch = &Stretch{FillRect: &FillRect{}}
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {

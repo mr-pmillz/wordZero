@@ -59,6 +59,11 @@ Three packages under `pkg/`:
 - **Footnote body references**: Only set `<w:rStyle>` on reference runs in document.xml — do NOT add `<w:vertAlign>` (the style provides superscript)
 - **Footnote content**: Each footnote paragraph needs `<w:pStyle val="FootnoteText"/>`, a self-ref run with `<w:footnoteRef/>`, then a text run with `xml:space="preserve"`
 - **Per-document state**: `FootnoteManager` is per-Document (not global). Each Document tracks its own footnote IDs independently.
+- **Round-trip fidelity**: Use `captureElement()` → `RawXMLElement` at body, paragraph, AND run level for unknown elements. Selective parsing loses content (hyperlinks, bookmarks, SDTs, comment markers, tabs).
+- **PageSizeXML.Orient**: Must use `omitempty` — an empty `w:orient=""` is invalid OOXML and breaks Word's page layout. Absence = portrait.
+- **Paragraph-level sectPr**: Store on `paragraph.Properties.SectionProperties`, never move to body level. Moving it loses section break position (e.g., cover page → TOC boundary).
+- **parseSectionProperties**: Must parse `w:type` (continuous/nextPage), `w:titlePg`, and `w:pgNumType` — skipping these loses section breaks and title page flags.
+- **Template system footnotes**: Many Word templates have `continuationNotice` footnote at id=1. `FootnoteManager` scans existing IDs on document open via `syncFootnoteManagerWithExisting()` to avoid collisions.
 
 ## Code Conventions
 
