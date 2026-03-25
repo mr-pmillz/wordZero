@@ -146,6 +146,29 @@ type Paragraph struct {
 	RawXMLElements []*RawXMLElement     `xml:"-"` // preserved elements (bookmarks, etc.) for round-trip
 }
 
+// HasContent returns true if the paragraph has any text content in its runs
+// or any preserved raw XML elements (hyperlinks, bookmarks, field codes, etc.).
+// This is useful for determining whether a paragraph (e.g., a TOC entry) has
+// real content after round-trip parsing, since some content may be preserved
+// as RawXMLElements rather than in Runs.
+func (p *Paragraph) HasContent() bool {
+	for _, run := range p.Runs {
+		if strings.TrimSpace(run.Text.Content) != "" {
+			return true
+		}
+		if run.FieldChar != nil || run.InstrText != nil {
+			return true
+		}
+		if run.FootnoteReference != nil || run.EndnoteReference != nil {
+			return true
+		}
+		if len(run.RawXMLContent) > 0 {
+			return true
+		}
+	}
+	return len(p.RawXMLElements) > 0
+}
+
 // MarshalXML custom serializes a Paragraph, emitting properties, runs, then raw elements.
 func (p *Paragraph) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "w:p"}
