@@ -64,6 +64,9 @@ Three packages under `pkg/`:
 - **Paragraph-level sectPr**: Store on `paragraph.Properties.SectionProperties`, never move to body level. Moving it loses section break position (e.g., cover page → TOC boundary).
 - **parseSectionProperties**: Must parse `w:type` (continuous/nextPage), `w:titlePg`, and `w:pgNumType` — skipping these loses section breaks and title page flags.
 - **Template system footnotes**: Many Word templates have `continuationNotice` footnote at id=1. `FootnoteManager` scans existing IDs on document open via `syncFootnoteManagerWithExisting()` to avoid collisions.
+- **DO NOT modify rId relationship handling**: `serializeDocumentRelationships()` always hardcodes `rId1` for styles.xml. Templates may already have `rId1` for customXml, creating a duplicate. This is an accepted tradeoff — attempts to fix it (deduplication, rId swapping, preserving original IDs) CORRUPT the document and prevent Word from opening it entirely. The duplicate rId1 produces at most a "repair" dialog but the document opens correctly.
+- **Namespace prefixes on inner elements**: The `a:` (DrawingML), `pic:`, etc. namespaces are declared on inner elements, NOT on the root `<w:document>`. `defaultOOXMLNamespaces` provides fallback mappings so `captureElement()` can reconstruct prefixes for these. Without this, elements like `<a:alphaModFix>` lose their prefix and become `<alphaModFix>`.
+- **Paragraph attributes (w14:paraId, rsid*)**: Cannot go through encoding/xml — it produces wrong namespace prefixes (`wordml:` instead of `w14:`). Must be applied directly to the etree element via `applyRawAttrsToEtreeElement()` in `addElementToEtreeBody()`.
 
 ## Code Conventions
 

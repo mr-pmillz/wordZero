@@ -161,6 +161,7 @@ type Paragraph struct {
 	Properties     *ParagraphProperties `xml:"w:pPr,omitempty"`
 	Runs           []Run                `xml:"w:r"`
 	RawXMLElements []*RawXMLElement     `xml:"-"` // preserved elements (bookmarks, etc.) for round-trip
+	RawAttrs       []xml.Attr           `xml:"-"` // preserved paragraph attributes (w14:paraId, rsid*, etc.)
 }
 
 // HasContent returns true if the paragraph has any text content in its runs
@@ -438,6 +439,94 @@ type RunProperties struct {
 	FontSizeCs    *FontSizeCs        `xml:"w:szCs,omitempty"`
 	Highlight     *Highlight         `xml:"w:highlight,omitempty"`
 	VerticalAlign *VerticalAlignment `xml:"w:vertAlign,omitempty"`
+	// RawXMLContent preserves unknown run property elements (e.g., w14:textFill)
+	// for round-trip fidelity. Not serialized by default; emitted by MarshalXML.
+	RawXMLContent []*RawXMLElement `xml:"-"`
+}
+
+// MarshalXML implements custom XML marshaling for RunProperties to emit known fields
+// in correct OOXML order followed by preserved unknown elements (like w14:textFill).
+func (rp *RunProperties) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
+	start.Name = xml.Name{Local: "w:rPr"}
+	if err := e.EncodeToken(start); err != nil {
+		return err
+	}
+
+	// Emit known fields in OOXML order
+	if rp.RunStyle != nil {
+		if err := e.EncodeElement(rp.RunStyle, xml.StartElement{Name: xml.Name{Local: "w:rStyle"}}); err != nil {
+			return err
+		}
+	}
+	if rp.FontFamily != nil {
+		if err := e.EncodeElement(rp.FontFamily, xml.StartElement{Name: xml.Name{Local: "w:rFonts"}}); err != nil {
+			return err
+		}
+	}
+	if rp.Bold != nil {
+		if err := e.EncodeElement(rp.Bold, xml.StartElement{Name: xml.Name{Local: "w:b"}}); err != nil {
+			return err
+		}
+	}
+	if rp.BoldCs != nil {
+		if err := e.EncodeElement(rp.BoldCs, xml.StartElement{Name: xml.Name{Local: "w:bCs"}}); err != nil {
+			return err
+		}
+	}
+	if rp.Italic != nil {
+		if err := e.EncodeElement(rp.Italic, xml.StartElement{Name: xml.Name{Local: "w:i"}}); err != nil {
+			return err
+		}
+	}
+	if rp.ItalicCs != nil {
+		if err := e.EncodeElement(rp.ItalicCs, xml.StartElement{Name: xml.Name{Local: "w:iCs"}}); err != nil {
+			return err
+		}
+	}
+	if rp.Underline != nil {
+		if err := e.EncodeElement(rp.Underline, xml.StartElement{Name: xml.Name{Local: "w:u"}}); err != nil {
+			return err
+		}
+	}
+	if rp.Strike != nil {
+		if err := e.EncodeElement(rp.Strike, xml.StartElement{Name: xml.Name{Local: "w:strike"}}); err != nil {
+			return err
+		}
+	}
+	if rp.Color != nil {
+		if err := e.EncodeElement(rp.Color, xml.StartElement{Name: xml.Name{Local: "w:color"}}); err != nil {
+			return err
+		}
+	}
+	if rp.FontSize != nil {
+		if err := e.EncodeElement(rp.FontSize, xml.StartElement{Name: xml.Name{Local: "w:sz"}}); err != nil {
+			return err
+		}
+	}
+	if rp.FontSizeCs != nil {
+		if err := e.EncodeElement(rp.FontSizeCs, xml.StartElement{Name: xml.Name{Local: "w:szCs"}}); err != nil {
+			return err
+		}
+	}
+	if rp.Highlight != nil {
+		if err := e.EncodeElement(rp.Highlight, xml.StartElement{Name: xml.Name{Local: "w:highlight"}}); err != nil {
+			return err
+		}
+	}
+	if rp.VerticalAlign != nil {
+		if err := e.EncodeElement(rp.VerticalAlign, xml.StartElement{Name: xml.Name{Local: "w:vertAlign"}}); err != nil {
+			return err
+		}
+	}
+
+	// Emit preserved unknown elements (e.g., w14:textFill, w14:ligatures)
+	for _, raw := range rp.RawXMLContent {
+		if err := e.Encode(raw); err != nil {
+			return err
+		}
+	}
+
+	return e.EncodeToken(start.End())
 }
 
 // RunStyle represents a character style reference
@@ -862,10 +951,41 @@ func openFromZipReader(zipReader *zip.Reader, filename string) (*Document, error
 	return doc, nil
 }
 
+// defaultOOXMLNamespaces maps well-known OOXML namespace URIs to their standard prefixes.
+// These serve as defaults in parseNamespaceMap() so that captureElement() can reconstruct
+// correct prefixes even for namespaces declared on inner elements (not just the root).
+var defaultOOXMLNamespaces = map[string]string{
+	"http://schemas.openxmlformats.org/drawingml/2006/main":                  "a",
+	"http://schemas.openxmlformats.org/drawingml/2006/picture":               "pic",
+	"http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing": "wp",
+	"http://schemas.microsoft.com/office/word/2010/wordprocessingDrawing":    "wp14",
+	"http://schemas.openxmlformats.org/wordprocessingml/2006/main":           "w",
+	"http://schemas.openxmlformats.org/officeDocument/2006/relationships":    "r",
+	"http://schemas.openxmlformats.org/markup-compatibility/2006":            "mc",
+	"http://schemas.microsoft.com/office/word/2010/wordml":                   "w14",
+	"http://schemas.microsoft.com/office/word/2012/wordml":                   "w15",
+	"urn:schemas-microsoft-com:vml":                                          "v",
+	"urn:schemas-microsoft-com:office:office":                                "o",
+	"http://schemas.openxmlformats.org/officeDocument/2006/math":             "m",
+	"urn:schemas-microsoft-com:office:word":                                  "w10",
+	"http://schemas.openxmlformats.org/drawingml/2006/chart":                 "c",
+	"http://schemas.microsoft.com/office/word/2006/wordml":                   "wne",
+	"http://schemas.microsoft.com/office/word/2010/wordprocessingGroup":      "wpg",
+	"http://schemas.microsoft.com/office/word/2010/wordprocessingShape":      "wps",
+	"http://schemas.microsoft.com/office/word/2010/wordprocessingInk":        "wpi",
+	"http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas":     "wpc",
+}
+
 // parseNamespaceMap extracts xmlns:prefix="uri" declarations from the root element
 // of an XML document. Go's xml.Decoder strips these, so we parse them from raw bytes.
+// The map is pre-populated with well-known OOXML namespaces so that inner-element
+// namespaces (like a: on <a:graphic>) are available to captureElement().
 func parseNamespaceMap(xmlData []byte) map[string]string {
-	nsMap := make(map[string]string)
+	// Start with well-known defaults; root element declarations override these
+	nsMap := make(map[string]string, len(defaultOOXMLNamespaces))
+	for uri, prefix := range defaultOOXMLNamespaces {
+		nsMap[uri] = prefix
+	}
 	s := string(xmlData)
 
 	// Find the root element — skip past <?xml ...?> processing instructions
@@ -2409,7 +2529,8 @@ func (d *Document) parseBodySubElement(decoder *xml.Decoder, startElement xml.St
 //nolint:gocognit
 func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartElement) (*Paragraph, error) {
 	paragraph := &Paragraph{
-		Runs: make([]Run, 0),
+		Runs:     make([]Run, 0),
+		RawAttrs: startElement.Attr, // Preserve w14:paraId, w14:textId, rsid*, etc.
 	}
 
 	for {
@@ -2834,9 +2955,13 @@ func (d *Document) parseRunProperties(decoder *xml.Decoder, run *Run) error {
 					return err
 				}
 			default:
-				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+				// Capture unknown run property elements (e.g., w14:textFill, w14:ligatures)
+				// as raw XML for round-trip fidelity.
+				raw, err := d.captureElement(decoder, t)
+				if err != nil {
 					return err
 				}
+				run.Properties.RawXMLContent = append(run.Properties.RawXMLContent, raw)
 			}
 		case xml.EndElement:
 			if t.Name.Local == "rPr" {
@@ -3352,11 +3477,19 @@ func (d *Document) writeStartTag(b *strings.Builder, start xml.StartElement) {
 		fmt.Fprintf(b, "<%s", start.Name.Local)
 	}
 	for _, attr := range start.Attr {
-		aPrefix := d.namespaceMap[attr.Name.Space]
-		if aPrefix != "" {
-			fmt.Fprintf(b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
-		} else if attr.Name.Local != "" {
-			fmt.Fprintf(b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		if attr.Name.Space == "xmlns" {
+			// Namespace declaration: xmlns:prefix="uri"
+			fmt.Fprintf(b, ` xmlns:%s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		} else if attr.Name.Local == "xmlns" {
+			// Default namespace declaration: xmlns="uri"
+			fmt.Fprintf(b, ` xmlns="%s"`, xmlEscapeAttr(attr.Value))
+		} else {
+			aPrefix := d.namespaceMap[attr.Name.Space]
+			if aPrefix != "" {
+				fmt.Fprintf(b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
+			} else if attr.Name.Local != "" {
+				fmt.Fprintf(b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+			}
 		}
 	}
 	b.WriteString(">")
@@ -3388,11 +3521,19 @@ func (d *Document) buildRawElementXML(start xml.StartElement, innerXML string) s
 
 	// Reconstruct attributes with prefixes
 	for _, attr := range start.Attr {
-		aPrefix := d.namespaceMap[attr.Name.Space]
-		if aPrefix != "" {
-			fmt.Fprintf(&b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
-		} else if attr.Name.Local != "" {
-			fmt.Fprintf(&b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		if attr.Name.Space == "xmlns" {
+			// Namespace declaration: xmlns:prefix="uri"
+			fmt.Fprintf(&b, ` xmlns:%s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		} else if attr.Name.Local == "xmlns" {
+			// Default namespace declaration: xmlns="uri"
+			fmt.Fprintf(&b, ` xmlns="%s"`, xmlEscapeAttr(attr.Value))
+		} else {
+			aPrefix := d.namespaceMap[attr.Name.Space]
+			if aPrefix != "" {
+				fmt.Fprintf(&b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
+			} else if attr.Name.Local != "" {
+				fmt.Fprintf(&b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+			}
 		}
 	}
 
@@ -3566,10 +3707,37 @@ func (d *Document) addElementToEtreeBody(body *etree.Element, element interface{
 			return WrapError("etree_parse_element", err)
 		}
 		if subDoc.Root() != nil {
-			body.AddChild(subDoc.Root().Copy())
+			added := subDoc.Root().Copy()
+			body.AddChild(added)
+
+			// For Paragraphs with preserved attributes (w14:paraId, rsid*, etc.),
+			// add them directly to the etree element using proper namespace prefixes.
+			// This bypasses encoding/xml's namespace expansion entirely.
+			if para, ok := el.(*Paragraph); ok && len(para.RawAttrs) > 0 {
+				d.applyRawAttrsToEtreeElement(added, para.RawAttrs)
+			}
 		}
 	}
 	return nil
+}
+
+// applyRawAttrsToEtreeElement adds preserved xml.Attr values directly to an etree element
+// using the namespace map to reconstruct proper prefixed attribute names (e.g., w14:paraId).
+// This avoids encoding/xml's namespace expansion which produces wrong prefixes.
+func (d *Document) applyRawAttrsToEtreeElement(el *etree.Element, attrs []xml.Attr) {
+	for _, attr := range attrs {
+		if attr.Name.Space == "" {
+			// Unprefixed attribute — skip (unlikely for paragraph attrs)
+			continue
+		}
+		prefix := d.namespaceMap[attr.Name.Space]
+		if prefix == "" {
+			// Unknown namespace — skip to avoid invalid XML
+			continue
+		}
+		attrName := prefix + ":" + attr.Name.Local
+		el.CreateAttr(attrName, attr.Value)
+	}
 }
 
 // serializeContentTypes serializes content types

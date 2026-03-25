@@ -2,10 +2,12 @@
 package document
 
 import (
-	"bytes"
 	"encoding/xml"
 	"fmt"
 	"strconv"
+	"strings"
+
+	"github.com/beevik/etree"
 )
 
 // FootnoteType represents the type of a note
@@ -256,33 +258,34 @@ func (d *Document) syncFootnoteManagerWithExisting() {
 
 // parseExistingNotes scans footnotes/endnotes XML for the highest ID and system notes.
 // elementName should be "footnote" or "endnote".
-//
-//nolint:gocognit
+// Uses etree to preserve namespace prefixes (Go's encoding/xml expands them).
 func parseExistingNotes(xmlData []byte, elementName string) (int, []systemNote) {
 	highestID := 0
 	var sysNotes []systemNote
 
-	decoder := xml.NewDecoder(bytes.NewReader(xmlData))
-	for {
-		token, err := decoder.Token()
-		if err != nil {
-			break
+	doc := etree.NewDocument()
+	if err := doc.ReadFromBytes(xmlData); err != nil {
+		return highestID, sysNotes
+	}
+
+	root := doc.Root()
+	if root == nil {
+		return highestID, sysNotes
+	}
+
+	for _, child := range root.ChildElements() {
+		// Match by local name (ignoring namespace prefix)
+		localName := child.Tag
+		if idx := strings.LastIndex(child.Tag, ":"); idx >= 0 {
+			localName = child.Tag[idx+1:]
 		}
-		start, ok := token.(xml.StartElement)
-		if !ok || start.Name.Local != elementName {
+		if localName != elementName {
 			continue
 		}
 
-		// Extract id and type attributes
-		var noteID, noteType string
-		for _, attr := range start.Attr {
-			switch attr.Name.Local {
-			case "id":
-				noteID = attr.Value
-			case "type":
-				noteType = attr.Value
-			}
-		}
+		// Extract id and type attributes (may be prefixed like w:id or unprefixed)
+		noteID := getEtreeAttr(child, "id")
+		noteType := getEtreeAttr(child, "type")
 
 		// Parse the ID as an integer
 		id, _ := strconv.Atoi(noteID)
@@ -292,43 +295,40 @@ func parseExistingNotes(xmlData []byte, elementName string) (int, []systemNote) 
 
 		// If this is a system note (has a type attribute), capture it as raw XML
 		if noteType != "" {
-			// Re-serialize the complete element to raw XML
-			var buf bytes.Buffer
-			enc := xml.NewEncoder(&buf)
-
-			// Write the start element
-			if err := enc.EncodeToken(xml.CopyToken(start)); err != nil {
+			// Serialize the element back via etree — preserves all namespace prefixes
+			subDoc := etree.NewDocument()
+			subDoc.AddChild(child.Copy())
+			rawXML, err := subDoc.WriteToString()
+			if err != nil {
 				continue
 			}
-
-			// Copy all tokens until the matching end element
-			depth := 1
-			for depth > 0 {
-				tok, err := decoder.Token()
-				if err != nil {
-					break
-				}
-				switch tok.(type) {
-				case xml.StartElement:
-					depth++
-				case xml.EndElement:
-					depth--
-				}
-				if err := enc.EncodeToken(xml.CopyToken(tok)); err != nil {
-					break
-				}
+			// Strip XML declaration if present
+			if idx := strings.Index(rawXML, "?>"); idx >= 0 {
+				rawXML = strings.TrimSpace(rawXML[idx+2:])
 			}
-			enc.Flush()
-
 			sysNotes = append(sysNotes, systemNote{
 				ID:   noteID,
 				Type: noteType,
-				Raw:  buf.Bytes(),
+				Raw:  []byte(rawXML),
 			})
 		}
 	}
 
 	return highestID, sysNotes
+}
+
+// getEtreeAttr returns the value of an attribute by local name, ignoring namespace prefix.
+func getEtreeAttr(el *etree.Element, localName string) string {
+	for _, attr := range el.Attr {
+		attrLocal := attr.Key
+		if idx := strings.LastIndex(attr.Key, ":"); idx >= 0 {
+			attrLocal = attr.Key[idx+1:]
+		}
+		if attrLocal == localName {
+			return attr.Value
+		}
+	}
+	return ""
 }
 
 // getFootnoteManager returns the document's footnote manager (lazy initialization)
@@ -532,67 +532,64 @@ func (d *Document) ensureFootnoteInitialized(noteType FootnoteType) {
 }
 
 // initializeNotes is a shared helper that initializes either the footnote or endnote system.
+// Uses etree to build the XML to avoid Go's encoding/xml namespace expansion.
 func (d *Document) initializeNotes(noteType FootnoteType) {
-	separatorParagraphs := []*Paragraph{
-		{
-			Properties: &ParagraphProperties{
-				Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-			},
-			Runs: []Run{
-				{Separator: &Separator{}},
-			},
-		},
-	}
-	continuationParagraphs := []*Paragraph{
-		{
-			Properties: &ParagraphProperties{
-				Spacing: &Spacing{After: "0", Line: "240", LineRule: "auto"},
-			},
-			Runs: []Run{
-				{ContinuationSeparator: &ContinuationSeparator{}},
-			},
-		},
-	}
-
-	var xmlBytes []byte
-	var err error
-	var partName, contentTypeName, relType, target string
+	var partName, contentTypeName, relType, target, rootTag, noteTag string
 
 	if noteType == FootnoteTypeFootnote {
-		footnotes := &Footnotes{
-			Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-			Footnotes: []*Footnote{
-				{Type: "separator", ID: "-1", Paragraphs: separatorParagraphs},
-				{Type: "continuationSeparator", ID: "0", Paragraphs: continuationParagraphs},
-			},
-		}
-		xmlBytes, err = xml.MarshalIndent(footnotes, "", "  ")
 		partName = "word/footnotes.xml"
 		contentTypeName = "application/vnd.openxmlformats-officedocument.wordprocessingml.footnotes+xml"
 		relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/footnotes"
 		target = "footnotes.xml"
+		rootTag = "w:footnotes"
+		noteTag = "w:footnote"
 	} else {
-		endnotes := &Endnotes{
-			Xmlns: "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-			Endnotes: []*Endnote{
-				{Type: "separator", ID: "-1", Paragraphs: separatorParagraphs},
-				{Type: "continuationSeparator", ID: "0", Paragraphs: continuationParagraphs},
-			},
-		}
-		xmlBytes, err = xml.MarshalIndent(endnotes, "", "  ")
 		partName = "word/endnotes.xml"
 		contentTypeName = "application/vnd.openxmlformats-officedocument.wordprocessingml.endnotes+xml"
 		relType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/endnotes"
 		target = "endnotes.xml"
+		rootTag = "w:endnotes"
+		noteTag = "w:endnote"
 	}
 
+	// Build XML with etree to preserve w: prefixes
+	doc := etree.NewDocument()
+	doc.CreateProcInst("xml", `version="1.0" encoding="UTF-8" standalone="yes"`)
+	root := doc.CreateElement(rootTag)
+	root.CreateAttr("xmlns:w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+
+	// Separator note (id=-1)
+	sep := root.CreateElement(noteTag)
+	sep.CreateAttr("w:type", "separator")
+	sep.CreateAttr("w:id", "-1")
+	sepP := sep.CreateElement("w:p")
+	sepPPr := sepP.CreateElement("w:pPr")
+	sepSpacing := sepPPr.CreateElement("w:spacing")
+	sepSpacing.CreateAttr("w:after", "0")
+	sepSpacing.CreateAttr("w:line", "240")
+	sepSpacing.CreateAttr("w:lineRule", "auto")
+	sepR := sepP.CreateElement("w:r")
+	sepR.CreateElement("w:separator")
+
+	// ContinuationSeparator note (id=0)
+	cont := root.CreateElement(noteTag)
+	cont.CreateAttr("w:type", "continuationSeparator")
+	cont.CreateAttr("w:id", "0")
+	contP := cont.CreateElement("w:p")
+	contPPr := contP.CreateElement("w:pPr")
+	contSpacing := contPPr.CreateElement("w:spacing")
+	contSpacing.CreateAttr("w:after", "0")
+	contSpacing.CreateAttr("w:line", "240")
+	contSpacing.CreateAttr("w:lineRule", "auto")
+	contR := contP.CreateElement("w:r")
+	contR.CreateElement("w:continuationSeparator")
+
+	doc.Indent(2)
+	xmlBytes, err := doc.WriteToBytes()
 	if err != nil {
 		return
 	}
-
-	// Add XML declaration
-	xmlDeclaration := []byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
-	d.parts[partName] = append(xmlDeclaration, xmlBytes...)
+	d.parts[partName] = xmlBytes
 
 	// Add content type
 	d.addContentType(partName, contentTypeName)
@@ -690,25 +687,20 @@ func (d *Document) updateNotesFile(noteType FootnoteType) {
 	manager := d.getFootnoteManager()
 
 	var sysNotes []systemNote
-	var userNoteXMLParts [][]byte
+	var userNotes []interface{} // *Footnote or *Endnote
 	var partName string
-	xmlns := "http://schemas.openxmlformats.org/wordprocessingml/2006/main"
 
 	if noteType == FootnoteTypeFootnote {
 		sysNotes = manager.systemFootnotes
 		partName = "word/footnotes.xml"
 		for _, fn := range manager.footnotes {
-			if data, err := xml.MarshalIndent(fn, "  ", "  "); err == nil {
-				userNoteXMLParts = append(userNoteXMLParts, data)
-			}
+			userNotes = append(userNotes, fn)
 		}
 	} else {
 		sysNotes = manager.systemEndnotes
 		partName = "word/endnotes.xml"
 		for _, en := range manager.endnotes {
-			if data, err := xml.MarshalIndent(en, "  ", "  "); err == nil {
-				userNoteXMLParts = append(userNoteXMLParts, data)
-			}
+			userNotes = append(userNotes, en)
 		}
 	}
 
@@ -717,32 +709,73 @@ func (d *Document) updateNotesFile(noteType FootnoteType) {
 		sysNotes = defaultSystemNotes(noteType)
 	}
 
-	// Build the XML manually to emit system notes as raw XML (preserving template structure)
-	var buf bytes.Buffer
-	buf.WriteString(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>` + "\n")
-
-	elementName := "w:footnotes"
-	if noteType == FootnoteTypeEndnote {
-		elementName = "w:endnotes"
+	// Try to parse the original template's notes file to preserve root namespace declarations
+	var doc *etree.Document
+	if origData, exists := d.parts[partName]; exists && len(origData) > 0 {
+		doc = etree.NewDocument()
+		if err := doc.ReadFromBytes(origData); err != nil {
+			doc = nil
+		}
 	}
-	fmt.Fprintf(&buf, `<%s xmlns:w="%s">`, elementName, xmlns)
-	buf.WriteString("\n")
 
-	// Emit system notes (preserved raw XML from template)
+	// If we couldn't parse original, create a fresh document
+	if doc == nil || doc.Root() == nil {
+		doc = etree.NewDocument()
+		doc.CreateProcInst("xml", `version="1.0" encoding="UTF-8" standalone="yes"`)
+		rootTag := "w:footnotes"
+		if noteType == FootnoteTypeEndnote {
+			rootTag = "w:endnotes"
+		}
+		root := doc.CreateElement(rootTag)
+		root.CreateAttr("xmlns:w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+	}
+
+	root := doc.Root()
+
+	// Remove all existing children (we'll re-add system + user notes)
+	for _, child := range root.ChildElements() {
+		root.RemoveChild(child)
+	}
+
+	// Re-add system notes (preserved from template via etree serialization)
 	for _, sn := range sysNotes {
-		buf.Write(sn.Raw)
-		buf.WriteString("\n")
+		subDoc := etree.NewDocument()
+		if err := subDoc.ReadFromBytes(sn.Raw); err != nil {
+			continue
+		}
+		if subDoc.Root() != nil {
+			root.AddChild(subDoc.Root().Copy())
+		}
 	}
 
-	// Emit user notes (marshaled from structs)
-	for _, part := range userNoteXMLParts {
-		buf.Write(part)
-		buf.WriteString("\n")
+	// Add user notes — marshal via encoding/xml then parse into etree
+	for _, note := range userNotes {
+		xmlBytes, err := xml.Marshal(note)
+		if err != nil {
+			continue
+		}
+		// Strip _raw wrappers if present
+		xmlStr := string(xmlBytes)
+		if strings.Contains(xmlStr, "<_raw>") {
+			xmlStr = strings.ReplaceAll(xmlStr, "<_raw>", "")
+			xmlStr = strings.ReplaceAll(xmlStr, "</_raw>", "")
+			xmlBytes = []byte(xmlStr)
+		}
+		subDoc := etree.NewDocument()
+		if err := subDoc.ReadFromBytes(xmlBytes); err != nil {
+			continue
+		}
+		if subDoc.Root() != nil {
+			root.AddChild(subDoc.Root().Copy())
+		}
 	}
 
-	fmt.Fprintf(&buf, `</%s>`, elementName)
-
-	d.parts[partName] = buf.Bytes()
+	doc.Indent(2)
+	outBytes, err := doc.WriteToBytes()
+	if err != nil {
+		return
+	}
+	d.parts[partName] = outBytes
 }
 
 // defaultSystemNotes generates default separator and continuation separator notes
