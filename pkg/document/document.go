@@ -3335,37 +3335,17 @@ func (d *Document) serializeRelationships() {
 
 // serializeDocumentRelationships serializes document relationships
 func (d *Document) serializeDocumentRelationships() {
-	var relationships []Relationship
-
-	// Check if styles.xml relationship already exists from template
-	hasStyles := false
-	for _, rel := range d.documentRelationships.Relationships {
-		if rel.Target == "styles.xml" {
-			hasStyles = true
-			break
-		}
-	}
-
-	// Only add styles.xml if not already present from template
-	if !hasStyles {
-		relationships = append(relationships, Relationship{
+	// Get existing relationships, starting from index 1 (reserved for styles.xml)
+	relationships := []Relationship{
+		{
 			ID:     "rId1",
 			Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
 			Target: "styles.xml",
-		})
+		},
 	}
 
-	// Add all document-level relationships, deduplicating by ID
-	seen := make(map[string]bool)
-	for _, rel := range relationships {
-		seen[rel.ID] = true
-	}
-	for _, rel := range d.documentRelationships.Relationships {
-		if !seen[rel.ID] {
-			relationships = append(relationships, rel)
-			seen[rel.ID] = true
-		}
-	}
+	// Add dynamically created document-level relationships (headers, footers, etc.)
+	relationships = append(relationships, d.documentRelationships.Relationships...)
 
 	// Create document relationships
 	docRels := &Relationships{
