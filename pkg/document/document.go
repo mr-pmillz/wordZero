@@ -201,22 +201,23 @@ func (p *Paragraph) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 }
 
 // ParagraphProperties represents paragraph properties
+// Field order must match OOXML CT_PPr schema (ECMA-376 §17.3.1.26).
 type ParagraphProperties struct {
 	XMLName             xml.Name             `xml:"w:pPr"`
 	ParagraphStyle      *ParagraphStyle      `xml:"w:pStyle,omitempty"`
+	KeepNext            *KeepNext            `xml:"w:keepNext,omitempty"`
+	KeepLines           *KeepLines           `xml:"w:keepLines,omitempty"`
+	PageBreakBefore     *PageBreakBefore     `xml:"w:pageBreakBefore,omitempty"`
+	WidowControl        *WidowControl        `xml:"w:widowControl,omitempty"`
 	NumberingProperties *NumberingProperties `xml:"w:numPr,omitempty"`
 	ParagraphBorder     *ParagraphBorder     `xml:"w:pBdr,omitempty"`
 	Tabs                *Tabs                `xml:"w:tabs,omitempty"`
-	SnapToGrid          *SnapToGrid          `xml:"w:snapToGrid,omitempty"` // Snap to grid setting
+	SnapToGrid          *SnapToGrid          `xml:"w:snapToGrid,omitempty"`
 	Spacing             *Spacing             `xml:"w:spacing,omitempty"`
 	Indentation         *Indentation         `xml:"w:ind,omitempty"`
 	Justification       *Justification       `xml:"w:jc,omitempty"`
-	KeepNext            *KeepNext            `xml:"w:keepNext,omitempty"`        // Keep with next paragraph
-	KeepLines           *KeepLines           `xml:"w:keepLines,omitempty"`       // Keep all lines together
-	PageBreakBefore     *PageBreakBefore     `xml:"w:pageBreakBefore,omitempty"` // Page break before paragraph
-	WidowControl        *WidowControl        `xml:"w:widowControl,omitempty"`    // Widow/orphan control
-	OutlineLevel        *OutlineLevel        `xml:"w:outlineLvl,omitempty"`      // Outline level
-	SectionProperties   *SectionProperties   `xml:"w:sectPr,omitempty"`          // Section properties (for section breaks)
+	OutlineLevel        *OutlineLevel        `xml:"w:outlineLvl,omitempty"`
+	SectionProperties   *SectionProperties   `xml:"w:sectPr,omitempty"` // must be last per spec
 }
 
 // SnapToGrid controls snap-to-grid alignment.
@@ -909,8 +910,12 @@ func (d *Document) Save(filename string) error {
 	// Serialize document relationships
 	d.serializeDocumentRelationships()
 
-	// Write all parts
+	// Write all parts, skipping internal trash files
 	for name, data := range d.parts {
+		if strings.HasPrefix(name, "[trash]") {
+			continue
+		}
+
 		writer, err := zipWriter.Create(name)
 		if err != nil {
 			ErrorMsgf(MsgFailedToCreateZIPEntry, name)
@@ -3581,8 +3586,11 @@ func (d *Document) ToBytes() ([]byte, error) {
 	// Serialize document relationships
 	d.serializeDocumentRelationships()
 
-	// Write all parts
+	// Write all parts, skipping internal trash files
 	for name, data := range d.parts {
+		if strings.HasPrefix(name, "[trash]") {
+			continue
+		}
 		writer, err := zipWriter.Create(name)
 		if err != nil {
 			return nil, err

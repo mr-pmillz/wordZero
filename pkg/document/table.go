@@ -53,17 +53,18 @@ type Table struct {
 }
 
 // TableProperties represents table properties.
+// Field order must match OOXML CT_TblPr schema (ECMA-376 §17.4.60).
 type TableProperties struct {
 	XMLName      xml.Name          `xml:"w:tblPr"`
+	TableStyle   *TableStyle       `xml:"w:tblStyle,omitempty"`   // must be first per spec
 	TableW       *TableWidth       `xml:"w:tblW,omitempty"`
 	TableJc      *TableJc          `xml:"w:jc,omitempty"`
-	TableLook    *TableLook        `xml:"w:tblLook,omitempty"`
-	TableStyle   *TableStyle       `xml:"w:tblStyle,omitempty"`   // table style
-	TableBorders *TableBorders     `xml:"w:tblBorders,omitempty"` // table borders
-	Shd          *TableShading     `xml:"w:shd,omitempty"`        // table shading/background
-	TableCellMar *TableCellMargins `xml:"w:tblCellMar,omitempty"` // table cell margins
-	TableLayout  *TableLayoutType  `xml:"w:tblLayout,omitempty"`  // table layout type
-	TableInd     *TableIndentation `xml:"w:tblInd,omitempty"`     // table indentation
+	TableInd     *TableIndentation `xml:"w:tblInd,omitempty"`
+	TableBorders *TableBorders     `xml:"w:tblBorders,omitempty"`
+	Shd          *TableShading     `xml:"w:shd,omitempty"`
+	TableLayout  *TableLayoutType  `xml:"w:tblLayout,omitempty"`
+	TableCellMar *TableCellMargins `xml:"w:tblCellMar,omitempty"`
+	TableLook    *TableLook        `xml:"w:tblLook,omitempty"` // must be after tblCellMar per spec
 }
 
 // TableWidth represents the table width.

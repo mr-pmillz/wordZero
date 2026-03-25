@@ -69,13 +69,13 @@ type SectionProperties struct {
 	XmlnsR           string                   `xml:"xmlns:r,attr,omitempty"`
 	HeaderReferences []*HeaderFooterReference `xml:"w:headerReference,omitempty"`
 	FooterReferences []*FooterReference       `xml:"w:footerReference,omitempty"`
+	SectionType      *SectionType             `xml:"w:type,omitempty"`
 	PageSize         *PageSizeXML             `xml:"w:pgSz,omitempty"`
 	PageMargins      *PageMargin              `xml:"w:pgMar,omitempty"`
 	Columns          *Columns                 `xml:"w:cols,omitempty"`
-	TitlePage        *TitlePage               `xml:"w:titlePg,omitempty"`
 	PageNumType      *PageNumType             `xml:"w:pgNumType,omitempty"`
+	TitlePage        *TitlePage               `xml:"w:titlePg,omitempty"`
 	DocGrid          *DocGrid                 `xml:"w:docGrid,omitempty"`
-	SectionType      *SectionType             `xml:"w:type,omitempty"`
 }
 
 // PageSizeXML represents the page size XML structure.
