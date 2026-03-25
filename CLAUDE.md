@@ -20,6 +20,11 @@ go test -cover ./...                    # Coverage report
 go test -short ./...                    # Skip long-running tests
 go vet ./...                            # Static analysis
 go fmt ./...                            # Format code
+make lint                               # Run golangci-lint (0 issues required)
+# Debugging DOCX round-trip:
+# unzip -o file.docx -d /tmp/debug/     # Extract for XML inspection
+# /tmp/Document.docx                    # External test template (not in repo)
+# /tmp/Document-Test.docx               # Test output for manual Word verification
 ```
 
 ## Architecture
@@ -64,6 +69,8 @@ Three packages under `pkg/`:
 - **Paragraph-level sectPr**: Store on `paragraph.Properties.SectionProperties`, never move to body level. Moving it loses section break position (e.g., cover page → TOC boundary).
 - **parseSectionProperties**: Must parse `w:type` (continuous/nextPage), `w:titlePg`, and `w:pgNumType` — skipping these loses section breaks and title page flags.
 - **Template system footnotes**: Many Word templates have `continuationNotice` footnote at id=1. `FootnoteManager` scans existing IDs on document open via `syncFootnoteManagerWithExisting()` to avoid collisions.
+- **Blip child elements**: `<a:blip>` can contain children like `<a:alphaModFix amt="5000"/>` (transparency). Use `InnerXML` field to preserve them — `skipElement()` on blip loses opacity settings.
+- **Paragraph layout properties**: `keepNext`, `keepLines`, `widowControl` in `<w:pPr>` affect page break calculations. Must be parsed — missing these can shift content between pages.
 
 ## Code Conventions
 
