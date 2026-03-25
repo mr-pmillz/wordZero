@@ -598,7 +598,7 @@ func (d *Document) initializeNotes(noteType FootnoteType) {
 	d.addContentType(partName, contentTypeName)
 
 	// Add relationship
-	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
+	relationshipID := d.nextRelationshipID()
 	relationship := Relationship{
 		ID:     relationshipID,
 		Type:   relType,
@@ -965,7 +965,7 @@ func (d *Document) saveSettings(settings *Settings) error {
 
 // addSettingsRelationship adds the settings file relationship
 func (d *Document) addSettingsRelationship() {
-	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
+	relationshipID := d.nextRelationshipID()
 
 	relationship := Relationship{
 		ID:     relationshipID,

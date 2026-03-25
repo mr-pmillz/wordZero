@@ -402,7 +402,7 @@ func (d *Document) updateNumberingFile() {
 // addNumberingRelationship adds the numbering relationship to the document.
 func (d *Document) addNumberingRelationship() {
 	// Generate relationship ID
-	relationshipID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2) // +2 because styles.xml is already defined
+	relationshipID := d.nextRelationshipID() // +2 because styles.xml is already defined
 
 	// Add relationship
 	relationship := Relationship{

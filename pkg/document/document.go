@@ -49,6 +49,8 @@ type Document struct {
 	footnoteManager *FootnoteManager
 	// Numbering manager (per-document, avoids global state leaks)
 	numberingManager *NumberingManager
+	// isFromTemplate is true when document was opened via Open() (not created via New())
+	isFromTemplate bool
 }
 
 // Body represents the document body
@@ -728,7 +730,8 @@ func openFromZipReader(zipReader *zip.Reader, filename string) (*Document, error
 			Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
 			Relationships: []Relationship{},
 		},
-		nextImageID: 0, // Initialize image ID counter, starting from 0
+		nextImageID:    0, // Initialize image ID counter, starting from 0
+		isFromTemplate: true,
 		footnoteManager: &FootnoteManager{
 			nextFootnoteID: 1,
 			nextEndnoteID:  1,
@@ -3334,18 +3337,38 @@ func (d *Document) serializeRelationships() {
 }
 
 // serializeDocumentRelationships serializes document relationships
+// nextRelationshipID returns the next available rId for document relationships.
+// It scans existing relationships for the highest numeric ID and returns max+1.
+func (d *Document) nextRelationshipID() string {
+	maxID := 0
+	for _, rel := range d.documentRelationships.Relationships {
+		idStr := strings.TrimPrefix(rel.ID, "rId")
+		if n, err := strconv.Atoi(idStr); err == nil && n > maxID {
+			maxID = n
+		}
+	}
+	// For new documents, reserve rId1 for styles.xml
+	if !d.isFromTemplate && maxID < 1 {
+		maxID = 1
+	}
+	return fmt.Sprintf("rId%d", maxID+1)
+}
+
 func (d *Document) serializeDocumentRelationships() {
-	// Start with styles.xml as rId1 (always present, filtered during load to avoid duplicates)
-	relationships := []Relationship{
-		{
+	var relationships []Relationship
+
+	if d.isFromTemplate {
+		// Template document: use the template's relationships as-is (styles.xml at original rId)
+		relationships = append(relationships, d.documentRelationships.Relationships...)
+	} else {
+		// New document: add styles.xml as rId1, then any dynamically added relationships
+		relationships = append(relationships, Relationship{
 			ID:     "rId1",
 			Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
 			Target: "styles.xml",
-		},
+		})
+		relationships = append(relationships, d.documentRelationships.Relationships...)
 	}
-
-	// Add all document-level relationships (template originals + dynamically added)
-	relationships = append(relationships, d.documentRelationships.Relationships...)
 
 	// Create document relationships
 	docRels := &Relationships{
@@ -3494,16 +3517,33 @@ func (d *Document) parseDocumentRelationships() error {
 		return WrapError("parse_document_relationships", err)
 	}
 
-	// Save parsed relationships, filtering out styles.xml since it's auto-added
-	// in serializeDocumentRelationships() as rId1 to ensure Word can always find it.
-	filteredRels := make([]Relationship, 0, len(relationships.Relationships))
-	for _, rel := range relationships.Relationships {
-		if rel.Target != "styles.xml" {
-			filteredRels = append(filteredRels, rel)
+	// Word requires styles.xml at rId1. If the template has styles at a different rId
+	// (e.g., rId6) and rId1 is used by something else (e.g., customXml), swap them
+	// so styles.xml ends up at rId1.
+	const stylesRequiredID = "rId1" // Word requires styles.xml at rId1
+	rels := relationships.Relationships
+	stylesIdx := -1
+	requiredIDIdx := -1
+	for i, rel := range rels {
+		if rel.Target == "styles.xml" && rel.ID != stylesRequiredID {
+			stylesIdx = i
+		}
+		if rel.ID == stylesRequiredID && rel.Target != "styles.xml" {
+			requiredIDIdx = i
 		}
 	}
-	d.documentRelationships.Relationships = filteredRels
-	DebugMsgf(MsgDocumentRelationshipsParsed, len(filteredRels))
+	if stylesIdx >= 0 && requiredIDIdx >= 0 {
+		// Swap: give rId1's old target the styles' old rId, and give styles rId1
+		oldStylesID := rels[stylesIdx].ID
+		rels[requiredIDIdx].ID = oldStylesID
+		rels[stylesIdx].ID = stylesRequiredID
+	} else if stylesIdx >= 0 {
+		// styles.xml exists but rId1 is unused — just reassign styles to rId1
+		rels[stylesIdx].ID = stylesRequiredID
+	}
+
+	d.documentRelationships.Relationships = rels
+	DebugMsgf(MsgDocumentRelationshipsParsed, len(rels))
 	return nil
 }
 
