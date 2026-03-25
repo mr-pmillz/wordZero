@@ -81,9 +81,9 @@ type SectionProperties struct {
 // PageSizeXML represents the page size XML structure.
 type PageSizeXML struct {
 	XMLName xml.Name `xml:"w:pgSz"`
-	W       string   `xml:"w:w,attr"`      // Page width (twips)
-	H       string   `xml:"w:h,attr"`      // Page height (twips)
-	Orient  string   `xml:"w:orient,attr"` // Page orientation
+	W       string   `xml:"w:w,attr"`                // Page width (twips)
+	H       string   `xml:"w:h,attr"`                // Page height (twips)
+	Orient  string   `xml:"w:orient,attr,omitempty"` // Page orientation (omit when empty to match Word behavior)
 }
 
 // PageMargin represents page margin settings.
