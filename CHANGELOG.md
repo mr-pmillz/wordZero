@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented [here](https://github.com/mr-pmillz/wordZero/blob/main/CHANGELOG.md?ref_type=heads)
 
+## [1.7.5](https://github.com/mr-pmillz/wordZero/compare/v1.7.4...v1.7.5) - 2026-03-25
+
+### ✨ New features
+
+- Feat: add Paragraph.HasContent() for checking preserved round-trip content - ([8b2a6a7](https://github.com/mr-pmillz/wordZero/commit/8b2a6a71249892134f71db4f07068665c8f11610))
+
+### ⚙️ Miscellaneous
+
+- Adds a public method that checks both Runs (text, field codes, footnote - ([8b2a6a7](https://github.com/mr-pmillz/wordZero/commit/8b2a6a71249892134f71db4f07068665c8f11610))
+- Refs) and RawXMLElements (hyperlinks, bookmarks, SDTs) to determine if - ([8b2a6a7](https://github.com/mr-pmillz/wordZero/commit/8b2a6a71249892134f71db4f07068665c8f11610))
+- A paragraph has real content after round-trip parsing. - ([8b2a6a7](https://github.com/mr-pmillz/wordZero/commit/8b2a6a71249892134f71db4f07068665c8f11610))
+- Useful for consumers that filter empty paragraphs — TOC content is now - ([8b2a6a7](https://github.com/mr-pmillz/wordZero/commit/8b2a6a71249892134f71db4f07068665c8f11610))
+- Preserved in RawXMLElements (hyperlinks with _Toc anchors) rather than - ([8b2a6a7](https://github.com/mr-pmillz/wordZero/commit/8b2a6a71249892134f71db4f07068665c8f11610))
+- Runs, so checking only Run.Text.Content misses preserved content. - ([8b2a6a7](https://github.com/mr-pmillz/wordZero/commit/8b2a6a71249892134f71db4f07068665c8f11610))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([8b2a6a7](https://github.com/mr-pmillz/wordZero/commit/8b2a6a71249892134f71db4f07068665c8f11610))
+- Chore: update changelog for v1.7.4 - ([bb27826](https://github.com/mr-pmillz/wordZero/commit/bb2782669eefbe2d9c541f025e9ba3b91afacd6b))
+
 ## [1.7.4](https://github.com/mr-pmillz/wordZero/compare/v1.7.3...v1.7.4) - 2026-03-25
 
 ### 🐛 Bug fixes
