@@ -460,7 +460,7 @@ func (d *Document) AddImageFromData(imageData []byte, fileName string, format Im
 	safeFileName := generateSafeImageFileName(imageID, fileName, format)
 
 	// Generate relationship ID; note: rId1 is reserved for styles.xml, images start from rId2
-	relationID := d.nextRelationshipID()
+	relationID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
 
 	// Add image relationship using the safe file name
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, Relationship{
@@ -514,7 +514,7 @@ func (d *Document) AddImageFromDataWithoutElement(imageData []byte, fileName str
 	safeFileName := generateSafeImageFileName(imageID, fileName, format)
 
 	// Generate relationship ID; note: rId1 is reserved for styles.xml, images start from rId2
-	relationID := d.nextRelationshipID()
+	relationID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
 
 	// Add image relationship using the safe file name
 	d.documentRelationships.Relationships = append(d.documentRelationships.Relationships, Relationship{

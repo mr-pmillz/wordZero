@@ -204,7 +204,7 @@ const (
 // registerHeaderFooterPart serializes XML content for a header or footer, stores the part,
 // adds the relationship and content type, and updates the section properties reference.
 func (d *Document) registerHeaderFooterPart(kind headerFooterKind, hfType HeaderFooterType, xmlContent interface{}) error {
-	relID := d.nextRelationshipID()
+	relID := fmt.Sprintf("rId%d", len(d.documentRelationships.Relationships)+2)
 
 	xmlBytes, err := xml.MarshalIndent(xmlContent, "", "  ")
 	if err != nil {
