@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strconv"
 	"strings"
 
@@ -49,6 +50,10 @@ type Document struct {
 	footnoteManager *FootnoteManager
 	// Numbering manager (per-document, avoids global state leaks)
 	numberingManager *NumberingManager
+	// namespaceMap maps namespace URIs to their prefix (e.g., "http://...main" → "w")
+	// Built from the template's root element during Open(). Used by captureElement()
+	// to reconstruct prefixed element/attribute names for RawXMLElement.OuterXML.
+	namespaceMap map[string]string
 }
 
 // Body represents the document body
@@ -110,12 +115,13 @@ func (t *Table) ElementType() string {
 }
 
 // RawXMLElement preserves an unknown XML element encountered during document parsing.
-// It stores the original element name, attributes, and inner XML content so it can
-// be re-emitted during serialization without loss.
+// It stores the COMPLETE raw XML (outer tag + inner content + end tag) so it can
+// be re-emitted during serialization without Go's encoding/xml expanding namespaces.
 type RawXMLElement struct {
-	XMLName  xml.Name
-	Attrs    []xml.Attr `xml:"-"`
-	InnerXML string     `xml:",innerxml"`
+	XMLName  xml.Name   // retained for type identification
+	OuterXML string     // complete raw XML: <w:elem ...>inner</w:elem>
+	Attrs    []xml.Attr `xml:"-"` // retained for attribute access
+	InnerXML string     `xml:",innerxml"` // retained for content inspection
 }
 
 // ElementType returns "raw_xml" for preserved unknown elements.
@@ -123,18 +129,28 @@ func (r *RawXMLElement) ElementType() string {
 	return "raw_xml"
 }
 
-// MarshalXML custom serializes the raw XML element, preserving original attributes.
+// MarshalXML emits the preserved raw XML. When OuterXML is set (from template
+// round-trip), it is emitted verbatim to avoid Go's namespace expansion.
 func (r *RawXMLElement) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
-	// Use the preserved element name and attributes
+	if r.OuterXML != "" {
+		// Emit complete raw XML verbatim — bypasses Go's namespace expansion.
+		// Flush encoder buffer first, then inject raw XML via innerxml on a
+		// wrapper struct. The _raw wrapper will be stripped by serializeDocument().
+		if err := e.Flush(); err != nil {
+			return err
+		}
+		type passthrough struct {
+			XMLName xml.Name `xml:"_raw"`
+			Data    string   `xml:",innerxml"`
+		}
+		return e.Encode(passthrough{Data: r.OuterXML})
+	}
+	// Fallback: use Go's encoder (for programmatically created elements)
 	start.Name = r.XMLName
 	start.Attr = r.Attrs
-
-	// For elements with inner XML, we need to write the raw content
-	// Use a temporary struct with innerxml tag
 	type rawContent struct {
 		InnerXML string `xml:",innerxml"`
 	}
-
 	return e.EncodeElement(rawContent{InnerXML: r.InnerXML}, start)
 }
 
@@ -192,7 +208,7 @@ func (p *Paragraph) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 	// Emit preserved raw XML elements (bookmarks, etc.)
 	for _, raw := range p.RawXMLElements {
-		if err := e.EncodeElement(raw, xml.StartElement{Name: raw.XMLName}); err != nil {
+		if err := e.Encode(raw); err != nil {
 			return err
 		}
 	}
@@ -395,7 +411,7 @@ func (r *Run) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 
 	// Serialize preserved raw XML content (tab, lastRenderedPageBreak, commentReference, etc.)
 	for _, raw := range r.RawXMLContent {
-		if err := e.EncodeElement(raw, xml.StartElement{Name: raw.XMLName}); err != nil {
+		if err := e.Encode(raw); err != nil {
 			return err
 		}
 	}
@@ -843,6 +859,45 @@ func openFromZipReader(zipReader *zip.Reader, filename string) (*Document, error
 	doc.syncFootnoteManagerWithExisting()
 
 	return doc, nil
+}
+
+// parseNamespaceMap extracts xmlns:prefix="uri" declarations from the root element
+// of an XML document. Go's xml.Decoder strips these, so we parse them from raw bytes.
+func parseNamespaceMap(xmlData []byte) map[string]string {
+	nsMap := make(map[string]string)
+	s := string(xmlData)
+
+	// Find the root element — skip past <?xml ...?> processing instructions
+	idx := 0
+	for {
+		start := strings.Index(s[idx:], "<")
+		if start < 0 {
+			return nsMap
+		}
+		start += idx
+		if start+1 < len(s) && s[start+1] == '?' {
+			// Skip processing instruction
+			end := strings.Index(s[start:], "?>")
+			if end < 0 {
+				return nsMap
+			}
+			idx = start + end + 2
+			continue
+		}
+		// Found the root element
+		rootEnd := strings.Index(s[start:], ">")
+		if rootEnd < 0 {
+			return nsMap
+		}
+		rootTag := s[start : start+rootEnd+1]
+
+		// Extract xmlns:prefix="uri" declarations
+		re := regexp.MustCompile(`xmlns:(\w+)="([^"]+)"`)
+		for _, match := range re.FindAllStringSubmatch(rootTag, -1) {
+			nsMap[match[2]] = match[1]
+		}
+		return nsMap
+	}
 }
 
 // Save saves the document to the specified file path.
@@ -2236,6 +2291,10 @@ func (d *Document) parseDocument() error {
 		return WrapError("parse_document", ErrDocumentNotFound)
 	}
 
+	// Build namespace map from raw XML BEFORE Go's decoder strips xmlns declarations.
+	// This is used by captureElement() to reconstruct prefixed element names.
+	d.namespaceMap = parseNamespaceMap(docData)
+
 	// First parse the basic structure
 	decoder := xml.NewDecoder(bytes.NewReader(docData))
 	for {
@@ -3242,10 +3301,11 @@ func (d *Document) skipElement(decoder *xml.Decoder, elementName string) error {
 
 // captureElement captures an unknown XML element and all its children as a RawXMLElement.
 // The decoder should have already consumed the start element token.
+// It builds the complete raw XML using the document's namespace map to preserve
+// proper prefix:local names (avoiding Go's encoding/xml namespace expansion).
 func (d *Document) captureElement(decoder *xml.Decoder, startElement xml.StartElement) (*RawXMLElement, error) {
-	var buf bytes.Buffer
-	enc := xml.NewEncoder(&buf)
-
+	// Build the inner XML manually using namespace-prefixed names
+	var inner strings.Builder
 	depth := 1
 	for depth > 0 {
 		token, err := decoder.Token()
@@ -3253,30 +3313,110 @@ func (d *Document) captureElement(decoder *xml.Decoder, startElement xml.StartEl
 			return nil, WrapError("capture_element", err)
 		}
 
-		switch token.(type) {
+		switch t := token.(type) {
 		case xml.StartElement:
 			depth++
+			d.writeStartTag(&inner, t)
 		case xml.EndElement:
 			depth--
-		}
-
-		// Encode all tokens except the final end element
-		if depth > 0 {
-			if err := enc.EncodeToken(xml.CopyToken(token)); err != nil {
-				return nil, WrapError("capture_element", err)
+			if depth > 0 {
+				d.writeEndTag(&inner, t)
 			}
+		case xml.CharData:
+			xml.EscapeText(&inner, t)
+		case xml.Comment:
+			fmt.Fprintf(&inner, "<!--%s-->", string(t))
+		case xml.ProcInst:
+			fmt.Fprintf(&inner, "<?%s %s?>", t.Target, string(t.Inst))
 		}
 	}
 
-	if err := enc.Flush(); err != nil {
-		return nil, WrapError("capture_element", err)
-	}
+	innerXML := inner.String()
+	outerXML := d.buildRawElementXML(startElement, innerXML)
 
 	return &RawXMLElement{
 		XMLName:  startElement.Name,
 		Attrs:    startElement.Attr,
-		InnerXML: buf.String(),
+		InnerXML: innerXML,
+		OuterXML: outerXML,
 	}, nil
+}
+
+// writeStartTag writes a start element tag with proper namespace prefixes.
+func (d *Document) writeStartTag(b *strings.Builder, start xml.StartElement) {
+	prefix := d.namespaceMap[start.Name.Space]
+	if prefix != "" {
+		fmt.Fprintf(b, "<%s:%s", prefix, start.Name.Local)
+	} else {
+		fmt.Fprintf(b, "<%s", start.Name.Local)
+	}
+	for _, attr := range start.Attr {
+		aPrefix := d.namespaceMap[attr.Name.Space]
+		if aPrefix != "" {
+			fmt.Fprintf(b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		} else if attr.Name.Local != "" {
+			fmt.Fprintf(b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		}
+	}
+	b.WriteString(">")
+}
+
+// writeEndTag writes an end element tag with proper namespace prefix.
+func (d *Document) writeEndTag(b *strings.Builder, end xml.EndElement) {
+	prefix := d.namespaceMap[end.Name.Space]
+	if prefix != "" {
+		fmt.Fprintf(b, "</%s:%s>", prefix, end.Name.Local)
+	} else {
+		fmt.Fprintf(b, "</%s>", end.Name.Local)
+	}
+}
+
+// buildRawElementXML reconstructs an XML element string with proper namespace prefixes
+// using the document's namespace map (URI → prefix). This avoids Go's encoding/xml
+// expanding namespace URIs into xmlns= attributes on every element.
+func (d *Document) buildRawElementXML(start xml.StartElement, innerXML string) string {
+	var b strings.Builder
+
+	// Reconstruct element name with prefix
+	prefix := d.namespaceMap[start.Name.Space]
+	if prefix != "" {
+		fmt.Fprintf(&b, "<%s:%s", prefix, start.Name.Local)
+	} else {
+		fmt.Fprintf(&b, "<%s", start.Name.Local)
+	}
+
+	// Reconstruct attributes with prefixes
+	for _, attr := range start.Attr {
+		aPrefix := d.namespaceMap[attr.Name.Space]
+		if aPrefix != "" {
+			fmt.Fprintf(&b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		} else if attr.Name.Local != "" {
+			fmt.Fprintf(&b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		}
+	}
+
+	if innerXML == "" {
+		b.WriteString("/>")
+	} else {
+		b.WriteString(">")
+		b.WriteString(innerXML)
+		if prefix != "" {
+			fmt.Fprintf(&b, "</%s:%s>", prefix, start.Name.Local)
+		} else {
+			fmt.Fprintf(&b, "</%s>", start.Name.Local)
+		}
+	}
+
+	return b.String()
+}
+
+// xmlEscapeAttr escapes special characters in XML attribute values.
+func xmlEscapeAttr(s string) string {
+	s = strings.ReplaceAll(s, "&", "&amp;")
+	s = strings.ReplaceAll(s, "<", "&lt;")
+	s = strings.ReplaceAll(s, ">", "&gt;")
+	s = strings.ReplaceAll(s, "\"", "&quot;")
+	return s
 }
 
 // readElementText reads the text content of an element
@@ -3342,8 +3482,39 @@ func (d *Document) serializeDocument() error {
 		return WrapError("marshal_xml", err)
 	}
 
-	// Add XML declaration
-	d.parts["word/document.xml"] = append([]byte(xml.Header), data...)
+	// Strip <_raw>...</_raw> wrapper tags injected by RawXMLElement.MarshalXML.
+	// These wrappers are needed to emit raw XML verbatim through Go's encoder
+	// (bypassing namespace expansion), but must be removed from the final output.
+	xmlStr := string(data)
+	xmlStr = strings.ReplaceAll(xmlStr, "<_raw>", "")
+	xmlStr = strings.ReplaceAll(xmlStr, "</_raw>", "")
+
+	// Inject additional namespace declarations from the template into the root element.
+	// The struct-based serialization only declares 6 namespaces, but template content
+	// (preserved as RawXMLElements) may reference additional prefixes like w14:, wp14:, etc.
+	if len(d.namespaceMap) > 0 {
+		// Find the end of the opening <w:document ...> tag
+		rootTagEnd := strings.Index(xmlStr, ">")
+		if rootTagEnd > 0 {
+			var extra strings.Builder
+			for uri, prefix := range d.namespaceMap {
+				// Skip namespaces already declared in the struct
+				if strings.Contains(xmlStr[:rootTagEnd], "xmlns:"+prefix+"=") {
+					continue
+				}
+				fmt.Fprintf(&extra, ` xmlns:%s="%s"`, prefix, uri)
+			}
+			if extra.Len() > 0 {
+				// Also add mc:Ignorable for the extra namespaces if mc is present
+				xmlStr = xmlStr[:rootTagEnd] + extra.String() + xmlStr[rootTagEnd:]
+			}
+		}
+	}
+
+	data = []byte(xmlStr)
+
+	// Add XML declaration with standalone="yes" to match Word's format
+	d.parts["word/document.xml"] = append([]byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+"\n"), data...)
 
 	DebugMsg(MsgDocumentSerializationComplete)
 	return nil
