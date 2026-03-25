@@ -49,6 +49,9 @@ type Document struct {
 	footnoteManager *FootnoteManager
 	// Numbering manager (per-document, avoids global state leaks)
 	numberingManager *NumberingManager
+	// templateRelCount tracks the number of document relationships loaded from a template.
+	// If > 0, the original rels bytes are preserved unless new relationships are added.
+	templateRelCount int
 }
 
 // Body represents the document body
@@ -3334,8 +3337,43 @@ func (d *Document) serializeRelationships() {
 }
 
 // serializeDocumentRelationships serializes document relationships
+// nextRelationshipID returns the next available rId for document relationships.
+func (d *Document) nextRelationshipID() string {
+	maxID := 0
+	for _, rel := range d.documentRelationships.Relationships {
+		idStr := strings.TrimPrefix(rel.ID, "rId")
+		if n, err := strconv.Atoi(idStr); err == nil && n > maxID {
+			maxID = n
+		}
+	}
+	// For new documents, reserve rId1 for styles.xml
+	if d.templateRelCount == 0 && maxID < 1 {
+		maxID = 1
+	}
+	return fmt.Sprintf("rId%d", maxID+1)
+}
+
 func (d *Document) serializeDocumentRelationships() {
-	// Start with styles.xml as rId1 (always present, filtered during load to avoid duplicates)
+	// For template documents: if no new relationships were added after loading,
+	// keep the original rels bytes verbatim to avoid rId conflicts.
+	if d.templateRelCount > 0 && len(d.documentRelationships.Relationships) == d.templateRelCount {
+		// No new relationships added — preserve original template rels exactly
+		return
+	}
+
+	if d.templateRelCount > 0 {
+		// Template with new relationships added: rebuild from template rels + new ones.
+		// Template rels are preserved at their original rIds; new rels get IDs above the max.
+		docRels := &Relationships{
+			Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
+			Relationships: d.documentRelationships.Relationships,
+		}
+		data, _ := xml.MarshalIndent(docRels, "", "  ")
+		d.parts["word/_rels/document.xml.rels"] = append([]byte(xml.Header), data...)
+		return
+	}
+
+	// New document (not from template): build from scratch with rId1=styles
 	relationships := []Relationship{
 		{
 			ID:     "rId1",
@@ -3343,11 +3381,8 @@ func (d *Document) serializeDocumentRelationships() {
 			Target: "styles.xml",
 		},
 	}
-
-	// Add all document-level relationships (template originals + dynamically added)
 	relationships = append(relationships, d.documentRelationships.Relationships...)
 
-	// Create document relationships
 	docRels := &Relationships{
 		Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
 		Relationships: relationships,
@@ -3494,16 +3529,12 @@ func (d *Document) parseDocumentRelationships() error {
 		return WrapError("parse_document_relationships", err)
 	}
 
-	// Save parsed relationships, filtering out styles.xml since it's auto-added
-	// in serializeDocumentRelationships() as rId1 to ensure Word can always find it.
-	filteredRels := make([]Relationship, 0, len(relationships.Relationships))
-	for _, rel := range relationships.Relationships {
-		if rel.Target != "styles.xml" {
-			filteredRels = append(filteredRels, rel)
-		}
-	}
-	d.documentRelationships.Relationships = filteredRels
-	DebugMsgf(MsgDocumentRelationshipsParsed, len(filteredRels))
+	// Preserve all template relationships and track the count.
+	// If no new relationships are added after loading, the original rels bytes
+	// are kept verbatim during save (avoiding rId conflicts).
+	d.documentRelationships.Relationships = relationships.Relationships
+	d.templateRelCount = len(relationships.Relationships)
+	DebugMsgf(MsgDocumentRelationshipsParsed, len(relationships.Relationships))
 	return nil
 }
 
