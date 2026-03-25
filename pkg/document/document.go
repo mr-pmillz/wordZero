@@ -3335,24 +3335,13 @@ func (d *Document) serializeRelationships() {
 
 // serializeDocumentRelationships serializes document relationships
 func (d *Document) serializeDocumentRelationships() {
-	var relationships []Relationship
-
-	// Check if styles.xml relationship already exists (e.g., from an opened template)
-	hasStyles := false
-	for _, rel := range d.documentRelationships.Relationships {
-		if rel.Target == "styles.xml" {
-			hasStyles = true
-			break
-		}
-	}
-
-	// Only add styles.xml relationship for new documents (not templates)
-	if !hasStyles {
-		relationships = append(relationships, Relationship{
+	// Start with styles.xml as rId1 (always present, filtered during load to avoid duplicates)
+	relationships := []Relationship{
+		{
 			ID:     "rId1",
 			Type:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles",
 			Target: "styles.xml",
-		})
+		},
 	}
 
 	// Add all document-level relationships (template originals + dynamically added)
@@ -3505,10 +3494,16 @@ func (d *Document) parseDocumentRelationships() error {
 		return WrapError("parse_document_relationships", err)
 	}
 
-	// Preserve all parsed relationships (including styles.xml at its original rId).
-	// serializeDocumentRelationships() checks for existing styles.xml before adding one.
-	d.documentRelationships.Relationships = relationships.Relationships
-	DebugMsgf(MsgDocumentRelationshipsParsed, len(relationships.Relationships))
+	// Save parsed relationships, filtering out styles.xml since it's auto-added
+	// in serializeDocumentRelationships() as rId1 to ensure Word can always find it.
+	filteredRels := make([]Relationship, 0, len(relationships.Relationships))
+	for _, rel := range relationships.Relationships {
+		if rel.Target != "styles.xml" {
+			filteredRels = append(filteredRels, rel)
+		}
+	}
+	d.documentRelationships.Relationships = filteredRels
+	DebugMsgf(MsgDocumentRelationshipsParsed, len(filteredRels))
 	return nil
 }
 
