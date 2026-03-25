@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/beevik/etree"
 	"github.com/mr-pmillz/wordZero/pkg/style"
 )
 
@@ -3449,74 +3450,125 @@ func getAttributeValue(attrs []xml.Attr, name string) string {
 	return ""
 }
 
-// serializeDocument serializes the document content
+// serializeDocument serializes the document content using etree to preserve
+// namespace prefixes. Go's encoding/xml expands namespace URIs on every element,
+// which corrupts OOXML documents. etree preserves prefixes natively.
 func (d *Document) serializeDocument() error {
 	DebugMsg(MsgSerializingDocument)
 
-	// Create document structure
-	type documentXML struct {
-		XMLName  xml.Name `xml:"w:document"`
-		Xmlns    string   `xml:"xmlns:w,attr"`
-		XmlnsW15 string   `xml:"xmlns:w15,attr"`
-		XmlnsWP  string   `xml:"xmlns:wp,attr"`
-		XmlnsA   string   `xml:"xmlns:a,attr"`
-		XmlnsPic string   `xml:"xmlns:pic,attr"`
-		XmlnsR   string   `xml:"xmlns:r,attr"`
-		Body     *Body    `xml:"w:body"`
-	}
-
-	doc := documentXML{
-		Xmlns:    "http://schemas.openxmlformats.org/wordprocessingml/2006/main",
-		XmlnsW15: "http://schemas.microsoft.com/office/word/2012/wordml",
-		XmlnsWP:  "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing",
-		XmlnsA:   "http://schemas.openxmlformats.org/drawingml/2006/main",
-		XmlnsPic: "http://schemas.openxmlformats.org/drawingml/2006/picture",
-		XmlnsR:   "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
-		Body:     d.Body,
-	}
-
-	// Serialize to XML
-	data, err := xml.MarshalIndent(doc, "", "  ")
-	if err != nil {
-		ErrorMsgf(MsgXMLSerializationFailed, err)
-		return WrapError("marshal_xml", err)
-	}
-
-	// Strip <_raw>...</_raw> wrapper tags injected by RawXMLElement.MarshalXML.
-	// These wrappers are needed to emit raw XML verbatim through Go's encoder
-	// (bypassing namespace expansion), but must be removed from the final output.
-	xmlStr := string(data)
-	xmlStr = strings.ReplaceAll(xmlStr, "<_raw>", "")
-	xmlStr = strings.ReplaceAll(xmlStr, "</_raw>", "")
-
-	// Inject additional namespace declarations from the template into the root element.
-	// The struct-based serialization only declares 6 namespaces, but template content
-	// (preserved as RawXMLElements) may reference additional prefixes like w14:, wp14:, etc.
-	if len(d.namespaceMap) > 0 {
-		// Find the end of the opening <w:document ...> tag
-		rootTagEnd := strings.Index(xmlStr, ">")
-		if rootTagEnd > 0 {
-			var extra strings.Builder
-			for uri, prefix := range d.namespaceMap {
-				// Skip namespaces already declared in the struct
-				if strings.Contains(xmlStr[:rootTagEnd], "xmlns:"+prefix+"=") {
-					continue
-				}
-				fmt.Fprintf(&extra, ` xmlns:%s="%s"`, prefix, uri)
-			}
-			if extra.Len() > 0 {
-				// Also add mc:Ignorable for the extra namespaces if mc is present
-				xmlStr = xmlStr[:rootTagEnd] + extra.String() + xmlStr[rootTagEnd:]
-			}
+	// If we have original template XML, parse it with etree to preserve
+	// the root element's namespace declarations and attributes.
+	var etreeDoc *etree.Document
+	if origXML, exists := d.parts["word/document.xml"]; exists && len(origXML) > 0 {
+		etreeDoc = etree.NewDocument()
+		if err := etreeDoc.ReadFromBytes(origXML); err != nil {
+			// Fallback: build from scratch
+			etreeDoc = nil
 		}
 	}
 
-	data = []byte(xmlStr)
+	if etreeDoc == nil {
+		// New document (not from template): build root element with standard namespaces
+		etreeDoc = etree.NewDocument()
+		etreeDoc.CreateProcInst("xml", `version="1.0" encoding="UTF-8" standalone="yes"`)
+		root := etreeDoc.CreateElement("w:document")
+		root.CreateAttr("xmlns:w", "http://schemas.openxmlformats.org/wordprocessingml/2006/main")
+		root.CreateAttr("xmlns:w15", "http://schemas.microsoft.com/office/word/2012/wordml")
+		root.CreateAttr("xmlns:wp", "http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing")
+		root.CreateAttr("xmlns:a", "http://schemas.openxmlformats.org/drawingml/2006/main")
+		root.CreateAttr("xmlns:pic", "http://schemas.openxmlformats.org/drawingml/2006/picture")
+		root.CreateAttr("xmlns:r", "http://schemas.openxmlformats.org/officeDocument/2006/relationships")
+	}
 
-	// Add XML declaration with standalone="yes" to match Word's format
-	d.parts["word/document.xml"] = append([]byte(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>`+"\n"), data...)
+	// Find or create the <w:body> element
+	root := etreeDoc.SelectElement("w:document")
+	if root == nil {
+		return WrapError("serialize_document", fmt.Errorf("no w:document root element"))
+	}
+
+	// Remove existing body and create a fresh one with our content
+	if existingBody := root.SelectElement("w:body"); existingBody != nil {
+		root.RemoveChild(existingBody)
+	}
+	body := root.CreateElement("w:body")
+
+	// Serialize each body element and add to the etree body.
+	// SectionProperties must be added LAST per OOXML spec.
+	var sectionProps []interface{}
+	for _, element := range d.Body.Elements {
+		if _, ok := element.(*SectionProperties); ok {
+			sectionProps = append(sectionProps, element)
+			continue
+		}
+		if err := d.addElementToEtreeBody(body, element); err != nil {
+			return err
+		}
+	}
+	// Add section properties last
+	for _, sp := range sectionProps {
+		if err := d.addElementToEtreeBody(body, sp); err != nil {
+			return err
+		}
+	}
+
+	// Write the complete tree to bytes
+	etreeDoc.Indent(2)
+	data, err := etreeDoc.WriteToBytes()
+	if err != nil {
+		ErrorMsgf(MsgXMLSerializationFailed, err)
+		return WrapError("serialize_document", err)
+	}
+
+	d.parts["word/document.xml"] = data
 
 	DebugMsg(MsgDocumentSerializationComplete)
+	return nil
+}
+
+// addElementToEtreeBody converts a Body element to XML and adds it to the etree body.
+// For RawXMLElements, the OuterXML is parsed directly by etree (preserving all prefixes).
+// For struct-based elements, they're marshaled via encoding/xml then parsed by etree.
+func (d *Document) addElementToEtreeBody(body *etree.Element, element interface{}) error {
+	switch el := element.(type) {
+	case *RawXMLElement:
+		// Parse the raw XML directly into etree — preserves all namespace prefixes
+		if el.OuterXML != "" {
+			subDoc := etree.NewDocument()
+			if err := subDoc.ReadFromString("<_wrap>" + el.OuterXML + "</_wrap>"); err != nil {
+				return WrapError("etree_parse_raw", err)
+			}
+			wrapper := subDoc.SelectElement("_wrap")
+			if wrapper != nil {
+				for _, child := range wrapper.ChildElements() {
+					body.AddChild(child.Copy())
+				}
+			}
+		}
+	default:
+		// Marshal the struct element via encoding/xml, then parse into etree.
+		// encoding/xml handles w:p, w:tbl, w:sectPr correctly because they use
+		// explicit xml:"w:..." tags (not namespace URIs).
+		xmlBytes, err := xml.Marshal(el)
+		if err != nil {
+			return WrapError("etree_marshal_element", err)
+		}
+
+		// Strip _raw wrappers from RawXMLElement content inside paragraphs/runs
+		xmlStr := string(xmlBytes)
+		if strings.Contains(xmlStr, "<_raw>") {
+			xmlStr = strings.ReplaceAll(xmlStr, "<_raw>", "")
+			xmlStr = strings.ReplaceAll(xmlStr, "</_raw>", "")
+			xmlBytes = []byte(xmlStr)
+		}
+
+		subDoc := etree.NewDocument()
+		if err := subDoc.ReadFromBytes(xmlBytes); err != nil {
+			return WrapError("etree_parse_element", err)
+		}
+		if subDoc.Root() != nil {
+			body.AddChild(subDoc.Root().Copy())
+		}
+	}
 	return nil
 }
 
