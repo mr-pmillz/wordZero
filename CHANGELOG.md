@@ -2,6 +2,29 @@
 
 All notable changes to this project will be documented [here](https://github.com/mr-pmillz/wordZero/blob/main/CHANGELOG.md?ref_type=heads)
 
+## [1.7.9](https://github.com/mr-pmillz/wordZero/compare/v1.7.8...v1.7.9) - 2026-03-26
+
+### 🐛 Bug fixes
+
+- Fix: remove etree Indent() calls that strip whitespace-only text nodes - ([852f42d](https://github.com/mr-pmillz/wordZero/commit/852f42d4adf5e25e27932a4efbac1ac3e6027787))
+- Fix: preserve whitespace in text runs and sync Runs with OrderedContent - ([ce12239](https://github.com/mr-pmillz/wordZero/commit/ce12239595f1e8e16a44238791a15266faf9e7fb))
+
+### ⚙️ Miscellaneous
+
+- Etree.Indent(2) converts <w:t xml:space="preserve"> </w:t> into - ([852f42d](https://github.com/mr-pmillz/wordZero/commit/852f42d4adf5e25e27932a4efbac1ac3e6027787))
+- <w:t xml:space="preserve"/> (empty), destroying inter-word spaces - ([852f42d](https://github.com/mr-pmillz/wordZero/commit/852f42d4adf5e25e27932a4efbac1ac3e6027787))
+- In the document. OOXML documents don't need pretty-printing, and - ([852f42d](https://github.com/mr-pmillz/wordZero/commit/852f42d4adf5e25e27932a4efbac1ac3e6027787))
+- The indentation was corrupting whitespace-only text runs throughout - ([852f42d](https://github.com/mr-pmillz/wordZero/commit/852f42d4adf5e25e27932a4efbac1ac3e6027787))
+- The document body and footnotes. - ([852f42d](https://github.com/mr-pmillz/wordZero/commit/852f42d4adf5e25e27932a4efbac1ac3e6027787))
+- - Emit xml:space="preserve" on <w:t> elements when content has - ([ce12239](https://github.com/mr-pmillz/wordZero/commit/ce12239595f1e8e16a44238791a15266faf9e7fb))
+-   leading/trailing whitespace or when Space was set during parsing. - ([ce12239](https://github.com/mr-pmillz/wordZero/commit/ce12239595f1e8e16a44238791a15266faf9e7fb))
+-   Previously whitespace-only runs like " " lost their content. - ([ce12239](https://github.com/mr-pmillz/wordZero/commit/ce12239595f1e8e16a44238791a15266faf9e7fb))
+- - Fix Runs/OrderedContent pointer disconnect: OrderedContent now - ([ce12239](https://github.com/mr-pmillz/wordZero/commit/ce12239595f1e8e16a44238791a15266faf9e7fb))
+-   stores pointers into the Runs slice so modifications to - ([ce12239](https://github.com/mr-pmillz/wordZero/commit/ce12239595f1e8e16a44238791a15266faf9e7fb))
+-   p.Runs[i].Text.Content (e.g., template variable replacements) - ([ce12239](https://github.com/mr-pmillz/wordZero/commit/ce12239595f1e8e16a44238791a15266faf9e7fb))
+-   are reflected in MarshalXML output. - ([ce12239](https://github.com/mr-pmillz/wordZero/commit/ce12239595f1e8e16a44238791a15266faf9e7fb))
+- Chore: update changelog for v1.7.8 - ([b426906](https://github.com/mr-pmillz/wordZero/commit/b4269067a5eb1980446b6ee9f2946df9ff31b00b))
+
 ## [1.7.8](https://github.com/mr-pmillz/wordZero/compare/v1.7.7...v1.7.8) - 2026-03-26
 
 ### 🐛 Bug fixes
