@@ -10,6 +10,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
@@ -29,6 +30,7 @@ const (
 	xmlAttrName     = "name"
 	xmlAttrDescr    = "descr"
 	xmlAttrTitle    = "title"
+	xmlNsPrefix     = "xmlns" // XML namespace declaration prefix
 )
 
 // Document represents a Word document
@@ -453,68 +455,26 @@ func (rp *RunProperties) MarshalXML(e *xml.Encoder, start xml.StartElement) erro
 	}
 
 	// Emit known fields in OOXML order
-	if rp.RunStyle != nil {
-		if err := e.EncodeElement(rp.RunStyle, xml.StartElement{Name: xml.Name{Local: "w:rStyle"}}); err != nil {
-			return err
-		}
+	fields := []struct {
+		val  interface{}
+		name string
+	}{
+		{rp.RunStyle, "w:rStyle"},
+		{rp.FontFamily, "w:rFonts"},
+		{rp.Bold, "w:b"},
+		{rp.BoldCs, "w:bCs"},
+		{rp.Italic, "w:i"},
+		{rp.ItalicCs, "w:iCs"},
+		{rp.Underline, "w:u"},
+		{rp.Strike, "w:strike"},
+		{rp.Color, "w:color"},
+		{rp.FontSize, "w:sz"},
+		{rp.FontSizeCs, "w:szCs"},
+		{rp.Highlight, "w:highlight"},
+		{rp.VerticalAlign, "w:vertAlign"},
 	}
-	if rp.FontFamily != nil {
-		if err := e.EncodeElement(rp.FontFamily, xml.StartElement{Name: xml.Name{Local: "w:rFonts"}}); err != nil {
-			return err
-		}
-	}
-	if rp.Bold != nil {
-		if err := e.EncodeElement(rp.Bold, xml.StartElement{Name: xml.Name{Local: "w:b"}}); err != nil {
-			return err
-		}
-	}
-	if rp.BoldCs != nil {
-		if err := e.EncodeElement(rp.BoldCs, xml.StartElement{Name: xml.Name{Local: "w:bCs"}}); err != nil {
-			return err
-		}
-	}
-	if rp.Italic != nil {
-		if err := e.EncodeElement(rp.Italic, xml.StartElement{Name: xml.Name{Local: "w:i"}}); err != nil {
-			return err
-		}
-	}
-	if rp.ItalicCs != nil {
-		if err := e.EncodeElement(rp.ItalicCs, xml.StartElement{Name: xml.Name{Local: "w:iCs"}}); err != nil {
-			return err
-		}
-	}
-	if rp.Underline != nil {
-		if err := e.EncodeElement(rp.Underline, xml.StartElement{Name: xml.Name{Local: "w:u"}}); err != nil {
-			return err
-		}
-	}
-	if rp.Strike != nil {
-		if err := e.EncodeElement(rp.Strike, xml.StartElement{Name: xml.Name{Local: "w:strike"}}); err != nil {
-			return err
-		}
-	}
-	if rp.Color != nil {
-		if err := e.EncodeElement(rp.Color, xml.StartElement{Name: xml.Name{Local: "w:color"}}); err != nil {
-			return err
-		}
-	}
-	if rp.FontSize != nil {
-		if err := e.EncodeElement(rp.FontSize, xml.StartElement{Name: xml.Name{Local: "w:sz"}}); err != nil {
-			return err
-		}
-	}
-	if rp.FontSizeCs != nil {
-		if err := e.EncodeElement(rp.FontSizeCs, xml.StartElement{Name: xml.Name{Local: "w:szCs"}}); err != nil {
-			return err
-		}
-	}
-	if rp.Highlight != nil {
-		if err := e.EncodeElement(rp.Highlight, xml.StartElement{Name: xml.Name{Local: "w:highlight"}}); err != nil {
-			return err
-		}
-	}
-	if rp.VerticalAlign != nil {
-		if err := e.EncodeElement(rp.VerticalAlign, xml.StartElement{Name: xml.Name{Local: "w:vertAlign"}}); err != nil {
+	for _, f := range fields {
+		if err := encodeOptionalElement(e, f.val, f.name); err != nil {
 			return err
 		}
 	}
@@ -527,6 +487,20 @@ func (rp *RunProperties) MarshalXML(e *xml.Encoder, start xml.StartElement) erro
 	}
 
 	return e.EncodeToken(start.End())
+}
+
+// encodeOptionalElement encodes a non-nil interface value as an XML element.
+// Uses reflect to check for nil interface values wrapping nil pointers.
+func encodeOptionalElement(e *xml.Encoder, val interface{}, name string) error {
+	if val == nil {
+		return nil
+	}
+	// Check for nil pointer inside non-nil interface
+	rv := reflect.ValueOf(val)
+	if rv.Kind() == reflect.Ptr && rv.IsNil() {
+		return nil
+	}
+	return e.EncodeElement(val, xml.StartElement{Name: xml.Name{Local: name}})
 }
 
 // RunStyle represents a character style reference
@@ -3477,20 +3451,7 @@ func (d *Document) writeStartTag(b *strings.Builder, start xml.StartElement) {
 		fmt.Fprintf(b, "<%s", start.Name.Local)
 	}
 	for _, attr := range start.Attr {
-		if attr.Name.Space == "xmlns" {
-			// Namespace declaration: xmlns:prefix="uri"
-			fmt.Fprintf(b, ` xmlns:%s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
-		} else if attr.Name.Local == "xmlns" {
-			// Default namespace declaration: xmlns="uri"
-			fmt.Fprintf(b, ` xmlns="%s"`, xmlEscapeAttr(attr.Value))
-		} else {
-			aPrefix := d.namespaceMap[attr.Name.Space]
-			if aPrefix != "" {
-				fmt.Fprintf(b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
-			} else if attr.Name.Local != "" {
-				fmt.Fprintf(b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
-			}
-		}
+		d.writeAttr(b, attr)
 	}
 	b.WriteString(">")
 }
@@ -3502,6 +3463,26 @@ func (d *Document) writeEndTag(b *strings.Builder, end xml.EndElement) {
 		fmt.Fprintf(b, "</%s:%s>", prefix, end.Name.Local)
 	} else {
 		fmt.Fprintf(b, "</%s>", end.Name.Local)
+	}
+}
+
+// writeAttr writes a single XML attribute with proper namespace prefix handling.
+// Uses a switch to handle xmlns declarations vs regular attributes.
+func (d *Document) writeAttr(b *strings.Builder, attr xml.Attr) {
+	switch {
+	case attr.Name.Space == xmlNsPrefix:
+		// Namespace declaration: xmlns:prefix="uri"
+		fmt.Fprintf(b, ` xmlns:%s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+	case attr.Name.Local == xmlNsPrefix:
+		// Default namespace declaration: xmlns="uri"
+		fmt.Fprintf(b, ` xmlns="%s"`, xmlEscapeAttr(attr.Value))
+	default:
+		aPrefix := d.namespaceMap[attr.Name.Space]
+		if aPrefix != "" {
+			fmt.Fprintf(b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		} else if attr.Name.Local != "" {
+			fmt.Fprintf(b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
+		}
 	}
 }
 
@@ -3521,20 +3502,7 @@ func (d *Document) buildRawElementXML(start xml.StartElement, innerXML string) s
 
 	// Reconstruct attributes with prefixes
 	for _, attr := range start.Attr {
-		if attr.Name.Space == "xmlns" {
-			// Namespace declaration: xmlns:prefix="uri"
-			fmt.Fprintf(&b, ` xmlns:%s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
-		} else if attr.Name.Local == "xmlns" {
-			// Default namespace declaration: xmlns="uri"
-			fmt.Fprintf(&b, ` xmlns="%s"`, xmlEscapeAttr(attr.Value))
-		} else {
-			aPrefix := d.namespaceMap[attr.Name.Space]
-			if aPrefix != "" {
-				fmt.Fprintf(&b, ` %s:%s="%s"`, aPrefix, attr.Name.Local, xmlEscapeAttr(attr.Value))
-			} else if attr.Name.Local != "" {
-				fmt.Fprintf(&b, ` %s="%s"`, attr.Name.Local, xmlEscapeAttr(attr.Value))
-			}
-		}
+		d.writeAttr(&b, attr)
 	}
 
 	if innerXML == "" {
@@ -4702,7 +4670,7 @@ func (d *Document) parseDrawingGraphic(decoder *xml.Decoder, startElement xml.St
 	// Parse xmlns attributes
 	for _, attr := range startElement.Attr {
 		// Check xmlns attributes (namespace declarations)
-		if attr.Name.Space == "xmlns" || (attr.Name.Space == "" && strings.HasPrefix(attr.Name.Local, "xmlns")) {
+		if attr.Name.Space == xmlNsPrefix || (attr.Name.Space == "" && strings.HasPrefix(attr.Name.Local, xmlNsPrefix)) {
 			if attr.Value == "http://schemas.openxmlformats.org/drawingml/2006/main" {
 				graphic.Xmlns = attr.Value
 			}
@@ -4785,7 +4753,7 @@ func (d *Document) parsePicElement(decoder *xml.Decoder, startElement xml.StartE
 	// Parse xmlns attributes
 	for _, attr := range startElement.Attr {
 		// Check xmlns attributes (namespace declarations)
-		if attr.Name.Space == "xmlns" || (attr.Name.Space == "" && strings.HasPrefix(attr.Name.Local, "xmlns")) {
+		if attr.Name.Space == xmlNsPrefix || (attr.Name.Space == "" && strings.HasPrefix(attr.Name.Local, xmlNsPrefix)) {
 			if attr.Value == "http://schemas.openxmlformats.org/drawingml/2006/picture" {
 				pic.Xmlns = attr.Value
 			}
