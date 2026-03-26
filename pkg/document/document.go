@@ -54,6 +54,10 @@ type Document struct {
 	footnoteManager *FootnoteManager
 	// Numbering manager (per-document, avoids global state leaks)
 	numberingManager *NumberingManager
+	// originalDocRelsData stores the raw bytes of the original word/_rels/document.xml.rels
+	// from a template document. Used by serializeDocumentRelationships() to preserve the
+	// original relationships verbatim and only append new ones (avoiding duplicate rId entries).
+	originalDocRelsData []byte
 	// namespaceMap maps namespace URIs to their prefix (e.g., "http://...main" → "w")
 	// Built from the template's root element during Open(). Used by captureElement()
 	// to reconstruct prefixed element/attribute names for RawXMLElement.OuterXML.
@@ -165,6 +169,11 @@ type Paragraph struct {
 	Runs           []Run                `xml:"w:r"`
 	RawXMLElements []*RawXMLElement     `xml:"-"` // preserved elements (bookmarks, etc.) for round-trip
 	RawAttrs       []xml.Attr           `xml:"-"` // preserved paragraph attributes (w14:paraId, rsid*, etc.)
+	// OrderedContent preserves the original interleaving of runs and raw elements
+	// from parsed documents. When non-empty, MarshalXML uses this instead of
+	// separate Runs/RawXMLElements to maintain comment ranges, bookmarks, SDTs
+	// in their correct positions relative to runs.
+	OrderedContent []interface{} `xml:"-"`
 }
 
 // HasContent returns true if the paragraph has any text content in its runs
@@ -190,7 +199,10 @@ func (p *Paragraph) HasContent() bool {
 	return len(p.RawXMLElements) > 0
 }
 
-// MarshalXML custom serializes a Paragraph, emitting properties, runs, then raw elements.
+// MarshalXML custom serializes a Paragraph, emitting properties then content.
+// When OrderedContent is populated (from parsed documents), it preserves the original
+// interleaving of runs, bookmarks, comment ranges, and SDTs. Otherwise falls back
+// to emitting Runs then RawXMLElements (for programmatically-created paragraphs).
 func (p *Paragraph) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 	start.Name = xml.Name{Local: "w:p"}
 	if err := e.EncodeToken(start); err != nil {
@@ -204,17 +216,31 @@ func (p *Paragraph) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 		}
 	}
 
-	// Emit runs
-	for i := range p.Runs {
-		if err := e.EncodeElement(&p.Runs[i], xml.StartElement{Name: xml.Name{Local: "w:r"}}); err != nil {
-			return err
+	if len(p.OrderedContent) > 0 {
+		// Parsed document path: emit content in original interleaved order
+		for _, item := range p.OrderedContent {
+			switch el := item.(type) {
+			case *Run:
+				if err := e.EncodeElement(el, xml.StartElement{Name: xml.Name{Local: "w:r"}}); err != nil {
+					return err
+				}
+			case *RawXMLElement:
+				if err := e.Encode(el); err != nil {
+					return err
+				}
+			}
 		}
-	}
-
-	// Emit preserved raw XML elements (bookmarks, etc.)
-	for _, raw := range p.RawXMLElements {
-		if err := e.Encode(raw); err != nil {
-			return err
+	} else {
+		// Programmatic path: emit runs then raw elements
+		for i := range p.Runs {
+			if err := e.EncodeElement(&p.Runs[i], xml.StartElement{Name: xml.Name{Local: "w:r"}}); err != nil {
+				return err
+			}
+		}
+		for _, raw := range p.RawXMLElements {
+			if err := e.Encode(raw); err != nil {
+				return err
+			}
 		}
 	}
 
@@ -2531,6 +2557,7 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 				}
 				if run != nil {
 					paragraph.Runs = append(paragraph.Runs, *run)
+					paragraph.OrderedContent = append(paragraph.OrderedContent, run)
 				}
 			default:
 				// Capture ALL other paragraph-level elements as raw XML for round-trip
@@ -2541,6 +2568,7 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 					return nil, err
 				}
 				paragraph.RawXMLElements = append(paragraph.RawXMLElements, raw)
+				paragraph.OrderedContent = append(paragraph.OrderedContent, raw)
 			}
 		case xml.EndElement:
 			if t.Name.Local == "p" {
@@ -3722,9 +3750,20 @@ func (d *Document) serializeRelationships() {
 	d.parts["_rels/.rels"] = append([]byte(xml.Header), data...)
 }
 
-// serializeDocumentRelationships serializes document relationships
+// serializeDocumentRelationships serializes document relationships.
+// For documents opened from templates, the original rels file is preserved in d.parts
+// and only dynamically-added relationships are appended. This avoids creating duplicate
+// rId entries which trigger Word's "unreadable content" dialog.
+// For new documents, the rels file is built from scratch.
 func (d *Document) serializeDocumentRelationships() {
-	// Start with styles.xml as rId1 (always present, filtered during load to avoid duplicates)
+	// Check if we have an original rels file from a template AND any new relationships to add.
+	// The originalDocRelsCount tracks how many relationships came from the template.
+	if d.originalDocRelsData != nil {
+		d.appendNewRelationships()
+		return
+	}
+
+	// New document: build from scratch with styles.xml as rId1
 	relationships := []Relationship{
 		{
 			ID:     "rId1",
@@ -3733,10 +3772,9 @@ func (d *Document) serializeDocumentRelationships() {
 		},
 	}
 
-	// Add all document-level relationships (template originals + dynamically added)
+	// Add all dynamically-added relationships
 	relationships = append(relationships, d.documentRelationships.Relationships...)
 
-	// Create document relationships
 	docRels := &Relationships{
 		Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
 		Relationships: relationships,
@@ -3744,6 +3782,49 @@ func (d *Document) serializeDocumentRelationships() {
 
 	data, _ := xml.MarshalIndent(docRels, "", "  ")
 	d.parts["word/_rels/document.xml.rels"] = append([]byte(xml.Header), data...)
+}
+
+// appendNewRelationships appends dynamically-added relationships to the original template rels file
+// using etree to preserve the original XML structure and avoid duplicate rId entries.
+func (d *Document) appendNewRelationships() {
+	doc := etree.NewDocument()
+	if err := doc.ReadFromBytes(d.originalDocRelsData); err != nil {
+		// Fallback: store original as-is
+		d.parts["word/_rels/document.xml.rels"] = d.originalDocRelsData
+		return
+	}
+
+	root := doc.Root()
+	if root == nil {
+		d.parts["word/_rels/document.xml.rels"] = d.originalDocRelsData
+		return
+	}
+
+	// Build a set of existing targets to avoid duplicates
+	existingTargets := make(map[string]bool)
+	for _, child := range root.ChildElements() {
+		if target := child.SelectAttrValue("Target", ""); target != "" {
+			existingTargets[target] = true
+		}
+	}
+
+	// Append only relationships that don't already exist in the original
+	for _, rel := range d.documentRelationships.Relationships {
+		if existingTargets[rel.Target] {
+			continue
+		}
+		el := root.CreateElement("Relationship")
+		el.CreateAttr("Id", rel.ID)
+		el.CreateAttr("Type", rel.Type)
+		el.CreateAttr("Target", rel.Target)
+	}
+
+	data, err := doc.WriteToBytes()
+	if err != nil {
+		d.parts["word/_rels/document.xml.rels"] = d.originalDocRelsData
+		return
+	}
+	d.parts["word/_rels/document.xml.rels"] = data
 }
 
 // serializeStyles serializes styles
@@ -3877,22 +3958,21 @@ func (d *Document) parseDocumentRelationships() error {
 		return nil
 	}
 
-	// Parse XML
+	// Preserve the original rels data for verbatim round-trip.
+	// serializeDocumentRelationships() will append new relationships to this
+	// rather than regenerating from scratch (which created duplicate rId entries).
+	d.originalDocRelsData = make([]byte, len(docRelsData))
+	copy(d.originalDocRelsData, docRelsData)
+
+	// Parse XML to extract relationships for internal use (image lookups, etc.)
 	var relationships Relationships
 	if err := xml.Unmarshal(docRelsData, &relationships); err != nil {
 		return WrapError("parse_document_relationships", err)
 	}
 
-	// Save parsed relationships, filtering out styles.xml since it's auto-added
-	// in serializeDocumentRelationships() as rId1 to ensure Word can always find it.
-	filteredRels := make([]Relationship, 0, len(relationships.Relationships))
-	for _, rel := range relationships.Relationships {
-		if rel.Target != "styles.xml" {
-			filteredRels = append(filteredRels, rel)
-		}
-	}
-	d.documentRelationships.Relationships = filteredRels
-	DebugMsgf(MsgDocumentRelationshipsParsed, len(filteredRels))
+	// Store all relationships (no filtering needed since we preserve the original rels file)
+	d.documentRelationships.Relationships = relationships.Relationships
+	DebugMsgf(MsgDocumentRelationshipsParsed, len(relationships.Relationships))
 	return nil
 }
 
