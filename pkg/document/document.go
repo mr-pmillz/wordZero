@@ -404,10 +404,16 @@ func (r *Run) MarshalXML(e *xml.Encoder, start xml.StartElement) error {
 		}
 	}
 
-	// Serialize Text (only when it has content)
-	// This is a key fix: avoid serializing empty Text elements
-	if r.Text.Content != "" {
-		if err := e.EncodeElement(r.Text, xml.StartElement{Name: xml.Name{Local: "w:t"}}); err != nil {
+	// Serialize Text — emit xml:space="preserve" when content has leading/trailing whitespace
+	if r.Text.Content != "" || r.Text.Space == "preserve" {
+		tStart := xml.StartElement{Name: xml.Name{Local: "w:t"}}
+		if r.Text.Space == "preserve" || strings.ContainsAny(r.Text.Content, " \t\n\r") {
+			tStart.Attr = append(tStart.Attr, xml.Attr{
+				Name:  xml.Name{Local: "xml:space"},
+				Value: "preserve",
+			})
+		}
+		if err := e.EncodeElement(r.Text, tStart); err != nil {
 			return err
 		}
 	}
@@ -2557,7 +2563,10 @@ func (d *Document) parseParagraph(decoder *xml.Decoder, startElement xml.StartEl
 				}
 				if run != nil {
 					paragraph.Runs = append(paragraph.Runs, *run)
-					paragraph.OrderedContent = append(paragraph.OrderedContent, run)
+					// Point OrderedContent to the Runs slice element so modifications
+					// to p.Runs[i] (e.g., template replacements) are reflected in
+					// MarshalXML output which serializes from OrderedContent.
+					paragraph.OrderedContent = append(paragraph.OrderedContent, &paragraph.Runs[len(paragraph.Runs)-1])
 				}
 			default:
 				// Capture ALL other paragraph-level elements as raw XML for round-trip
