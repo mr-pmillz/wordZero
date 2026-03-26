@@ -2,6 +2,43 @@
 
 All notable changes to this project will be documented [here](https://github.com/mr-pmillz/wordZero/blob/main/CHANGELOG.md?ref_type=heads)
 
+## [1.7.8](https://github.com/mr-pmillz/wordZero/compare/v1.7.7...v1.7.8) - 2026-03-26
+
+### 🐛 Bug fixes
+
+- Fix: preserve paragraph content interleaving and fix drawing/rels issues - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+- Fix: parse missing drawing elements and fix xml:space attribute - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+
+### 📚 Documentation
+
+- Docs: update CLAUDE.md with paragraph interleaving and rels preservation gotchas - ([cd233c2](https://github.com/mr-pmillz/wordZero/commit/cd233c29503776f3e07e4656607902dc474fba1b))
+-   documents. Previously these were split into separate Runs and - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+
+### ⚙️ Miscellaneous
+
+- - Add OrderedContent field to Paragraph that preserves the original - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+-   interleaving of runs, comment ranges, bookmarks, and SDTs from parsed - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+-   RawXMLElements lists, pushing comment ranges/SDTs after all runs — - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+-   this was the root cause of Word's "unreadable content" dialog. - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+- - Preserve original document.xml.rels verbatim for template documents, - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+-   appending only new relationships. Eliminates the duplicate rId1 that - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+-   was created by always prepending styles.xml as rId1. - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+- - Parse wp:simplePos, wp:positionH, wp:positionV, wp:effectExtent, and - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+-   wp:cNvGraphicFramePr in anchor/inline drawing parsers (were silently - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+-   discarded, causing schema validation failures). - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+- - Add xml: namespace URI to defaultOOXMLNamespaces so xml:space attribute - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+-   is preserved correctly on instrText elements in captured raw XML. - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+- - Add EffectExtent and CNvGraphicFramePr fields to InlineDrawing struct. - ([2f6b405](https://github.com/mr-pmillz/wordZero/commit/2f6b405a7ef5b42b4cf0355e3c824a7bf45af8ca))
+- - Parse wp:simplePos, wp:positionH, wp:positionV in parseAnchorDrawing() - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+-   (were silently discarded via skipElement, causing "unreadable content") - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+- - Parse wp:effectExtent and wp:cNvGraphicFramePr in both anchor and inline - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+-   drawing parsers (struct fields existed but were never populated) - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+- - Add EffectExtent and CNvGraphicFramePr fields to InlineDrawing struct - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+- - Add xml: namespace URI to defaultOOXMLNamespaces so captureElement() - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+-   correctly preserves xml:space="preserve" on instrText elements - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+- - Add parseDrawingPosition(), parseCNvGraphicFramePr() helper functions - ([b252655](https://github.com/mr-pmillz/wordZero/commit/b252655f450abf4cf68fe78700d42e033396c977))
+- Chore: update changelog for v1.7.7 - ([e117b5b](https://github.com/mr-pmillz/wordZero/commit/e117b5b8d64ff33fa8e60ef0b57f3ed59d6729d7))
+
 ## [1.7.7](https://github.com/mr-pmillz/wordZero/compare/v1.7.6...v1.7.7) - 2026-03-26
 
 ### 🐛 Bug fixes
