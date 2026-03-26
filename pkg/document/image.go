@@ -93,14 +93,16 @@ type DrawingElement struct {
 
 // InlineDrawing represents an inline drawing element.
 type InlineDrawing struct {
-	XMLName xml.Name        `xml:"wp:inline"`
-	DistT   string          `xml:"distT,attr,omitempty"`
-	DistB   string          `xml:"distB,attr,omitempty"`
-	DistL   string          `xml:"distL,attr,omitempty"`
-	DistR   string          `xml:"distR,attr,omitempty"`
-	Extent  *DrawingExtent  `xml:"wp:extent"`
-	DocPr   *DrawingDocPr   `xml:"wp:docPr"`
-	Graphic *DrawingGraphic `xml:"a:graphic"`
+	XMLName           xml.Name           `xml:"wp:inline"`
+	DistT             string             `xml:"distT,attr,omitempty"`
+	DistB             string             `xml:"distB,attr,omitempty"`
+	DistL             string             `xml:"distL,attr,omitempty"`
+	DistR             string             `xml:"distR,attr,omitempty"`
+	Extent            *DrawingExtent     `xml:"wp:extent"`
+	EffectExtent      *EffectExtent      `xml:"wp:effectExtent,omitempty"`
+	DocPr             *DrawingDocPr      `xml:"wp:docPr"`
+	CNvGraphicFramePr *CNvGraphicFramePr `xml:"wp:cNvGraphicFramePr,omitempty"`
+	Graphic           *DrawingGraphic    `xml:"a:graphic"`
 }
 
 // AnchorDrawing represents a floating (anchored) drawing element.

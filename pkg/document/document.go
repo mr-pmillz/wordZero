@@ -27,10 +27,11 @@ const (
 	xmlAttrDistB    = "distB"
 	xmlAttrDistL    = "distL"
 	xmlAttrDistR    = "distR"
-	xmlAttrName     = "name"
-	xmlAttrDescr    = "descr"
-	xmlAttrTitle    = "title"
-	xmlNsPrefix     = "xmlns" // XML namespace declaration prefix
+	xmlAttrName              = "name"
+	xmlAttrDescr             = "descr"
+	xmlAttrTitle             = "title"
+	xmlNsPrefix              = "xmlns" // XML namespace declaration prefix
+	xmlElemCNvGraphicFramePr = "cNvGraphicFramePr"
 )
 
 // Document represents a Word document
@@ -948,6 +949,7 @@ var defaultOOXMLNamespaces = map[string]string{
 	"http://schemas.microsoft.com/office/word/2010/wordprocessingShape":      "wps",
 	"http://schemas.microsoft.com/office/word/2010/wordprocessingInk":        "wpi",
 	"http://schemas.microsoft.com/office/word/2010/wordprocessingCanvas":     "wpc",
+	"http://www.w3.org/XML/1998/namespace":                                   "xml",
 }
 
 // parseNamespaceMap extracts xmlns:prefix="uri" declarations from the root element
@@ -4527,6 +4529,30 @@ func (d *Document) parseInlineDrawing(decoder *xml.Decoder, startElement xml.Sta
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
+			case "effectExtent":
+				ee := &EffectExtent{}
+				for _, attr := range t.Attr {
+					switch attr.Name.Local {
+					case "l":
+						ee.L = attr.Value
+					case "t":
+						ee.T = attr.Value
+					case "r":
+						ee.R = attr.Value
+					case "b":
+						ee.B = attr.Value
+					}
+				}
+				inline.EffectExtent = ee
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case xmlElemCNvGraphicFramePr:
+				cnv := &CNvGraphicFramePr{}
+				if err := d.parseCNvGraphicFramePr(decoder, cnv); err != nil {
+					return nil, err
+				}
+				inline.CNvGraphicFramePr = cnv
 			case xmlElemGraphic:
 				graphic, err := d.parseDrawingGraphic(decoder, t)
 				if err != nil {
@@ -4587,6 +4613,40 @@ func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.Sta
 		switch t := token.(type) {
 		case xml.StartElement:
 			switch t.Name.Local {
+			case "simplePos":
+				sp := &SimplePosition{}
+				for _, attr := range t.Attr {
+					switch attr.Name.Local {
+					case "x":
+						sp.X = attr.Value
+					case "y":
+						sp.Y = attr.Value
+					}
+				}
+				anchor.SimplePosition = sp
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "positionH":
+				ph, err := d.parseDrawingPosition(decoder, t)
+				if err != nil {
+					return nil, err
+				}
+				anchor.PositionH = &HorizontalPosition{
+					RelativeFrom: ph.relativeFrom,
+					Align:        ph.align,
+					PosOffset:    ph.posOffset,
+				}
+			case "positionV":
+				pv, err := d.parseDrawingPosition(decoder, t)
+				if err != nil {
+					return nil, err
+				}
+				anchor.PositionV = &VerticalPosition{
+					RelativeFrom: pv.relativeFrom,
+					Align:        pv.align,
+					PosOffset:    pv.posOffset,
+				}
 			case "extent":
 				extent := &DrawingExtent{}
 				for _, attr := range t.Attr {
@@ -4598,6 +4658,24 @@ func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.Sta
 					}
 				}
 				anchor.Extent = extent
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return nil, err
+				}
+			case "effectExtent":
+				ee := &EffectExtent{}
+				for _, attr := range t.Attr {
+					switch attr.Name.Local {
+					case "l":
+						ee.L = attr.Value
+					case "t":
+						ee.T = attr.Value
+					case "r":
+						ee.R = attr.Value
+					case "b":
+						ee.B = attr.Value
+					}
+				}
+				anchor.EffectExtent = ee
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
@@ -4619,6 +4697,13 @@ func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.Sta
 				if err := d.skipElement(decoder, t.Name.Local); err != nil {
 					return nil, err
 				}
+			case xmlElemCNvGraphicFramePr:
+				cnv := &CNvGraphicFramePr{}
+				// Parse inner graphicFrameLocks if present
+				if err := d.parseCNvGraphicFramePr(decoder, cnv); err != nil {
+					return nil, err
+				}
+				anchor.CNvGraphicFramePr = cnv
 			case xmlElemGraphic:
 				graphic, err := d.parseDrawingGraphic(decoder, t)
 				if err != nil {
@@ -4658,6 +4743,98 @@ func (d *Document) parseAnchorDrawing(decoder *xml.Decoder, startElement xml.Sta
 		case xml.EndElement:
 			if t.Name.Local == "anchor" {
 				return anchor, nil
+			}
+		}
+	}
+}
+
+// drawingPositionResult holds parsed position data for both horizontal and vertical positions.
+type drawingPositionResult struct {
+	relativeFrom string
+	align        *PosAlign
+	posOffset    *PosOffset
+}
+
+// parseDrawingPosition parses a wp:positionH or wp:positionV element.
+// The start element has already been consumed by the caller's switch.
+func (d *Document) parseDrawingPosition(decoder *xml.Decoder, start xml.StartElement) (*drawingPositionResult, error) {
+	result := &drawingPositionResult{}
+	for _, attr := range start.Attr {
+		if attr.Name.Local == "relativeFrom" {
+			result.relativeFrom = attr.Value
+		}
+	}
+	return result, d.parseDrawingPositionChildren(decoder, result, start.Name.Local)
+}
+
+func (d *Document) parseDrawingPositionChildren(decoder *xml.Decoder, result *drawingPositionResult, elementName string) error {
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			return WrapError("parse_drawing_position", err)
+		}
+		switch t := token.(type) {
+		case xml.StartElement:
+			switch t.Name.Local {
+			case "align":
+				content, err := d.readElementText(decoder, "align")
+				if err != nil {
+					return err
+				}
+				result.align = &PosAlign{Value: content}
+			case "posOffset":
+				content, err := d.readElementText(decoder, "posOffset")
+				if err != nil {
+					return err
+				}
+				result.posOffset = &PosOffset{Value: content}
+			default:
+				if err := d.skipElement(decoder, t.Name.Local); err != nil {
+					return err
+				}
+			}
+		case xml.EndElement:
+			if t.Name.Local == elementName {
+				return nil
+			}
+		}
+	}
+}
+
+// parseGraphicFrameLocks parses attributes from a graphicFrameLocks element.
+func parseGraphicFrameLocks(attrs []xml.Attr) *GraphicFrameLocks {
+	gfl := &GraphicFrameLocks{}
+	for _, attr := range attrs {
+		switch {
+		case attr.Name.Local == "noChangeAspect":
+			gfl.NoChangeAspect = attr.Value
+		case attr.Name.Local == "noCrop":
+			gfl.NoCrop = attr.Value
+		case attr.Name.Space == xmlNsPrefix && attr.Name.Local == "a":
+			gfl.Xmlns = attr.Value
+		}
+	}
+	return gfl
+}
+
+// parseCNvGraphicFramePr parses a wp:cNvGraphicFramePr element with optional inner graphicFrameLocks.
+func (d *Document) parseCNvGraphicFramePr(decoder *xml.Decoder, cnv *CNvGraphicFramePr) error {
+	for {
+		token, err := decoder.Token()
+		if err != nil {
+			return WrapError("parse_cnv_graphic_frame_pr", err)
+		}
+		switch t := token.(type) {
+		case xml.StartElement:
+			if t.Name.Local == "graphicFrameLocks" {
+				cnv.GraphicFrameLocks = parseGraphicFrameLocks(t.Attr)
+			}
+			if err := d.skipElement(decoder, t.Name.Local); err != nil {
+				return err
+			}
+		case xml.EndElement:
+			if t.Name.Local == xmlElemCNvGraphicFramePr {
+				return nil
 			}
 		}
 	}
