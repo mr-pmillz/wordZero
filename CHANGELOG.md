@@ -2,6 +2,99 @@
 
 All notable changes to this project will be documented [here](https://github.com/mr-pmillz/wordZero/blob/main/CHANGELOG.md?ref_type=heads)
 
+## [1.7.7](https://github.com/mr-pmillz/wordZero/compare/v1.7.6...v1.7.7) - 2026-03-26
+
+### 🐛 Bug fixes
+
+- Fix: resolve golangci-lint issues in document.go - ([69b7eaf](https://github.com/mr-pmillz/wordZero/commit/69b7eafbd4fb2befa6a9244eef57e8f9d4c5f3ac))
+
+### ⚙️ Miscellaneous
+
+- - Extract xmlNsPrefix constant for repeated "xmlns" string (goconst) - ([69b7eaf](https://github.com/mr-pmillz/wordZero/commit/69b7eafbd4fb2befa6a9244eef57e8f9d4c5f3ac))
+- - Extract writeAttr() helper with switch statement (gocritic) - ([69b7eaf](https://github.com/mr-pmillz/wordZero/commit/69b7eafbd4fb2befa6a9244eef57e8f9d4c5f3ac))
+- - Reduce RunProperties.MarshalXML complexity with table-driven - ([69b7eaf](https://github.com/mr-pmillz/wordZero/commit/69b7eafbd4fb2befa6a9244eef57e8f9d4c5f3ac))
+-   encodeOptionalElement() helper using reflect (gocognit) - ([69b7eaf](https://github.com/mr-pmillz/wordZero/commit/69b7eafbd4fb2befa6a9244eef57e8f9d4c5f3ac))
+
+## [1.7.6](https://github.com/mr-pmillz/wordZero/compare/v1.7.5...v1.7.6) - 2026-03-25
+
+### ✨: New features
+
+- Feat: replace encoding/xml with etree for document.xml serialization - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+
+### 🐛 Bug fixes
+
+- Fix: preserve namespace prefixes, footnotes, run properties, and paragraph attrs - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+- Fix: bypass Go encoding/xml namespace expansion for RawXMLElements - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- Fix: correct OOXML element ordering in sectPr, tblPr, pPr and skip trash files - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+
+### ⚙️ Miscellaneous
+
+- - Add defaultOOXMLNamespaces map with well-known OOXML namespace→prefix - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+-   mappings (a:, pic:, wp14:, w14:, etc.) so captureElement() correctly - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+-   reconstructs prefixes for namespaces declared on inner elements - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+- - Fix xmlns: attribute corruption in writeStartTag()/buildRawElementXML() - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+-   where xmlns:a="..." was output as a="..." (caused document corruption) - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+- - Rewrite footnotes.go to use etree for parseExistingNotes(), - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+-   initializeNotes(), and updateNotesFile() — eliminates Go encoding/xml - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+-   namespace expansion in footnotes.xml and endnotes.xml - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+- - Capture unknown run property elements (w14:textFill, w14:ligatures, etc.) - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+-   via RawXMLContent on RunProperties with custom MarshalXML - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+- - Preserve paragraph attributes (w14:paraId, w14:textId, w:rsidR, etc.) - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+-   via RawAttrs applied directly to etree elements, bypassing encoding/xml - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+- - Document rId relationship gotcha and namespace patterns in CLAUDE.md - ([ed1446f](https://github.com/mr-pmillz/wordZero/commit/ed1446faffd4d3a26e26979dca1e384f72116e98))
+- Go's encoding/xml fundamentally cannot preserve namespace prefixes during - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Round-trip — it expands w:bookmarkStart into <bookmarkStart xmlns="...">, - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Producing 1000+ invalid elements that trigger Word's "unreadable content" - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Dialog. - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Replace the document.xml serialization path with github.com/beevik/etree - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Which preserves namespace prefixes natively: - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- - serializeDocument() now parses the template's original document.xml - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+-   into an etree document (preserving ALL namespace declarations and - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+-   attributes from the root element), replaces the body content with - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+-   our modified elements, and writes back with etree - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- - RawXMLElements (hyperlinks, bookmarks, SDTs, comments) are parsed - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+-   directly into etree from their OuterXML, preserving all prefixes - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- - Struct-based elements (paragraphs, tables) are marshaled via - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+-   encoding/xml then parsed into etree subtrees - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- - SectionProperties are placed last in body per OOXML spec - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- - Image transparency (alphaModFix) preserved through etree's native - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+-   namespace handling - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Result: 0 expanded xmlns elements, all prefixes preserved, template - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Namespace declarations intact. - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([c23a681](https://github.com/mr-pmillz/wordZero/commit/c23a681b18e7ee4601d15e136ca9d52450e97a2e))
+- Go's encoding/xml expands namespace prefixes into full xmlns= declarations - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- On every element it serializes. This caused 1000+ elements like - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- <bookmarkStart xmlns="http://..."> instead of <w:bookmarkStart>, which - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- Word interprets as wrong-namespace elements, triggering "unreadable content." - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- Three-part fix: - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- 1. Parse namespace map from raw document.xml bytes before Go's decoder - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+-    strips xmlns declarations. Maps URI to prefix (e.g., "http://...main" -> "w") - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- 2. captureElement() now builds complete raw XML strings with proper - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+-    namespace prefixes using writeStartTag/writeEndTag helpers, instead - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+-    of re-encoding through Go's xml.Encoder which expands namespaces - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- 3. serializeDocument() strips _raw wrapper tags from MarshalXML output - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+-    and injects template namespace declarations into the root element - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+-    so preserved raw XML content can reference prefixes like w14:, wp14: - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- Result: 0 expanded xmlns elements (was 1006), all preserved elements - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- Use proper w:, wp:, a:, etc. prefixes matching the original template. - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([e1870e0](https://github.com/mr-pmillz/wordZero/commit/e1870e02effc1409541005d40a3a33d9ebed8aea))
+- Using the docx-skill validate.py tool, identified 4 schema violations - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- That cause Word's "unreadable content" dialog: - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- 1. SectionProperties (page.go): w:type was after w:docGrid but OOXML - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+-    §17.6.17 requires it after footerReference, before pgSz. Also fixed - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+-    pgNumType/titlePg ordering. - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- 2. TableProperties (table.go): tblStyle was after tblW but OOXML §17.4.60 - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+-    requires it first. tblBorders was after tblLook but must come before. - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- 3. ParagraphProperties (document.go): keepNext/keepLines/pageBreakBefore/ - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+-    widowControl were after jc but OOXML §17.3.1.26 requires them right - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+-    after pStyle. - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- 4. Skip [trash]/ files during ZIP write in Save() and ToBytes(). Templates - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+-    may contain Word's internal trash files which are flagged as unreferenced. - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- Go's encoding/xml marshals struct fields in declaration order, so - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- Reordering the struct fields fixes the XML element ordering. - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- Co-Authored-By: Claude Opus 4.6 (1M context) <noreply@anthropic.com> - ([4a45972](https://github.com/mr-pmillz/wordZero/commit/4a45972c35271f6a71e9676d26109c90db5e48d0))
+- Chore: update changelog for v1.7.5 - ([e0f750e](https://github.com/mr-pmillz/wordZero/commit/e0f750e0a795830f90f10de4702d92a808b4ae88))
+
 ## [1.7.5](https://github.com/mr-pmillz/wordZero/compare/v1.7.4...v1.7.5) - 2026-03-25
 
 ### ✨ New features
