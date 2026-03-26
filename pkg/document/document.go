@@ -3660,7 +3660,9 @@ func (d *Document) serializeDocument() error {
 	}
 
 	// Write the complete tree to bytes
-	etreeDoc.Indent(2)
+	// NOTE: Do NOT call etreeDoc.Indent() here — it strips whitespace-only text nodes
+	// (e.g., <w:t xml:space="preserve"> </w:t> becomes <w:t xml:space="preserve"/>),
+	// which corrupts inter-word spacing in the document.
 	data, err := etreeDoc.WriteToBytes()
 	if err != nil {
 		ErrorMsgf(MsgXMLSerializationFailed, err)

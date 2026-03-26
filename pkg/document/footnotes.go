@@ -584,7 +584,7 @@ func (d *Document) initializeNotes(noteType FootnoteType) {
 	contR := contP.CreateElement("w:r")
 	contR.CreateElement("w:continuationSeparator")
 
-	doc.Indent(2)
+	// NOTE: Do NOT call doc.Indent() — it strips whitespace-only text nodes
 	xmlBytes, err := doc.WriteToBytes()
 	if err != nil {
 		return
@@ -770,7 +770,7 @@ func (d *Document) updateNotesFile(noteType FootnoteType) {
 		}
 	}
 
-	doc.Indent(2)
+	// NOTE: Do NOT call doc.Indent() — it strips whitespace-only text nodes
 	outBytes, err := doc.WriteToBytes()
 	if err != nil {
 		return
