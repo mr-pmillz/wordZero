@@ -536,3 +536,97 @@ func TestImageParagraphAlignment(t *testing.T) {
 		t.Error("image alignment modification failed")
 	}
 }
+
+func TestAddImageFromDataAutoDetectDimensions(t *testing.T) {
+	doc := New()
+	testImage := createTestImage(200, 100)
+
+	imageInfo, err := doc.AddImageFromData(testImage, "test.png", ImageFormatPNG, 0, 0, nil)
+	if err != nil {
+		t.Fatalf("AddImageFromData with 0,0 dimensions failed: %v", err)
+	}
+
+	if imageInfo.Width != 200 {
+		t.Errorf("expected auto-detected width 200, got %d", imageInfo.Width)
+	}
+	if imageInfo.Height != 100 {
+		t.Errorf("expected auto-detected height 100, got %d", imageInfo.Height)
+	}
+}
+
+func TestAddImageFromDataWithoutElementAutoDetectDimensions(t *testing.T) {
+	doc := New()
+	testImage := createTestImage(300, 150)
+
+	imageInfo, err := doc.AddImageFromDataWithoutElement(testImage, "test.png", ImageFormatPNG, 0, 0, nil)
+	if err != nil {
+		t.Fatalf("AddImageFromDataWithoutElement with 0,0 dimensions failed: %v", err)
+	}
+
+	if imageInfo.Width != 300 {
+		t.Errorf("expected auto-detected width 300, got %d", imageInfo.Width)
+	}
+	if imageInfo.Height != 150 {
+		t.Errorf("expected auto-detected height 150, got %d", imageInfo.Height)
+	}
+}
+
+func TestCalculateDisplaySizeZeroDimensionsNoOverflow(t *testing.T) {
+	doc := New()
+
+	// Simulate the scenario that caused the bug: zero dimensions with KeepAspectRatio
+	imageInfo := &ImageInfo{
+		Width:  0,
+		Height: 0,
+		Config: &ImageConfig{
+			Size: &ImageSize{
+				Width:           176.0,
+				KeepAspectRatio: true,
+			},
+		},
+	}
+
+	displayWidth, displayHeight := doc.calculateDisplaySize(imageInfo)
+
+	if displayWidth <= 0 {
+		t.Errorf("displayWidth should be positive, got %d", displayWidth)
+	}
+	if displayHeight <= 0 {
+		t.Errorf("displayHeight should be positive (not math.MinInt64), got %d", displayHeight)
+	}
+}
+
+func TestAddImageFromDataZeroDimsProducesValidDoc(t *testing.T) {
+	doc := New()
+	testImage := createTestImage(400, 200)
+
+	_, err := doc.AddImageFromData(testImage, "screenshot.png", ImageFormatPNG, 0, 0, &ImageConfig{
+		Position:  ImagePositionInline,
+		Alignment: AlignCenter,
+		Size: &ImageSize{
+			Width:           176.0,
+			KeepAspectRatio: true,
+		},
+		AltText: "Test screenshot",
+		Title:   "Test screenshot",
+	})
+	if err != nil {
+		t.Fatalf("AddImageFromData failed: %v", err)
+	}
+
+	// Save and verify the document is valid
+	tmpFile := t.TempDir() + "/test_zero_dims.docx"
+	err = doc.Save(tmpFile)
+	if err != nil {
+		t.Fatalf("failed to save document: %v", err)
+	}
+
+	// Verify file was created
+	info, err := os.Stat(tmpFile)
+	if err != nil {
+		t.Fatalf("saved file not found: %v", err)
+	}
+	if info.Size() == 0 {
+		t.Fatal("saved file is empty")
+	}
+}

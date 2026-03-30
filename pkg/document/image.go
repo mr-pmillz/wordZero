@@ -446,12 +446,23 @@ func generateSafeImageFileName(imageID int, originalFileName string, format Imag
 }
 
 // AddImageFromData adds an image to the document from binary data.
+// When width and height are both 0, dimensions are auto-detected from the image data.
 func (d *Document) AddImageFromData(imageData []byte, fileName string, format ImageFormat, width, height int, config *ImageConfig) (*ImageInfo, error) {
 	if d.documentRelationships == nil {
 		d.documentRelationships = &Relationships{
 			Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
 			Relationships: []Relationship{},
 		}
+	}
+
+	// Auto-detect dimensions from image data when caller passes 0, 0
+	if width == 0 && height == 0 {
+		detectedW, detectedH, err := getImageDimensions(imageData, format)
+		if err != nil {
+			return nil, fmt.Errorf("failed to auto-detect image dimensions: %w", err)
+		}
+		width = detectedW
+		height = detectedH
 	}
 
 	// Use the document-level image ID counter to ensure ID uniqueness
@@ -500,12 +511,23 @@ func (d *Document) AddImageFromData(imageData []byte, fileName string, format Im
 
 // AddImageFromDataWithoutElement adds an image to the document from binary data without creating a paragraph element.
 // This method is used by the template engine and other scenarios that manage image paragraphs themselves.
+// When width and height are both 0, dimensions are auto-detected from the image data.
 func (d *Document) AddImageFromDataWithoutElement(imageData []byte, fileName string, format ImageFormat, width, height int, config *ImageConfig) (*ImageInfo, error) {
 	if d.documentRelationships == nil {
 		d.documentRelationships = &Relationships{
 			Xmlns:         "http://schemas.openxmlformats.org/package/2006/relationships",
 			Relationships: []Relationship{},
 		}
+	}
+
+	// Auto-detect dimensions from image data when caller passes 0, 0
+	if width == 0 && height == 0 {
+		detectedW, detectedH, err := getImageDimensions(imageData, format)
+		if err != nil {
+			return nil, fmt.Errorf("failed to auto-detect image dimensions: %w", err)
+		}
+		width = detectedW
+		height = detectedH
 	}
 
 	// Use the document-level image ID counter to ensure ID uniqueness
@@ -871,6 +893,14 @@ func (d *Document) calculateDisplaySize(imageInfo *ImageInfo) (int64, int64) {
 	config := imageInfo.Config
 	originalWidth := int64(imageInfo.Width)
 	originalHeight := int64(imageInfo.Height)
+
+	// Guard against zero dimensions that would produce NaN in aspect-ratio calculations
+	if originalWidth == 0 {
+		originalWidth = 1
+	}
+	if originalHeight == 0 {
+		originalHeight = 1
+	}
 
 	// Default to original size (96 DPI)
 	// 1 pixel = 9525 EMU (at 96 DPI)
