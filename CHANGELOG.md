@@ -2,6 +2,24 @@
 
 All notable changes to this project will be documented [here](https://github.com/mr-pmillz/wordZero/blob/main/CHANGELOG.md?ref_type=heads)
 
+## [1.7.10](https://github.com/mr-pmillz/wordZero/compare/v1.7.9...v1.7.10) - 2026-03-30
+
+### 🐛 Bug fixes
+
+- Fix: auto-detect image dimensions in AddImageFromData when width/height are 0 - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+
+### ⚙️ Miscellaneous
+
+- AddImageFromData() and AddImageFromDataWithoutElement() now call - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+- GetImageDimensions() when both width and height are 0, matching the - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+- Behavior of AddImageFromFile(). Previously, passing 0,0 caused - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+- CalculateDisplaySize() to compute float64(0)/float64(0) = NaN, and - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+- Int64(NaN) = math.MinInt64, producing cy="-9223372036854775808" in - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+- The OOXML extent element — corrupting the document for Word. - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+- Also adds a defensive guard in calculateDisplaySize() to clamp zero - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+- Dimensions to 1, preventing NaN/overflow if dimensions are ever zero. - ([73b1d1f](https://github.com/mr-pmillz/wordZero/commit/73b1d1f3078b0872e4fe560fc6c4a5769206c3cb))
+- Chore: update changelog for v1.7.9 - ([9a05851](https://github.com/mr-pmillz/wordZero/commit/9a0585138d0a7d59dd7bb8c06d9b49e699c24131))
+
 ## [1.7.9](https://github.com/mr-pmillz/wordZero/compare/v1.7.8...v1.7.9) - 2026-03-26
 
 ### 🐛 Bug fixes
